@@ -18,6 +18,9 @@ Hello World!
 ```
 
 use LLVM
+Install example:
+WASI_SDK_PATH=/home/oligami_dev/rust/wasi-sdk-22.0 WASI_SYSROOT=/home/oligami_dev/rust/wasi-sdk-22.0/share/wasi-sysroot WASI_CLANG_WRAPPER_LINKER="/home/oligami_dev/rust/wrapper_linker_clang++.sh" ./x.py install
+
 If you just want to run it, https://github.com/oligamiq/rust_wasm/tree/main/rustc_llvm
 ```
 $ mkdir tmp
