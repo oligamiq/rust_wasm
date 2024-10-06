@@ -1,3 +1,42 @@
+install: uninstalling component 'rustc'
+install: removing file /home/oligami_dev/rust_with_lld/dist/bin/rust-gdb
+$ rm -f /home/oligami_dev/rust_with_lld/dist/bin/rust-gdb
+install: removing file /home/oligami_dev/rust_with_lld/dist/bin/rust-gdbgui
+$ rm -f /home/oligami_dev/rust_with_lld/dist/bin/rust-gdbgui
+install: removing file /home/oligami_dev/rust_with_lld/dist/bin/rust-lldb
+$ rm -f /home/oligami_dev/rust_with_lld/dist/bin/rust-lldb
+install: removing file /home/oligami_dev/rust_with_lld/dist/bin/rustc.wasm
+$ rm -f /home/oligami_dev/rust_with_lld/dist/bin/rustc.wasm
+install: removing file /home/oligami_dev/rust_with_lld/dist/lib/rustlib/etc/gdb_load_rust_pretty_printers.py
+$ rm -f /home/oligami_dev/rust_with_lld/dist/lib/rustlib/etc/gdb_load_rust_pretty_printers.py
+install: removing file /home/oligami_dev/rust_with_lld/dist/lib/rustlib/etc/gdb_lookup.py
+$ rm -f /home/oligami_dev/rust_with_lld/dist/lib/rustlib/etc/gdb_lookup.py
+install: removing file /home/oligami_dev/rust_with_lld/dist/lib/rustlib/etc/gdb_providers.py
+$ rm -f /home/oligami_dev/rust_with_lld/dist/lib/rustlib/etc/gdb_providers.py
+install: removing file /home/oligami_dev/rust_with_lld/dist/lib/rustlib/etc/lldb_commands
+$ rm -f /home/oligami_dev/rust_with_lld/dist/lib/rustlib/etc/lldb_commands
+install: removing file /home/oligami_dev/rust_with_lld/dist/lib/rustlib/etc/lldb_lookup.py
+$ rm -f /home/oligami_dev/rust_with_lld/dist/lib/rustlib/etc/lldb_lookup.py
+install: removing file /home/oligami_dev/rust_with_lld/dist/lib/rustlib/etc/lldb_providers.py
+$ rm -f /home/oligami_dev/rust_with_lld/dist/lib/rustlib/etc/lldb_providers.py
+install: removing file /home/oligami_dev/rust_with_lld/dist/lib/rustlib/etc/rust_types.py
+$ rm -f /home/oligami_dev/rust_with_lld/dist/lib/rustlib/etc/rust_types.py
+install: removing file /home/oligami_dev/rust_with_lld/dist/share/doc/rustc/COPYRIGHT
+$ rm -f /home/oligami_dev/rust_with_lld/dist/share/doc/rustc/COPYRIGHT
+install: removing file /home/oligami_dev/rust_with_lld/dist/share/doc/rustc/LICENSE-APACHE
+$ rm -f /home/oligami_dev/rust_with_lld/dist/share/doc/rustc/LICENSE-APACHE
+install: removing file /home/oligami_dev/rust_with_lld/dist/share/doc/rustc/LICENSE-MIT
+$ rm -f /home/oligami_dev/rust_with_lld/dist/share/doc/rustc/LICENSE-MIT
+install: removing file /home/oligami_dev/rust_with_lld/dist/share/doc/rustc/README.md
+$ rm -f /home/oligami_dev/rust_with_lld/dist/share/doc/rustc/README.md
+install: removing file /home/oligami_dev/rust_with_lld/dist/share/man/man1/rustc.1
+$ rm -f /home/oligami_dev/rust_with_lld/dist/share/man/man1/rustc.1
+install: removing file /home/oligami_dev/rust_with_lld/dist/share/man/man1/rustdoc.1
+$ rm -f /home/oligami_dev/rust_with_lld/dist/share/man/man1/rustdoc.1
+install: removing component manifest /home/oligami_dev/rust_with_lld/dist/lib/rustlib/manifest-rustc
+$ rm /home/oligami_dev/rust_with_lld/dist/lib/rustlib/manifest-rustc
+$ echo "rust-std-x86_64-unknown-linux-gnu
+rust-std-wasm32-wasip1" > "/home/oligami_dev/rust_with_lld/dist/lib/rustlib/components"
 $ umask 022 && mkdir -p "/home/oligami_dev/rust_with_lld/dist/lib/rustlib"
 $ echo "3" > "/home/oligami_dev/rust_with_lld/dist/lib/rustlib/rust-installer-version"
 install: creating uninstall script at /home/oligami_dev/rust_with_lld/dist/lib/rustlib/uninstall.sh
