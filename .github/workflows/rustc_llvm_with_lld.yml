@@ -1,0 +1,59 @@
+name: rustc_llvm_with_lld
+
+# gh act --job build -s GITHUB_TOKEN="$(gh auth token)" --reuse
+
+# only self-triggered
+on:
+  workflow_dispatch:
+    inputs:
+
+permissions:
+  packages: write
+  contents: write
+
+jobs:
+  build:
+    # strategy:
+    #   matrix:
+    #     WebAssembly: [true, false]
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: 'bjorn3/rust'
+          fetch-depth: 0
+          submodules: 'true'
+          ref: 'compile_rustc_for_wasm16'
+
+      - name: install-wasi-sdk
+        run: |
+          curl -OL https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-24/wasi-sdk-24.0-x86_64-linux.tar.gz
+          tar -xzf wasi-sdk-24.0-x86_64-linux.tar.gz
+
+      - name: update
+        run: |
+          sudo apt-get update
+          sudo apt install -y build-essential cmake pkg-config
+
+      - name: build
+        env:
+          WASI_SDK_PATH: ${{ github.workspace }}/wasi-sdk-24.0-x86_64-linux
+          WASI_SYSROOT: ${{ github.workspace }}/wasi-sdk-24.0-x86_64-linux/share/wasi-sysroot
+        run: |
+          ./x.py install --config config.llvm.toml
+
+      # - name: create tarball
+      #   run: |
+      #     tar -cvzf dist/bin/rustc.wasm.tar.gz dist/bin/rustc.wasm
+      #     rm dist/bin/rustc.wasm
+
+      - name: upload
+        uses: elgohr/Github-Release-Action@v5
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          workdir: dist
+          title: "rustc with lld for WebAssembly"
+          tag: "rustc_with_lld 0.1.0"
+          prerelease: true
