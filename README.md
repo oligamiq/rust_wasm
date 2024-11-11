@@ -23,45 +23,5 @@ target = [
     "wasm32-wasip2",
     "wasm32-wasip1-threads",
     "wasm32v1-none",
-
-    "aarch64-unknown-linux-gnu",
-    "aarch64-apple-darwin",
-    # "i686-pc-windows-gnu",
-    # "i686-pc-windows-msvc",
-    "i686-unknown-linux-gnu",
-    "x86_64-apple-darwin",
-    # "x86_64-pc-windows-gnu",
-    # "x86_64-pc-windows-msvc",
     "x86_64-unknown-linux-gnu",
-    # "aarch64-pc-windows-msvc",
-    "arm-unknown-linux-gnueabi",
-    "arm-unknown-linux-gnueabihf",
-    "armv7-unknown-linux-gnueabihf",
-    "powerpc-unknown-linux-gnu",
-    "powerpc64-unknown-linux-gnu",
-    "powerpc64le-unknown-linux-gnu",
-    "riscv64gc-unknown-linux-gnu",
-    "s390x-unknown-linux-gnu",
-    "x86_64-unknown-freebsd",
-    "x86_64-unknown-illumos",
 ]
-
-sudo apt install gcc-riscv64-linux-gnu g++-riscv64-linux-gnu libc6-dev-riscv64-cross
-
-sudo apt install gcc-powerpc64-linux-gnu g++-powerpc64-linux-gnu libc6-dev-ppc64-powerpc-cross
-
-sudo apt install gcc-powerpc-linux-gnu g++-powerpc-linux-gnu libc6-dev-ppc64-powerpc-cross
-
-sudo apt install gcc-powerpc64le-linux-gnu g++-powerpc64le-linux-gnu
-
-sudo apt install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
-
-sudo apt install gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf
-
-sudo apt install gcc-arm-linux-gnueabi g++-arm-linux-gnueabi
-
-sudo apt install gcc-gnueabihf-linux-gnu g++-gnueabihf-linux-gnu
-
-sudo apt install gcc-gnueabi-linux-gnu g++-gnueabi-linux-gnu
-
-sudo apt install gcc-s390x-linux-gnu g++-s390x-linux-gnu linux-libc-dev-s390x-cross
