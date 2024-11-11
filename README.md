@@ -25,3 +25,5 @@ target = [
     "wasm32v1-none",
     "x86_64-unknown-linux-gnu",
 ]
+
+tar --transform 's|.*/||' -cvzf wasm32-unknown-unknown.tar.gz ../dist/lib/rustlib/wasm32-unknown-unknown/lib/*

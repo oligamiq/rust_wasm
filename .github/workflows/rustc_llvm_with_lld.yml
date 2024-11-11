@@ -60,12 +60,38 @@ jobs:
       #     tar -cvzf dist/bin/rustc.wasm.tar.gz dist/bin/rustc.wasm
       #     rm dist/bin/rustc.wasm
 
-      - name: upload
-        uses: elgohr/Github-Release-Action@v5
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
+      # - name: upload wasm32-unknown-unknown
+      #   uses: github-pages-deploy-action@v4
+      #   with:
+      #     folder: dist/rustc_llvm_with_lld/dist/lib/rustlib/wasm32-unknown-unknown
+      #     branch: rustc_llvm_with_lld
+      #     target-folder: rustc_llvm_with_lld/dist/lib/rustlib/wasm32-unknown-unknown
+      #     clean: false
+      #     commit-message: "update wasm32-unknown-unknown"
+
+      - name: upload wasm32-wasip1
+        uses: github-pages-deploy-action@v4
         with:
-          workdir: dist
-          title: "rustc with lld for WebAssembly"
-          tag: "rustc_with_lld 0.1.0"
-          prerelease: true
+          folder: dist/rustc_llvm_with_lld/dist/lib/rustlib/wasm32-wasip1
+          branch: rustc_llvm_with_lld
+          target-folder: rustc_llvm_with_lld/dist/lib/rustlib/wasm32-wasip1
+          clean: false
+          commit-message: "update wasm32-wasip1"
+
+      # - name: upload wasm32-wasip1-threads
+      #   uses: github-pages-deploy-action@v4
+      #   with:
+      #     folder: dist/rustc_llvm_with_lld/dist/lib/rustlib/wasm32-wasip1-threads
+      #     branch: rustc_llvm_with_lld
+      #     target-folder: rustc_llvm_with_lld/dist/lib/rustlib/wasm32-wasip1-threads
+      #     clean: false
+      #     commit-message: "update wasm32-wasip1-threads"
+
+      - name: upload x86_64-unknown-linux-gnu
+        uses: github-pages-deploy-action@v4
+        with:
+          folder: dist/rustc_llvm_with_lld/dist/lib/rustlib/x86_64-unknown-linux-gnu
+          branch: rustc_llvm_with_lld
+          target-folder: rustc_llvm_with_lld/dist/lib/rustlib/x86_64-unknown-linux-gnu
+          clean: false
+          commit-message: "update x86_64-unknown-linux-gnu"
