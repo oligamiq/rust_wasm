@@ -61,36 +61,45 @@ jobs:
       #     rm dist/bin/rustc.wasm
 
       # - name: upload wasm32-unknown-unknown
-      #   uses: github-pages-deploy-action@v4
+      #   uses: JamesIves/github-pages-deploy-action@v4
       #   with:
-      #     folder: dist/rustc_llvm_with_lld/dist/lib/rustlib/wasm32-unknown-unknown
+      #     folder: dist/lib/rustlib/wasm32-unknown-unknown
       #     branch: rustc_llvm_with_lld
       #     target-folder: rustc_llvm_with_lld/dist/lib/rustlib/wasm32-unknown-unknown
       #     clean: false
       #     commit-message: "update wasm32-unknown-unknown"
 
-      - name: upload wasm32-wasip1
-        uses: github-pages-deploy-action@v4
+      - name: upload bin
+        uses: JamesIves/github-pages-deploy-action@v4
         with:
-          folder: dist/rustc_llvm_with_lld/dist/lib/rustlib/wasm32-wasip1
+          folder: dist/bin
+          branch: rustc_llvm_with_lld
+          target-folder: rustc_llvm_with_lld/dist/bin
+          clean: false
+          commit-message: "update bin"
+
+      - name: upload wasm32-wasip1
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: dist/lib/rustlib/wasm32-wasip1
           branch: rustc_llvm_with_lld
           target-folder: rustc_llvm_with_lld/dist/lib/rustlib/wasm32-wasip1
           clean: false
           commit-message: "update wasm32-wasip1"
 
       # - name: upload wasm32-wasip1-threads
-      #   uses: github-pages-deploy-action@v4
+      #   uses: JamesIves/github-pages-deploy-action@v4
       #   with:
-      #     folder: dist/rustc_llvm_with_lld/dist/lib/rustlib/wasm32-wasip1-threads
+      #     folder: dist/lib/rustlib/wasm32-wasip1-threads
       #     branch: rustc_llvm_with_lld
       #     target-folder: rustc_llvm_with_lld/dist/lib/rustlib/wasm32-wasip1-threads
       #     clean: false
       #     commit-message: "update wasm32-wasip1-threads"
 
       - name: upload x86_64-unknown-linux-gnu
-        uses: github-pages-deploy-action@v4
+        uses: JamesIves/github-pages-deploy-action@v4
         with:
-          folder: dist/rustc_llvm_with_lld/dist/lib/rustlib/x86_64-unknown-linux-gnu
+          folder: dist/lib/rustlib/x86_64-unknown-linux-gnu
           branch: rustc_llvm_with_lld
           target-folder: rustc_llvm_with_lld/dist/lib/rustlib/x86_64-unknown-linux-gnu
           clean: false
