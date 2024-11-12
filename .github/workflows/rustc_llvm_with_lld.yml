@@ -111,7 +111,7 @@ jobs:
       - name: install musl base
         run: |
           sudo apt install -y musl-dev musl-tools musl
-          rm -rf /build/
+          rm -rf ~/build/
 
       - name: install musl dependencies armv7
         env:
@@ -120,22 +120,22 @@ jobs:
           CFLAGS: '-march=armv7-a'
           CXXFLAGS: '-march=armv7-a'
         run: |
-          mkdir /build
-          cd /build
+          mkdir ~/build
+          cd ~/build
           bash '${{ github.workspace }}/rust_wasm/musl.sh' armv7
           cd /
-          rm -rf /build/
+          rm -rf ~/build/
 
       - name: install musl dependencies riscv64gc
         env:
           CC: riscv64-linux-gnu-gcc
           CXX: riscv64-linux-gnu-g++
         run: |
-          mkdir /build
-          cd /build
+          mkdir ~/build
+          cd ~/build
           bash '${{ github.workspace }}/rust_wasm/musl.sh' riscv64gc
           cd /
-          rm -rf /build/
+          rm -rf ~/build/
 
       - name: install musl dependencies i686 i586
         env:
@@ -144,16 +144,16 @@ jobs:
           CFLAGS: '-m32 -Wa,-mrelax-relocations=no'
           CXXFLAGS: '-m32 -Wa,-mrelax-relocations=no'
         run: |
-          mkdir /build
-          cd /build
+          mkdir ~/build
+          cd ~/build
           bash '${{ github.workspace }}/rust_wasm/musl.sh' i686 --target=i686
           cd /
-          rm -rf /build/
-          mkdir /build
-          cd /build
+          rm -rf ~/build/
+          mkdir ~/build
+          cd ~/build
           bash '${{ github.workspace }}/rust_wasm/musl.sh' i586 --target=i586
           cd /
-          rm -rf /build/
+          rm -rf ~/build/
 
       - name: rewrite
         run: |
