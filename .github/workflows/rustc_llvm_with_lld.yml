@@ -76,6 +76,49 @@ jobs:
       #     chmod +x ./install-devkitpro-pacman
       #     echo y | sudo ./install-devkitpro-pacman
 
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: install ndk
+        uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: r27c
+          link-to-sdk: true
+          local-cache: false
+
+      - name: install ndk path
+        run: |
+          ls -l ${{ steps.setup-ndk.outputs.ndk-path }}
+          mkdir -p ${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins
+          sudo ln -sf '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android35-clang' '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/aarch64-linux-android-clang'
+          sudo ln -sf '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/i686-linux-android35-clang' '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/i686-linux-android-clang'
+          sudo ln -sf '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi35-clang' '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/arm-linux-androideabi-clang'
+          sudo ln -sf '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/riscv64-linux-android35-clang' '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/riscv64-linux-android-clang'
+          sudo ln -sf '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android35-clang' '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/x86_64-linux-android-clang'
+          sudo ln -sf '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/clang' '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/clang'
+
+          sudo chmod +x '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/aarch64-linux-android-clang'
+          sudo chmod +x '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/i686-linux-android-clang'
+          sudo chmod +x '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/arm-linux-androideabi-clang'
+          sudo chmod +x '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/riscv64-linux-android-clang'
+          sudo chmod +x '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/x86_64-linux-android-clang'
+
+          echo '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins' >> $GITHUB_PATH
+
+          echo 'ANDROID_NDK_HOME=${{ steps.setup-ndk.outputs.ndk-path }}' >> $GITHUB_ENV
+
+      - name: check clang
+        run: |
+          clang --version
+          x86_64-linux-android-clang --version
+
       # https://pkgsrc.smartos.org/install-on-linux/
       - name: install pkgsrc
         run: |
@@ -94,7 +137,6 @@ jobs:
 
       - name: install dependencies
         run: |
-          sudo apt install -y android-sdk
           sudo apt install -y gcc-multilib              g++-multilib
           sudo apt install -y gcc-riscv64-linux-gnu     g++-riscv64-linux-gnu     libc6-dev-riscv64-cross
           sudo apt install -y gcc-riscv64-unknown-elf
@@ -108,19 +150,6 @@ jobs:
           sudo apt install -y gcc-sparc64-linux-gnu     g++-sparc64-linux-gnu
           sudo apt install -y gcc-i686-linux-gnu        g++-i686-linux-gnu
           sudo apt install -y gcc-arm-none-eabi
-
-      - name: install ndk
-        uses: nttld/setup-ndk@v1
-        id: setup-ndk
-        with:
-          ndk-version: r26d
-          link-to-sdk: true
-
-      - name: install ndk path
-        run: |
-          ls -l ${{ steps.setup-ndk.outputs.ndk-path }}
-          echo "${{ steps.setup-ndk.outputs.ndk-path }}/build/core/toolchains" >> $GITHUB_PATH
-          chmod +x ${{ steps.setup-ndk.outputs.ndk-path }}/build/core/toolchains/*
 
       - name: install musl base
         run: |
