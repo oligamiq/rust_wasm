@@ -92,40 +92,6 @@ jobs:
           echo "/usr/pkg/sbin" >> $GITHUB_PATH
           echo "/usr/pkg/bin" >> $GITHUB_PATH
 
-      - name: install musl base
-        run: |
-          sudo apt install -y musl-dev musl-tools musl
-
-      - name: install musl dependencies armv7
-        env:
-          CC: arm-linux-gnueabi-gcc-9
-          CXX: arm-linux-gnueabi-g++-9
-          CFLAGS: '-march=armv7-a'
-          CXXFLAGS: '-march=armv7-a'
-        run: |
-          bash ./rust_wasm/musl.sh armv7
-
-      - name: install musl dependencies riscv64gc
-        env:
-          CC: riscv64-linux-gnu-gcc-11
-          CXX: riscv64-linux-gnu-g++-11
-        run: |
-          bash ./rust_wasm/musl.sh riscv64gc
-
-      - name: install musl dependencies i686 i586
-        env:
-          CC: gcc
-          CXX: g++
-          CFLAGS: '-m32 -Wa,-mrelax-relocations=no'
-          CXXFLAGS: '-m32 -Wa,-mrelax-relocations=no'
-        run: |
-          bash ./rust_wasm/musl.sh i686
-          bash ./rust_wasm/musl.sh i586
-
-      - name: rm musl build
-        run: |
-          rm -rf /build/*
-
       - name: install dependencies
         run: |
           sudo apt install -y gcc-multilib              g++-multilib
@@ -139,7 +105,55 @@ jobs:
           sudo apt install -y gcc-arm-linux-gnueabi     g++-arm-linux-gnueabi
           sudo apt install -y gcc-s390x-linux-gnu       g++-s390x-linux-gnu       linux-libc-dev-s390x-cross
           sudo apt install -y gcc-sparc64-linux-gnu     g++-sparc64-linux-gnu
+          sudo apt install -y gcc-i686-linux-gnu        g++-i686-linux-gnu
           sudo apt install -y gcc-arm-none-eabi
+
+      - name: install musl base
+        run: |
+          sudo apt install -y musl-dev musl-tools musl
+          rm -rf /build/
+
+      - name: install musl dependencies armv7
+        env:
+          CC: arm-linux-gnueabi-gcc
+          CXX: arm-linux-gnueabi-g++
+          CFLAGS: '-march=armv7-a'
+          CXXFLAGS: '-march=armv7-a'
+        run: |
+          mkdir /build
+          cd /build
+          bash ./rust_wasm/musl.sh armv7
+          cd /
+          rm -rf /build/
+
+      - name: install musl dependencies riscv64gc
+        env:
+          CC: riscv64-linux-gnu-gcc
+          CXX: riscv64-linux-gnu-g++
+        run: |
+          mkdir /build
+          cd /build
+          bash ./rust_wasm/musl.sh riscv64gc
+          cd /
+          rm -rf /build/
+
+      - name: install musl dependencies i686 i586
+        env:
+          CC: i686-linux-gnu-gcc
+          CXX: i686-linux-gnu-g++
+          CFLAGS: '-m32 -Wa,-mrelax-relocations=no'
+          CXXFLAGS: '-m32 -Wa,-mrelax-relocations=no'
+        run: |
+          mkdir /build
+          cd /build
+          bash ./rust_wasm/musl.sh i686 --target=i686
+          cd /
+          rm -rf /build/
+          mkdir /build
+          cd /build
+          bash ./rust_wasm/musl.sh i586 --target=i586
+          cd /
+          rm -rf /build/
 
       - name: rewrite
         run: |
