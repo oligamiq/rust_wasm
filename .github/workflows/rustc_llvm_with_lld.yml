@@ -82,7 +82,7 @@ jobs:
           rm -rf /usr/pkg
           cd pkgsrc/bootstrap
           ./bootstrap
-          sudo dkp-pacman -Syu
+          sudo dkp-pacman -Syu --noconfirm
 
           echo "/usr/pkg/sbin" >> $GITHUB_PATH
           echo "/usr/pkg/bin" >> $GITHUB_PATH
