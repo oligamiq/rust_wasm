@@ -122,7 +122,7 @@ jobs:
         run: |
           mkdir /build
           cd /build
-          bash ./rust_wasm/musl.sh armv7
+          bash '${{ github.workspace }}/rust_wasm/musl.sh' armv7
           cd /
           rm -rf /build/
 
@@ -133,7 +133,7 @@ jobs:
         run: |
           mkdir /build
           cd /build
-          bash ./rust_wasm/musl.sh riscv64gc
+          bash '${{ github.workspace }}/rust_wasm/musl.sh' riscv64gc
           cd /
           rm -rf /build/
 
@@ -146,12 +146,12 @@ jobs:
         run: |
           mkdir /build
           cd /build
-          bash ./rust_wasm/musl.sh i686 --target=i686
+          bash '${{ github.workspace }}/rust_wasm/musl.sh' i686 --target=i686
           cd /
           rm -rf /build/
           mkdir /build
           cd /build
-          bash ./rust_wasm/musl.sh i586 --target=i586
+          bash '${{ github.workspace }}/rust_wasm/musl.sh' i586 --target=i586
           cd /
           rm -rf /build/
 
