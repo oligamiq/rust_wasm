@@ -81,7 +81,7 @@ jobs:
           rm -rf pkgsrc/bootstrap/work
           rm -rf /usr/pkg
           cd pkgsrc/bootstrap
-          ./bootstrap
+          ./bootstrap --unprivileged
           sudo dkp-pacman -Syu --noconfirm
 
           echo "/usr/pkg/sbin" >> $GITHUB_PATH
