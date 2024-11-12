@@ -62,7 +62,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt upgrade -y
-          sudo apt install -y build-essential cmake pkg-config pacman libclang-dev
+          sudo apt install -y build-essential cmake pkg-config libclang-dev
 
       # https://devkitpro.org/wiki/devkitPro_pacman
       - name: install devkitPro
@@ -77,11 +77,17 @@ jobs:
           sudo apt install -y cvs libncurses-dev gcc g++ zlib1g-dev zlib1g libssl-dev libudev-dev gawk unzip curl
           curl -OL https://cdn.netbsd.org/pub/pkgsrc/stable/pkgsrc.tar.xz
           tar -xJf pkgsrc.tar.xz
+          rm -f pkgsrc.tar.xz
+          rm -rf pkgsrc/bootstrap/work
+          rm -rf /usr/pkg
           cd pkgsrc/bootstrap
           ./bootstrap
+          sudo dkp-pacman -Syu
+          sudo dkp-pacman -Scc
 
       - name: install dependencies
         run: |
+          sudo apt install -y gcc-multilib              g++-multilib
           sudo apt install -y gcc-riscv64-linux-gnu     g++-riscv64-linux-gnu     libc6-dev-riscv64-cross
           sudo apt install -y gcc-powerpc64-linux-gnu   g++-powerpc64-linux-gnu   libc6-dev-ppc64-powerpc-cross
           sudo apt install -y gcc-powerpc-linux-gnu     g++-powerpc-linux-gnu     libc6-dev-ppc64-powerpc-cross
