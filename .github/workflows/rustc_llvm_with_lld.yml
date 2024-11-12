@@ -18,14 +18,24 @@ jobs:
     #     WebAssembly: [true, false]
 
     runs-on: ubuntu-latest
+    env:
+      CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
     steps:
-      - uses: actions/checkout@v4
+      - name: copy source
+        uses: actions/checkout@v4
         with:
           repository: 'bjorn3/rust'
           fetch-depth: 0
           submodules: 'true'
           ref: 'compile_rustc_for_wasm17'
           path: 'rust'
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          path: 'rust_wasm'
+          ref: 'gh-actions'
+
 
       - name: install-wasi-sdk
         working-directory: '${{ github.workspace }}/rust'
@@ -45,10 +55,51 @@ jobs:
           docker-images: true
           swap-storage: false
 
+      - name: install rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+
       - name: update
         run: |
           sudo apt-get update
-          sudo apt install -y build-essential cmake pkg-config
+          sudo apt upgrade -y
+          sudo apt install -y build-essential cmake pkg-config pacman libclang-dev
+
+      # https://devkitpro.org/wiki/devkitPro_pacman
+      - name: install devkitPro
+        run: |
+          wget https://apt.devkitpro.org/install-devkitpro-pacman
+          chmod +x ./install-devkitpro-pacman
+          echo y | sudo ./install-devkitpro-pacman
+
+      # https://pkgsrc.smartos.org/install-on-linux/
+      - name: install pkgsrc
+        run: |
+          sudo apt install -y cvs libncurses-dev gcc g++ zlib1g-dev zlib1g libssl-dev libudev-dev gawk unzip
+          curl -OL https://github.com/NetBSD/pkgsrc/archive/refs/heads/trunk.zip
+          unzip trunk.zip -d pkgsrc
+          mv pkgsrc/pkgsrc-trunk pkgsrc/pkgsrc
+          cd pkgsrc/pkgsrc/bootstrap
+          echo "unpacked"
+          ./bootstrap --unprivileged
+
+      - name: install dependencies
+        run: |
+          sudo apt install -y gcc-riscv64-linux-gnu     g++-riscv64-linux-gnu     libc6-dev-riscv64-cross
+          sudo apt install -y gcc-powerpc64-linux-gnu   g++-powerpc64-linux-gnu   libc6-dev-ppc64-powerpc-cross
+          sudo apt install -y gcc-powerpc-linux-gnu     g++-powerpc-linux-gnu     libc6-dev-ppc64-powerpc-cross
+          sudo apt install -y gcc-powerpc64le-linux-gnu g++-powerpc64le-linux-gnu
+          sudo apt install -y gcc-aarch64-linux-gnu     g++-aarch64-linux-gnu
+          sudo apt install -y gcc-arm-linux-gnueabihf   g++-arm-linux-gnueabihf
+          sudo apt install -y gcc-arm-linux-gnueabi     g++-arm-linux-gnueabi
+          sudo apt install -y gcc-s390x-linux-gnu       g++-s390x-linux-gnu       linux-libc-dev-s390x-cross
+          sudo apt install -y gcc-arm-none-eabi
+
+      - name: rewrite
+        run: |
+          cd rust_wasm/config_rewriter
+          cargo run -- ../../rust/config.llvm.toml all linux
+          cargo clean
+          echo "rewrite done"
 
       - name: build
         working-directory: '${{ github.workspace }}/rust'
@@ -62,6 +113,10 @@ jobs:
         run: |
           tar -cvzf dist/bin/rustc.wasm.tar.gz dist/bin/rustc.wasm
           rm dist/bin/rustc.wasm
+
+      - name: Configure git to trust the workspace despite the different owner
+        run:
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
       - name: upload bin
         uses: JamesIves/github-pages-deploy-action@v4
