@@ -94,6 +94,7 @@ jobs:
 
       - name: install dependencies
         run: |
+          sudo apt install -y android-sdk
           sudo apt install -y gcc-multilib              g++-multilib
           sudo apt install -y gcc-riscv64-linux-gnu     g++-riscv64-linux-gnu     libc6-dev-riscv64-cross
           sudo apt install -y gcc-riscv64-unknown-elf
@@ -107,6 +108,19 @@ jobs:
           sudo apt install -y gcc-sparc64-linux-gnu     g++-sparc64-linux-gnu
           sudo apt install -y gcc-i686-linux-gnu        g++-i686-linux-gnu
           sudo apt install -y gcc-arm-none-eabi
+
+      - name: install ndk
+        uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: r26d
+          link-to-sdk: true
+
+      - name: install ndk path
+        run: |
+          ls -l ${{ steps.setup-ndk.outputs.ndk-path }}
+          echo "${{ steps.setup-ndk.outputs.ndk-path }}/build/core/toolchains" >> $GITHUB_PATH
+          chmod +x ${{ steps.setup-ndk.outputs.ndk-path }}/build/core/toolchains/*
 
       - name: install musl base
         run: |
