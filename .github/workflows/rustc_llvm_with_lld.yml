@@ -57,11 +57,11 @@ jobs:
         run: |
           ./x.py install --config config.llvm.toml
 
-      # - name: create tarball
-      #   working-directory: '${{ github.workspace }}/rust'
-      #   run: |
-      #     tar -cvzf dist/bin/rustc.wasm.tar.gz dist/bin/rustc.wasm
-      #     rm dist/bin/rustc.wasm
+      - name: create tarball
+        working-directory: '${{ github.workspace }}/rust'
+        run: |
+          tar -cvzf dist/bin/rustc.wasm.tar.gz dist/bin/rustc.wasm
+          rm dist/bin/rustc.wasm
 
       - name: upload bin
         uses: JamesIves/github-pages-deploy-action@v4
