@@ -83,7 +83,9 @@ jobs:
           cd pkgsrc/bootstrap
           ./bootstrap
           sudo dkp-pacman -Syu
-          sudo dkp-pacman -Scc
+
+          echo "/usr/pkg/sbin" >> $GITHUB_PATH
+          echo "/usr/pkg/bin" >> $GITHUB_PATH
 
       - name: install dependencies
         run: |
