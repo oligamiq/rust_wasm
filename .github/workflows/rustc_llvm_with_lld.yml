@@ -85,7 +85,7 @@ jobs:
           rm -f pkgsrc.tar.xz
           rm -rf pkgsrc/bootstrap/work
           rm -rf /usr/pkg
-          rm -rf /root/pkg
+          sudo rm -rf /root/pkg
           cd pkgsrc/bootstrap
           ./bootstrap --unprivileged
 
