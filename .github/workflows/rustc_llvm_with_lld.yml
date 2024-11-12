@@ -65,11 +65,16 @@ jobs:
           sudo apt install -y build-essential cmake pkg-config libclang-dev
 
       # https://devkitpro.org/wiki/devkitPro_pacman
-      - name: install devkitPro
-        run: |
-          wget https://apt.devkitpro.org/install-devkitpro-pacman
-          chmod +x ./install-devkitpro-pacman
-          echo y | sudo ./install-devkitpro-pacman
+
+      # https://github.com/devkitPro/pacman/issues/31
+      # some cases people are getting banned so we need to use docker image
+      # but it's troublesome to use docker image.
+      # sudo docker run -it --name devkitpro-container devkitpro/toolchain-base
+      # - name: install devkitPro
+      #   run: |
+      #     wget https://apt.devkitpro.org/install-devkitpro-pacman
+      #     chmod +x ./install-devkitpro-pacman
+      #     echo y | sudo ./install-devkitpro-pacman
 
       # https://pkgsrc.smartos.org/install-on-linux/
       - name: install pkgsrc
@@ -82,7 +87,6 @@ jobs:
           rm -rf /usr/pkg
           cd pkgsrc/bootstrap
           ./bootstrap --unprivileged
-          sudo dkp-pacman -Syu --noconfirm
 
           echo "/usr/pkg/sbin" >> $GITHUB_PATH
           echo "/usr/pkg/bin" >> $GITHUB_PATH
