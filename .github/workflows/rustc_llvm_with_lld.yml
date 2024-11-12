@@ -74,13 +74,11 @@ jobs:
       # https://pkgsrc.smartos.org/install-on-linux/
       - name: install pkgsrc
         run: |
-          sudo apt install -y cvs libncurses-dev gcc g++ zlib1g-dev zlib1g libssl-dev libudev-dev gawk unzip
-          curl -OL https://github.com/NetBSD/pkgsrc/archive/refs/heads/trunk.zip
-          unzip trunk.zip -d pkgsrc
-          mv pkgsrc/pkgsrc-trunk pkgsrc/pkgsrc
-          cd pkgsrc/pkgsrc/bootstrap
-          echo "unpacked"
-          ./bootstrap --unprivileged
+          sudo apt install -y cvs libncurses-dev gcc g++ zlib1g-dev zlib1g libssl-dev libudev-dev gawk unzip curl
+          curl -OL https://cdn.netbsd.org/pub/pkgsrc/stable/pkgsrc.tar.xz
+          tar -xJf pkgsrc.tar.xz
+          cd pkgsrc/bootstrap
+          ./bootstrap
 
       - name: install dependencies
         run: |
