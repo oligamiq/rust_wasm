@@ -24,9 +24,11 @@ jobs:
           repository: 'bjorn3/rust'
           fetch-depth: 0
           submodules: 'true'
-          ref: 'compile_rustc_for_wasm16'
+          ref: 'compile_rustc_for_wasm17'
+          path: 'rust'
 
       - name: install-wasi-sdk
+        working-directory: '${{ github.workspace }}/rust'
         run: |
           curl -OL https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-24/wasi-sdk-24.0-x86_64-linux.tar.gz
           tar -xzf wasi-sdk-24.0-x86_64-linux.tar.gz
@@ -49,39 +51,40 @@ jobs:
           sudo apt install -y build-essential cmake pkg-config
 
       - name: build
+        working-directory: '${{ github.workspace }}/rust'
         env:
-          WASI_SDK_PATH: ${{ github.workspace }}/wasi-sdk-24.0-x86_64-linux
-          WASI_SYSROOT: ${{ github.workspace }}/wasi-sdk-24.0-x86_64-linux/share/wasi-sysroot
+          WASI_SDK_PATH: ${{ github.workspace }}/rust/wasi-sdk-24.0-x86_64-linux
         run: |
           ./x.py install --config config.llvm.toml
 
       # - name: create tarball
+      #   working-directory: '${{ github.workspace }}/rust'
       #   run: |
       #     tar -cvzf dist/bin/rustc.wasm.tar.gz dist/bin/rustc.wasm
       #     rm dist/bin/rustc.wasm
 
-      # - name: upload wasm32-unknown-unknown
-      #   uses: JamesIves/github-pages-deploy-action@v4
-      #   with:
-      #     folder: dist/lib/rustlib/wasm32-unknown-unknown
-      #     branch: rustc_llvm_with_lld
-      #     target-folder: rustc_llvm_with_lld/dist/lib/rustlib/wasm32-unknown-unknown
-      #     clean: false
-      #     commit-message: "update wasm32-unknown-unknown"
-
       - name: upload bin
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          folder: dist/bin
+          folder: rust/dist/bin
           branch: rustc_llvm_with_lld
           target-folder: rustc_llvm_with_lld/dist/bin
           clean: false
           commit-message: "update bin"
 
+      # - name: upload wasm32-unknown-unknown
+      #   uses: JamesIves/github-pages-deploy-action@v4
+      #   with:
+      #     folder: rust/dist/lib/rustlib/wasm32-unknown-unknown
+      #     branch: rustc_llvm_with_lld
+      #     target-folder: rustc_llvm_with_lld/dist/lib/rustlib/wasm32-unknown-unknown
+      #     clean: false
+      #     commit-message: "update wasm32-unknown-unknown"
+
       - name: upload wasm32-wasip1
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          folder: dist/lib/rustlib/wasm32-wasip1
+          folder: rust/dist/lib/rustlib/wasm32-wasip1
           branch: rustc_llvm_with_lld
           target-folder: rustc_llvm_with_lld/dist/lib/rustlib/wasm32-wasip1
           clean: false
@@ -90,7 +93,7 @@ jobs:
       # - name: upload wasm32-wasip1-threads
       #   uses: JamesIves/github-pages-deploy-action@v4
       #   with:
-      #     folder: dist/lib/rustlib/wasm32-wasip1-threads
+      #     folder: rust/dist/lib/rustlib/wasm32-wasip1-threads
       #     branch: rustc_llvm_with_lld
       #     target-folder: rustc_llvm_with_lld/dist/lib/rustlib/wasm32-wasip1-threads
       #     clean: false
@@ -99,7 +102,7 @@ jobs:
       - name: upload x86_64-unknown-linux-gnu
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          folder: dist/lib/rustlib/x86_64-unknown-linux-gnu
+          folder: rust/dist/lib/rustlib/x86_64-unknown-linux-gnu
           branch: rustc_llvm_with_lld
           target-folder: rustc_llvm_with_lld/dist/lib/rustlib/x86_64-unknown-linux-gnu
           clean: false
