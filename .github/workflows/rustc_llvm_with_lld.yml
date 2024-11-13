@@ -25,14 +25,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: 'bjorn3/rust'
-          fetch-depth: 1
           submodules: 'true'
           ref: 'compile_rustc_for_wasm17'
           path: 'rust'
 
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 1
           path: 'rust_wasm'
           ref: 'gh-actions'
 
@@ -41,6 +39,9 @@ jobs:
           sudo groupadd -r rustbuild && sudo useradd -m -r -g rustbuild rustbuild
           sudo rm -rf /x-tools
           sudo mkdir /x-tools && sudo chown rustbuild:rustbuild /x-tools
+          sudo rm -rf /tmp
+          sudo mkdir /tmp && sudo chown rustbuild:rustbuild /tmp
+          sudo chmod 777 /tmp
 
       - name: install-wasi-sdk
         working-directory: '${{ github.workspace }}/rust'
@@ -103,7 +104,7 @@ jobs:
 
       - name: install loongarch64-unknown-linux-gnu
         run: |
-          cd ~
+          cd /tmp
           cp '${{ github.workspace }}/rust_wasm/loongarch64-unknown-linux-gnu.defconfig' crosstool.defconfig
           bash '${{ github.workspace }}/rust_wasm/crosstool-ng-build.sh'
           echo "/x-tools/loongarch64-unknown-linux-gnu/bin" >> $GITHUB_PATH

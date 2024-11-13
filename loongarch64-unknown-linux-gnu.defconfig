@@ -1,6 +1,6 @@
 CT_CONFIG_VERSION="4"
 CT_EXPERIMENTAL=y
-CT_PREFIX_DIR="/x-tools/${CT_TARGET}"
+CT_PREFIX_DIR="/x-tools/loongarch64-unknown-linux-gnu"
 CT_USE_MIRROR=y
 CT_MIRROR_BASE_URL="https://ci-mirrors.rust-lang.org/rustc"
 CT_ARCH_LOONGARCH=y
