@@ -25,14 +25,14 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: 'bjorn3/rust'
-          fetch-depth: 0
+          fetch-depth: 1
           submodules: 'true'
           ref: 'compile_rustc_for_wasm17'
           path: 'rust'
 
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
           path: 'rust_wasm'
           ref: 'gh-actions'
 
