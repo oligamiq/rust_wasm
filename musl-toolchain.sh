@@ -56,15 +56,15 @@ hide_output sudo make install TARGET=$TARGET MUSL_VER=1.2.3 LINUX_HEADERS_SITE=$
 cd -
 
 # Install musl library to make binaries executable
-ln -s $OUTPUT/$TARGET/lib/libc.so /lib/ld-musl-$ARCH.so.1
+ln -sf $OUTPUT/$TARGET/lib/libc.so /lib/ld-musl-$ARCH.so.1
 echo $OUTPUT/$TARGET/lib >> /etc/ld-musl-$ARCH.path
 
 # Now when musl bootstraps itself create proper toolchain symlinks to make build and tests easier
 if [ "$REPLACE_CC" = "1" ]; then
     for exec in cc gcc; do
-        ln -s $TARGET-gcc /usr/local/bin/$exec
+        ln -sf $TARGET-gcc /usr/local/bin/$exec
     done
     for exec in cpp c++ g++; do
-        ln -s $TARGET-g++ /usr/local/bin/$exec
+        ln -sf $TARGET-g++ /usr/local/bin/$exec
     done
 fi
