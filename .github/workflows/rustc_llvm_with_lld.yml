@@ -43,6 +43,7 @@ jobs:
           sudo rm -rf /tmp
           sudo mkdir /tmp && sudo chown rustbuild:rustbuild /tmp
           sudo chmod 777 /tmp
+          sudo chmod 777 /usr/local/lib/
 
       - name: install-wasi-sdk
         working-directory: '${{ github.workspace }}/rust'
