@@ -98,14 +98,10 @@ jobs:
 
       - name: install loongarch64-unknown-linux-gnu
         run: |
-          rm -rf ~/build/
-          mkdir ~/build
-          cd ~/build
-          cp '${{ github.workspace }}/rust_wasm/loongarch64-unknown-linux-gnu.defconfig' .config
-          ct-ng olddefconfig
-          ct-ng build
-          cd /
-          rm -rf ~/build/
+          sudo mkdir -p /x-tools
+          cd ~
+          cp '${{ github.workspace }}/rust_wasm/loongarch64-unknown-linux-gnu.defconfig' crosstool.defconfig
+          bash '${{ github.workspace }}/rust_wasm/crosstool-ng-build.sh'
           echo "/x-tools/loongarch64-unknown-linux-gnu/bin" >> $GITHUB_PATH
 
       - name: Set up JDK 17
