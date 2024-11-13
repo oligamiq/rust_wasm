@@ -99,12 +99,26 @@ jobs:
           cd ..
           rm -rf crosstool-ng-crosstool-ng-$CT_NG
 
+      # https://github.com/rust-lang/rust/blob/44f233f2519ce5d633c87c38014d03d8a5f0e810/src/ci/docker/host-x86_64/dist-loongarch64-linux/Dockerfile#L20
       - name: install loongarch64-unknown-linux-gnu
         run: |
           cd /tmp
           cp ${{ github.workspace }}/rust_wasm/loongarch64-unknown-linux-gnu.defconfig crosstool.defconfig
           bash ${{ github.workspace }}/rust_wasm/crosstool-ng-build.sh
           echo "/x-tools/loongarch64-unknown-linux-gnu/bin" >> $GITHUB_PATH
+          echo "CC_loongarch64_unknown_linux_gnu=loongarch64-unknown-linux-gnu-gcc" >> $GITHUB_ENV
+          echo "AR_loongarch64_unknown_linux_gnu=loongarch64-unknown-linux-gnu-ar" >> $GITHUB_ENV
+          echo "CXX_loongarch64_unknown_linux_gnu=loongarch64-unknown-linux-gnu-g++" >> $GITHUB_ENV
+          echo "CC_loongarch64_unknown_none=loongarch64-unknown-linux-gnu-gcc" >> $GITHUB_ENV
+          echo "AR_loongarch64_unknown_none=loongarch64-unknown-linux-gnu-ar" >> $GITHUB_ENV
+          echo "CXX_loongarch64_unknown_none=loongarch64-unknown-linux-gnu-g++" >> $GITHUB_ENV
+          echo 'CFLAGS_loongarch64_unknown_none="-ffreestanding -mabi=lp64d"' >> $GITHUB_ENV
+          echo 'CXXFLAGS_loongarch64_unknown_none="-ffreestanding -mabi=lp64d"' >> $GITHUB_ENV
+          echo 'CC_loongarch64_unknown_none_softfloat=loongarch64-unknown-linux-gnu-gcc' >> $GITHUB_ENV
+          echo 'AR_loongarch64_unknown_none_softfloat=loongarch64-unknown-linux-gnu-ar' >> $GITHUB_ENV
+          echo 'CXX_loongarch64_unknown_none_softfloat=loongarch64-unknown-linux-gnu-g++' >> $GITHUB_ENV
+          echo 'CFLAGS_loongarch64_unknown_none_softfloat="-ffreestanding -mabi=lp64s -mfpu=none"' >> $GITHUB_ENV
+          echo 'CXXFLAGS_loongarch64_unknown_none_softfloat="-ffreestanding -mabi=lp64s -mfpu=none"' >> $GITHUB_ENV
 
       - name: Set up JDK 17
         uses: actions/setup-java@v3
