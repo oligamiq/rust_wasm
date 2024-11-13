@@ -59,8 +59,7 @@ fn main() -> anyhow::Result<()> {
                         "x86_64-unknown-freebsd",
                         "x86_64-unknown-illumos",
                         "x86_64-unknown-linux-musl",
-
-                        // "x86_64-unknown-netbsd", devkitpro-pacman owner is not working
+                        "x86_64-unknown-netbsd",
 
                         // Tier 2 without host tools
                         "aarch64-unknown-fuchsia",
