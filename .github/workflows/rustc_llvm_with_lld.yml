@@ -43,6 +43,8 @@ jobs:
           sudo mkdir -p /tmp && sudo chown rustbuild:rustbuild /tmp
           sudo chmod 777 /tmp
           sudo chmod 777 /usr/local/lib/
+          sudo chmod 777 /usr/local/bin/
+          sudo chmod 777 /usr/bin/
 
       - name: install-wasi-sdk
         working-directory: '${{ github.workspace }}/rust'
@@ -335,7 +337,7 @@ jobs:
             which aarch64-linux-musl-gcc
             which aarch64-linux-musl-g++
 
-            # which dcuniugtxdc
+            which dcuniugtxdc
             # touch "$FLAG_FILE"
           else
             echo "musl arm is already installed, skipping installation."

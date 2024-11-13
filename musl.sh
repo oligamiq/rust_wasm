@@ -26,5 +26,5 @@ if [ "$TAG" = "i586" -o "$TAG" = "i686" ]; then
 else
   make -j$(nproc)
 fi
-sudo make install
+make install
 make clean
