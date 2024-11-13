@@ -76,6 +76,38 @@ jobs:
       #     chmod +x ./install-devkitpro-pacman
       #     echo y | sudo ./install-devkitpro-pacman
 
+      # https://github.com/rust-lang/rust/blob/44f233f2519ce5d633c87c38014d03d8a5f0e810/src/ci/docker/scripts/crosstool-ng-git.sh
+      - name: install crosstool-ng
+        env:
+          URL: https://github.com/crosstool-ng/crosstool-ng
+          REV: ed12fa68402f58e171a6f79500f73f4781fdc9e5
+        run: |
+          sudo apt install -y flex texinfo help2man libtool-bin bison
+          rm -rf crosstool-ng
+          mkdir crosstool-ng
+          cd crosstool-ng
+          git init
+          git fetch --depth=1 ${URL} ${REV}
+          git reset --hard FETCH_HEAD
+          ./bootstrap
+          ./configure --prefix=/usr/local
+          make -j$(nproc)
+          make install
+          cd ..
+          rm -rf crosstool-ng
+
+      - name: install loongarch64-unknown-linux-gnu
+        run: |
+          rm -rf ~/build/
+          mkdir ~/build
+          cd ~/build
+          cp '${{ github.workspace }}/rust_wasm/loongarch64-unknown-linux-gnu.defconfig' .config
+          ct-ng olddefconfig
+          ct-ng build
+          cd /
+          rm -rf ~/build/
+          echo "/x-tools/loongarch64-unknown-linux-gnu/bin" >> $GITHUB_PATH
+
       - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
@@ -131,7 +163,7 @@ jobs:
           x86_64-linux-android-clang --version
 
       # https://pkgsrc.smartos.org/install-on-linux/
-      - name: install pkgsrc
+      - name: install pkgsrc about netbsd
         run: |
           sudo apt install -y cvs libncurses-dev gcc g++ zlib1g-dev zlib1g libssl-dev libudev-dev gawk unzip curl
           curl -OL https://cdn.netbsd.org/pub/pkgsrc/stable/pkgsrc.tar.xz
