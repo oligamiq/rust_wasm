@@ -40,8 +40,7 @@ jobs:
           sudo rm -rf /x-tools
           sudo mkdir /x-tools && sudo chown rustbuild:rustbuild /x-tools
           sudo chmod 777 /x-tools
-          sudo rm -rf /tmp
-          sudo mkdir /tmp && sudo chown rustbuild:rustbuild /tmp
+          sudo mkdir -p /tmp && sudo chown rustbuild:rustbuild /tmp
           sudo chmod 777 /tmp
           sudo chmod 777 /usr/local/lib/
 
