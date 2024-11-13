@@ -36,6 +36,11 @@ jobs:
           path: 'rust_wasm'
           ref: 'gh-actions'
 
+      - name: rustbuild setup
+        run: |
+          sudo groupadd -r rustbuild && sudo useradd -m -r -g rustbuild rustbuild
+          sudo rm -rf /x-tools
+          sudo mkdir /x-tools && sudo chown rustbuild:rustbuild /x-tools
 
       - name: install-wasi-sdk
         working-directory: '${{ github.workspace }}/rust'
@@ -98,7 +103,6 @@ jobs:
 
       - name: install loongarch64-unknown-linux-gnu
         run: |
-          sudo mkdir -p /x-tools
           cd ~
           cp '${{ github.workspace }}/rust_wasm/loongarch64-unknown-linux-gnu.defconfig' crosstool.defconfig
           bash '${{ github.workspace }}/rust_wasm/crosstool-ng-build.sh'
