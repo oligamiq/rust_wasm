@@ -3,9 +3,9 @@ name: rustc_llvm_with_lld
 # gh act --job build -s GITHUB_TOKEN="$(gh auth token)" --reuse
 
 # only self-triggered
-on:
-  workflow_dispatch:
-    inputs:
+# on:
+#   workflow_dispatch:
+#     inputs:
 
 permissions:
   packages: write
@@ -206,6 +206,17 @@ jobs:
           mkdir ~/build
           cd ~/build
           bash '${{ github.workspace }}/rust_wasm/musl.sh' i586 --target=i586
+          cd /
+          rm -rf ~/build/
+
+      - name: install musl dependencies aarch64
+        env:
+          CFLAGS: "-Wa,--compress-debug-sections=none -Wl,--compress-debug-sections=none"
+          CXXFLAGS: "-Wa,--compress-debug-sections=none -Wl,--compress-debug-sections=none"
+        run: |
+          mkdir ~/build
+          cd ~/build
+          bash '${{ github.workspace }}/rust_wasm/musl-toolchain.sh' aarch64
           cd /
           rm -rf ~/build/
 
