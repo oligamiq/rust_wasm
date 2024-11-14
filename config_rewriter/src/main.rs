@@ -161,6 +161,12 @@ fn main() -> anyhow::Result<()> {
                     ]
                 },
             }.to_item();
+            doc["target"]["aarch64-unknown-linux-musl"]["musl-root"] = "/musl-aarch64".into();
+            doc["target"]["loongarch64-unknown-linux-musl"]["musl-root"] = "/musl-loongarch64".into();
+            doc["target"]["riscv64gc-unknown-linux-musl"]["musl-root"] = "/musl-riscv64gc".into();
+            doc["target"]["x86_64-unknown-linux-musl"]["musl-root"] = "/musl-x86_64".into();
+            doc["target"]["arm-unknown-linux-musleabi"]["musl-root"] = "/musl-arm".into();
+            doc["target"]["arm-unknown-linux-musleabihf"]["musl-root"] = "/musl-armhf".into();
         },
         Targets::WasmAndX64Linux => {
             doc["llvm"]["targets"] = "WebAssembly;X86".into();
