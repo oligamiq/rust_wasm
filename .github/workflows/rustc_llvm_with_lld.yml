@@ -45,6 +45,7 @@ jobs:
           sudo chmod 777 /usr/local/lib/
           sudo chmod 777 /usr/local/bin/
           sudo chmod 777 /usr/bin/
+          sudo chmod 777 /
 
       - name: install-wasi-sdk
         working-directory: '${{ github.workspace }}/rust'
@@ -295,6 +296,12 @@ jobs:
             bash '${{ github.workspace }}/rust_wasm/musl.sh' i586 --target=i586
             cd /
             rm -rf ~/build/
+            ENV RUST_CONFIGURE_ARGS \
+                  --musl-root-i586=/musl-i586 \
+                  --musl-root-i686=/musl-i686 \
+                  --disable-docs
+            echo 'RUST_CONFIGURE_ARGS="$RUST_CONFIGURE_ARGS --musl-root-i586=/musl-i586 --musl-root-i686=/musl-i686 --disable-docs"' >> $GITHUB_ENV
+
             touch "$FLAG_FILE"
           else
             echo "musl i586 is already installed, skipping installation."
@@ -334,8 +341,6 @@ jobs:
             rm -rf ~/build/
             sudo ln -sf /musl-arm/bin/musl-gcc /usr/local/bin/arm-linux-musleabi-gcc
             echo 'CFLAGS_arm_unknown_linux_musleabi="-march=armv6 -marm"' >> $GITHUB_ENV
-            which aarch64-linux-musl-gcc
-            which aarch64-linux-musl-g++
 
             which dcuniugtxdc
             # touch "$FLAG_FILE"
