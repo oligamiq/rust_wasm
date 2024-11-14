@@ -49,6 +49,10 @@ jobs:
           sudo chmod 777 /lib
           sudo chmod 777 /etc
 
+      - name: install clang
+        run: |
+          bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
+
       - name: install-wasi-sdk
         working-directory: '${{ github.workspace }}/rust'
         run: |
