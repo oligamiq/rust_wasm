@@ -303,6 +303,24 @@ jobs:
             echo "musl riscv64 is already installed, skipping installation."
           fi
 
+      - name: install musl dependencies riscv64gc
+        env:
+          CC: riscv64-linux-gnu-gcc
+          CXX: riscv64-linux-gnu-g++
+        run: |
+          FLAG_FILE="/tmp/musl-riscv64gc-installed"
+          rm -f "$FLAG_FILE"
+          if [ ! -f "$FLAG_FILE" ]; then
+            mkdir ~/build
+            cd ~/build
+            bash '${{ github.workspace }}/rust_wasm/musl.sh' riscv64gc
+            cd /
+            rm -rf ~/build/
+            touch "$FLAG_FILE"
+          else
+            echo "musl riscv64gc is already installed, skipping installation."
+          fi
+
       - name: install musl dependencies i686 i586
         env:
           CC: i686-linux-gnu-gcc
@@ -426,17 +444,16 @@ jobs:
       - name: install musl dependencies x86_64
         run: |
           FLAG_FILE="/tmp/musl-x86_64-installed"
-          rm -f "$FLAG_FILE"
           if [ ! -f "$FLAG_FILE" ]; then
             mkdir ~/build
             cd ~/build
-            curl -OL https://oligamiq.github.io/cdn/musl-bin/aarch64-linux-musl-cross.tgz_aa
-            curl -OL https://oligamiq.github.io/cdn/musl-bin/aarch64-linux-musl-cross.tgz_ab
-            cat aarch64-linux-musl-cross.tgz_* | tar -xzv
-            rm aarch64-linux-musl-cross.tgz_*
+            curl -OL https://oligamiq.github.io/cdn/musl-bin/x86_64-linux-musl-cross.tgz_aa
+            curl -OL https://oligamiq.github.io/cdn/musl-bin/x86_64-linux-musl-cross.tgz_ab
+            cat x86_64-linux-musl-cross.tgz_* | tar -xzv
+            rm x86_64-linux-musl-cross.tgz_*
             rm -rf /musl-x86_64
             mkdir -p /musl-x86_64
-            sudo mv aarch64-linux-musl-cross/* /musl-x86_64
+            sudo mv x86_64-linux-musl-cross/* /musl-x86_64
             cd /
             rm -rf ~/build/
             sudo ln -sf /musl-x86_64/bin/x86_64-linux-musl-gcc /usr/local/bin/musl-gcc
