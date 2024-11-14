@@ -39,7 +39,7 @@ mkdir binutils-build
 cd binutils-build
 hide_output ../binutils-$BINUTILS/configure --target=$TARGET
 hide_output make -j`nproc`
-hide_output make install
+hide_output sudo make install
 
 cd ../..
 rm -rf binutils
@@ -65,7 +65,7 @@ sudo apt-get install -y --download-only                           \
 for deb in /var/cache/apt/archives/*$APT_ARCH.deb; do
   dpkg -x $deb .
 done
-apt-get clean
+sudo apt-get clean
 
 # The -dev packages are not available from the apt repository we're using.
 # However, those packages are just symlinks from *.so to *.so.<version>.
@@ -85,6 +85,7 @@ patch -p0  << 'EOF'
 -extern size_t strnlen(const char *, size_t);
 EOF
 
+sudo chmod -R a+r /usr/local/$TARGET
 mkdir                  /usr/local/$TARGET/usr
 mv usr/include         /usr/local/$TARGET/usr/include
 mv usr/lib/$LIB_ARCH/* /usr/local/$TARGET/lib
@@ -123,7 +124,7 @@ hide_output ../gcc-$GCC/configure \
   --disable-lto
 
 hide_output make -j`nproc`
-hide_output make install
+hide_output sudo make install
 
 cd ../..
 rm -rf gcc
