@@ -37,8 +37,7 @@ jobs:
       - name: rustbuild setup
         run: |
           sudo groupadd -r rustbuild && sudo useradd -m -r -g rustbuild rustbuild
-          sudo rm -rf /x-tools
-          sudo mkdir /x-tools && sudo chown rustbuild:rustbuild /x-tools
+          sudo mkdir -p /x-tools && sudo chown rustbuild:rustbuild /x-tools
           sudo chmod 777 /x-tools
           sudo mkdir -p /tmp && sudo chown rustbuild:rustbuild /tmp
           sudo chmod 777 /tmp
@@ -81,7 +80,6 @@ jobs:
           HOST_CFLAGS: "-O -fcommon"
         run: |
           FLAG_FILE="/tmp/netbsd-installed"
-          rm -f "$FLAG_FILE"
           if [ ! -f "$FLAG_FILE" ]; then
             cd /tmp
             rm -rf netbsd
@@ -214,6 +212,22 @@ jobs:
           sudo apt install -y gcc-sparc64-linux-gnu     g++-sparc64-linux-gnu
           sudo apt install -y gcc-i686-linux-gnu        g++-i686-linux-gnu
           sudo apt install -y gcc-arm-none-eabi
+
+      # https://github.com/rust-lang/rust/blob/bd0826a4521a845f36cce1b00e1dd2918ba09e90/src/ci/docker/host-x86_64/dist-various-2/Dockerfile#L46
+      - name: install sparcv9-sun-solaris
+        run: |
+          FLAG_FILE="/tmp/sparcv9-sun-solaris-installed"
+          rm -f "$FLAG_FILE"
+          if [ ! -f "$FLAG_FILE" ]; then
+            mkdir ~/build
+            cd ~/build
+            bash '${{ github.workspace }}/rust_wasm/build-solaris-toolchain.sh' sparcv9 sparcv9 solaris-sparc sun
+            cd /
+            rm -rf ~/build/
+            touch "$FLAG_FILE"
+          else
+            echo "sparcv9-sun-solaris is already installed, skipping installation."
+          fi
 
       # https://musl.cc/
       - name: install musl base
