@@ -441,6 +441,66 @@ jobs:
             echo "musl armhf is already installed, skipping installation."
           fi
 
+      # https://github.com/rust-lang/rust/blob/a4cedecc9ec76b46dcbb954750068c832cf2dd43/src/ci/docker/host-x86_64/dist-various-1/Dockerfile#L79
+      - name: install musl dependencies armv5te
+        env:
+          CC: arm-linux-gnueabi-gcc
+          CXX: arm-linux-gnueabi-g++
+          CFLAGS: "-march=armv5te -marm -mfloat-abi=soft"
+          CXXFLAGS: "-march=armv5te -marm -mfloat-abi=soft"
+        run: |
+          FLAG_FILE="/tmp/musl-armv5te-installed"
+          if [ ! -f "$FLAG_FILE" ]; then
+            mkdir ~/build
+            cd ~/build
+            bash '${{ github.workspace }}/rust_wasm/musl.sh' armv5te
+            cd /
+            rm -rf ~/build/
+            touch "$FLAG_FILE"
+          else
+            echo "musl armv5te is already installed, skipping installation."
+          fi
+
+      # https://github.com/rust-lang/rust/blob/a4cedecc9ec76b46dcbb954750068c832cf2dd43/src/ci/docker/host-x86_64/dist-various-2/Dockerfile#L127
+      - name: install musl dependencies armv7
+        env:
+          CC: arm-linux-gnueabi-gcc
+          CXX: arm-linux-gnueabi-g++
+          CFLAGS: '-march=armv7-a'
+          CXXFLAGS: '-march=armv7-a'
+        run: |
+          FLAG_FILE="/tmp/musl-armv7-installed"
+          if [ ! -f "$FLAG_FILE" ]; then
+            mkdir ~/build
+            cd ~/build
+            bash '${{ github.workspace }}/rust_wasm/musl.sh' armv7
+            cd /
+            rm -rf ~/build/
+            touch "$FLAG_FILE"
+          else
+            echo "musl armv7 is already installed, skipping installation."
+          fi
+
+      # https://github.com/rust-lang/rust/blob/a4cedecc9ec76b46dcbb954750068c832cf2dd43/src/ci/docker/host-x86_64/dist-various-1/Dockerfile#L79
+      - name: install musl dependencies armv7hf
+        env:
+          CC: arm-linux-gnueabihf-gcc
+          CXX: arm-linux-gnueabihf-g++
+          CFLAGS: "-march=armv7-a+fp"
+          CXXFLAGS: "-march=armv7-a+fp"
+        run: |
+          FLAG_FILE="/tmp/musl-armv7hf-installed"
+          if [ ! -f "$FLAG_FILE" ]; then
+            mkdir ~/build
+            cd ~/build
+            bash '${{ github.workspace }}/rust_wasm/musl.sh' armv7hf
+            cd /
+            rm -rf ~/build/
+            touch "$FLAG_FILE"
+          else
+            echo "musl armv7hf is already installed, skipping installation."
+          fi
+
       - name: install musl dependencies x86_64
         run: |
           FLAG_FILE="/tmp/musl-x86_64-installed"

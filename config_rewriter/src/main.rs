@@ -167,6 +167,9 @@ fn main() -> anyhow::Result<()> {
             doc["target"]["x86_64-unknown-linux-musl"]["musl-root"] = "/musl-x86_64/x86_64-linux-musl".into();
             doc["target"]["arm-unknown-linux-musleabi"]["musl-root"] = "/musl-arm/arm-linux-musleabi".into();
             doc["target"]["arm-unknown-linux-musleabihf"]["musl-root"] = "/musl-armhf/arm-linux-musleabihf".into();
+            doc["target"]["armv5te-unknown-linux-musleabi"]["musl-root"] = "/musl-armv5te".into();
+            doc["target"]["armv7-unknown-linux-musleabi"]["musl-root"] = "/musl-armv7".into();
+            doc["target"]["armv7-unknown-linux-musleabihf"]["musl-root"] = "/musl-armv7hf".into();
             doc["target"]["i586-unknown-linux-musl"]["musl-root"] = "/musl-i586".into();
             doc["target"]["i686-unknown-linux-musl"]["musl-root"] = "/musl-i686".into();
         },
