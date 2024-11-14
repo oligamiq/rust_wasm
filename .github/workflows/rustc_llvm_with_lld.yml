@@ -48,10 +48,12 @@ jobs:
           sudo chmod 777 /
           sudo chmod 777 /lib
           sudo chmod 777 /etc
+          echo '/usr/local/bin/' >> $GITHUB_PATH
 
       - name: install clang
         run: |
           sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
+          echo '/usr/bin' >> $GITHUB_PATH
 
       - name: install-wasi-sdk
         working-directory: '${{ github.workspace }}/rust'
@@ -183,6 +185,7 @@ jobs:
           sudo ln -sf '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/riscv64-linux-android35-clang++' '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/riscv64-linux-android-clang++'
           sudo ln -sf '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android35-clang++' '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/x86_64-linux-android-clang++'
           sudo ln -sf '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/clang++' '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/clang++'
+          sudo ln -sf '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar' '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/llvm-ar'
 
           sudo chmod +x '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/aarch64-linux-android-clang'
           sudo chmod +x '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/i686-linux-android-clang'
@@ -194,6 +197,9 @@ jobs:
           sudo chmod +x '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/arm-linux-androideabi-clang++'
           sudo chmod +x '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/riscv64-linux-android-clang++'
           sudo chmod +x '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/x86_64-linux-android-clang++'
+          sudo chmod +x '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/clang'
+          sudo chmod +x '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/clang++'
+          sudo chmod +x '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/llvm-ar'
 
           echo '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins' >> $GITHUB_PATH
 
@@ -281,7 +287,15 @@ jobs:
           if [ ! -f "$FLAG_FILE" ]; then
             mkdir ~/build
             cd ~/build
-            bash '${{ github.workspace }}/rust_wasm/musl-toolchain.sh' riscv64 riscv64-linux-musl
+            curl -OL https://oligamiq.github.io/cdn/musl-bin/riscv64-linux-musl-cross.tgz_aa
+            curl -OL https://oligamiq.github.io/cdn/musl-bin/riscv64-linux-musl-cross.tgz_ab
+            cat riscv64-linux-musl-cross.tgz_* | tar -xzv
+            rm riscv64-linux-musl-cross.tgz_*
+            rm -rf /musl-riscv64
+            mkdir -p /musl-riscv64
+            sudo mv riscv64-linux-musl-cross/* /musl-riscv64
+            sudo ln -sf /musl-riscv64/bin/riscv64-linux-musl-gcc /usr/local/bin/riscv64-linux-musl-gcc
+            sudo ln -sf /musl-riscv64/bin/riscv64-linux-musl-g++ /usr/local/bin/riscv64-linux-musl-g++
             cd /
             rm -rf ~/build/
             touch "$FLAG_FILE"
@@ -300,7 +314,15 @@ jobs:
           if [ ! -f "$FLAG_FILE" ]; then
             mkdir ~/build
             cd ~/build
-            bash '${{ github.workspace }}/rust_wasm/musl.sh' i686 --target=i686
+            curl -OL https://oligamiq.github.io/cdn/musl-bin/i686-linux-musl-cross.tgz_aa
+            curl -OL https://oligamiq.github.io/cdn/musl-bin/i686-linux-musl-cross.tgz_ab
+            cat i686-linux-musl-cross.tgz_* | tar -xzv
+            rm i686-linux-musl-cross.tgz_*
+            rm -rf /musl-i686
+            mkdir -p /musl-i686
+            sudo mv i686-linux-musl-cross/* /musl-i686
+            sudo ln -sf /musl-i686/bin/i686-linux-musl-gcc /usr/local/bin/i686-linux-musl-gcc
+            sudo ln -sf /musl-i686/bin/i686-linux-musl-g++ /usr/local/bin/i686-linux-musl-g++
             cd /
             rm -rf ~/build/
             sudo ln -sf /musl-i686/bin/musl-gcc /usr/local/bin/i686-linux-musl-gcc
@@ -331,7 +353,15 @@ jobs:
           if [ ! -f "$FLAG_FILE" ]; then
             mkdir ~/build
             cd ~/build
-            bash '${{ github.workspace }}/rust_wasm/musl-toolchain.sh' aarch64 aarch64-linux-musl
+            curl -OL https://oligamiq.github.io/cdn/musl-bin/aarch64-linux-musl-cross.tgz_aa
+            curl -OL https://oligamiq.github.io/cdn/musl-bin/aarch64-linux-musl-cross.tgz_ab
+            cat aarch64-linux-musl-cross.tgz_* | tar -xzv
+            rm aarch64-linux-musl-cross.tgz_*
+            rm -rf /musl-aarch64
+            mkdir -p /musl-aarch64
+            sudo mv aarch64-linux-musl-cross/* /musl-aarch64
+            sudo ln -sf /musl-aarch64/bin/aarch64-linux-musl-gcc /usr/local/bin/aarch64-linux-musl-gcc
+            sudo ln -sf /musl-aarch64/bin/aarch64-linux-musl-g++ /usr/local/bin/aarch64-linux-musl-g++
             cd /
             rm -rf ~/build/
             touch "$FLAG_FILE"
@@ -351,7 +381,14 @@ jobs:
           if [ ! -f "$FLAG_FILE" ]; then
             mkdir ~/build
             cd ~/build
-            bash '${{ github.workspace }}/rust_wasm/musl-toolchain.sh' arm arm-linux-musleabi
+            curl -OL https://oligamiq.github.io/cdn/musl-bin/arm-linux-musleabi-cross.tgz
+            cat arm-linux-musleabi-cross.tgz | tar -xzv
+            rm arm-linux-musleabi-cross.tgz
+            rm -rf /musl-arm
+            mkdir -p /musl-arm
+            sudo mv arm-linux-musleabi-cross/* /musl-arm
+            sudo ln -sf /musl-arm/bin/arm-linux-musleabi-gcc /usr/local/bin/arm-linux-musleabi-gcc
+            sudo ln -sf /musl-arm/bin/arm-linux-musleabi-g++ /usr/local/bin/arm-linux-musleabi-g++
             cd /
             rm -rf ~/build/
             touch "$FLAG_FILE"
@@ -371,7 +408,14 @@ jobs:
           if [ ! -f "$FLAG_FILE" ]; then
             mkdir ~/build
             cd ~/build
-            bash '${{ github.workspace }}/rust_wasm/musl-toolchain.sh' armhf arm-linux-musleabihf
+            curl -OL https://oligamiq.github.io/cdn/musl-bin/arm-linux-musleabihf-cross.tgz
+            cat arm-linux-musleabihf-cross.tgz | tar -xzv
+            rm arm-linux-musleabihf-cross.tgz
+            rm -rf /musl-armhf
+            mkdir -p /musl-armhf
+            sudo mv arm-linux-musleabihf-cross/* /musl-armhf
+            sudo ln -sf /musl-armhf/bin/arm-linux-musleabihf-gcc /usr/local/bin/arm-linux-musleabihf-gcc
+            sudo ln -sf /musl-armhf/bin/arm-linux-musleabihf-g++ /usr/local/bin/arm-linux-musleabihf-g++
             cd /
             rm -rf ~/build/
             touch "$FLAG_FILE"
@@ -382,23 +426,45 @@ jobs:
       - name: install musl dependencies x86_64
         run: |
           FLAG_FILE="/tmp/musl-x86_64-installed"
+          rm -f "$FLAG_FILE"
           if [ ! -f "$FLAG_FILE" ]; then
             mkdir ~/build
             cd ~/build
-            bash '${{ github.workspace }}/rust_wasm/musl-toolchain.sh' x86_64 x86_64-linux-musl
+            curl -OL https://oligamiq.github.io/cdn/musl-bin/aarch64-linux-musl-cross.tgz_aa
+            curl -OL https://oligamiq.github.io/cdn/musl-bin/aarch64-linux-musl-cross.tgz_ab
+            cat aarch64-linux-musl-cross.tgz_* | tar -xzv
+            rm aarch64-linux-musl-cross.tgz_*
+            rm -rf /musl-x86_64
+            mkdir -p /musl-x86_64
+            sudo mv aarch64-linux-musl-cross/* /musl-x86_64
             cd /
             rm -rf ~/build/
-            sudo ln -sf /usr/local/bin/x86_64-linux-musl-gcc /usr/local/bin/musl-gcc
-            sudo ln -sf /usr/local/bin/x86_64-linux-musl-g++ /usr/local/bin/musl-g++
+            sudo ln -sf /musl-x86_64/bin/x86_64-linux-musl-gcc /usr/local/bin/musl-gcc
+            sudo ln -sf /musl-x86_64/bin/x86_64-linux-musl-g++ /usr/local/bin/musl-g++
             touch "$FLAG_FILE"
           else
             echo "musl x86_64 is already installed, skipping installation."
+          fi
+
+      - name: install musl loongarch64
+        run: |
+          FLAG_FILE="/tmp/musl-loongarch64-installed"
+          if [ ! -f "$FLAG_FILE" ]; then
+            mkdir ~/build
+            cd ~/build
+            bash '${{ github.workspace }}/rust_wasm/musl.sh' loongarch64
+            cd /
+            rm -rf ~/build/
+            touch "$FLAG_FILE"
+          else
+            echo "musl loongarch64 is already installed, skipping installation."
           fi
 
       # https://github.com/rust-lang/rust/blob/65b3877488ccfef3b1a903bfdd269559c59b957c/src/doc/rustc/src/platform-support/wasm32-unknown-emscripten.md
       - name: install emscripten
         run: |
           FLAG_FILE="/tmp/emscripten-installed"
+          rm -f "$FLAG_FILE"
           if [ ! -f "$FLAG_FILE" ]; then
             rm -rf /emsdk
             sudo mkdir -p /emsdk
@@ -410,7 +476,7 @@ jobs:
             source ./emsdk/emsdk_env.sh
             echo '/emsdk/emsdk' >> $GITHUB_PATH
             echo '/emsdk/emsdk/upstream/emscripten' >> $GITHUB_PATH
-            # touch "$FLAG_FILE"
+            touch "$FLAG_FILE"
           else
             echo "emscripten is already installed, skipping installation."
           fi
@@ -429,7 +495,6 @@ jobs:
         run: |
           export RUST_CONFIGURE_ARGS='${{ env.RUST_CONFIGURE_ARGS }}'
           ./x.py install --config config.llvm.toml
-
       - name: rustc.wasm which big size to small size
         working-directory: '${{ github.workspace }}/rust'
         run: |
