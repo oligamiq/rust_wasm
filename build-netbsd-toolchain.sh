@@ -38,6 +38,22 @@ download() {
   rm "$fname"
 }
 
+download_divided() {
+  fname="$1"
+  shift
+  url="$1"
+  shift
+  sha="$1"
+  shift
+
+  curl "${url}_aa" -o "${fname}_aa"
+  curl "${url}_bb" -o "${fname}_ab"
+  cat "${fname}_aa" "${fname}_ab" > "$fname"
+  echo "$sha  $fname" | shasum -a 512 --check || exit 1
+  "$@"
+  rm "$fname"
+}
+
 mkdir netbsd
 cd netbsd
 
@@ -56,16 +72,18 @@ COMP_SHA=38ea54f30d5fc2afea87e5096f06873e00182789e8ad9cec0cb3e9f7c538c1aa4779e63
 # FIXME: the archive URL is being used temporarily while the CDN is down.
 # We should serve this from our own CDN
 # SOURCE_URL=https://cdn.netbsd.org/pub/NetBSD/NetBSD-9.0/source/sets
-SOURCE_URL=http://archive.netbsd.org/pub/NetBSD-archive/NetBSD-9.0/source/sets
-download src.tgz "$SOURCE_URL/src.tgz" "$SRC_SHA" tar xzf src.tgz
-download gnusrc.tgz "$SOURCE_URL/gnusrc.tgz" "$GNUSRC_SHA" tar xzf gnusrc.tgz
+# SOURCE_URL=http://archive.netbsd.org/pub/NetBSD-archive/NetBSD-9.0/source/sets
+SOURCE_URL=https://oligamiq.github.io/cdn/netbsd/NetBSD-9.0/source/sets/
+download_divided src.tgz "$SOURCE_URL/src.tgz" "$SRC_SHA" tar xzf src.tgz
+download_divided gnusrc.tgz "$SOURCE_URL/gnusrc.tgz" "$GNUSRC_SHA" tar xzf gnusrc.tgz
 download sharesrc.tgz "$SOURCE_URL/sharesrc.tgz" "$SHARESRC_SHA" tar xzf sharesrc.tgz
 download syssrc.tgz "$SOURCE_URL/syssrc.tgz" "$SYSSRC_SHA" tar xzf syssrc.tgz
 
 # FIXME: the archive URL is being used temporarily while the CDN is down.
 # We should serve this from our own CDN
 # BINARY_URL=https://cdn.netbsd.org/pub/NetBSD/NetBSD-9.0/amd64/binary/sets
-BINARY_URL=http://archive.netbsd.org/pub/NetBSD-archive/NetBSD-9.0/amd64/binary/sets
+# BINARY_URL=http://archive.netbsd.org/pub/NetBSD-archive/NetBSD-9.0/amd64/binary/sets
+BINARY_URL=https://oligamiq.github.io/cdn/netbsd/NetBSD-9.0/amd64/binary/sets
 download base.tar.xz "$BINARY_URL/base.tar.xz" "$BASE_SHA" \
   tar xJf base.tar.xz -C /x-tools/x86_64-unknown-netbsd/sysroot ./usr/include ./usr/lib ./lib
 download comp.tar.xz "$BINARY_URL/comp.tar.xz" "$COMP_SHA" \
