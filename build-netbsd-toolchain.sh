@@ -47,7 +47,7 @@ download_divided() {
   shift
 
   curl "${url}_aa" -o "${fname}_aa"
-  curl "${url}_bb" -o "${fname}_ab"
+  curl "${url}_ab" -o "${fname}_ab"
   cat "${fname}_aa" "${fname}_ab" > "$fname"
   echo "$sha  $fname" | shasum -a 512 --check || exit 1
   "$@"
