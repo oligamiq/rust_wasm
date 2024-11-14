@@ -85,7 +85,7 @@ patch -p0  << 'EOF'
 -extern size_t strnlen(const char *, size_t);
 EOF
 
-sudo chmod -R a+r /usr/local/$TARGET
+sudo chmod 777 /usr/local/$TARGET
 mkdir                  /usr/local/$TARGET/usr
 mv usr/include         /usr/local/$TARGET/usr/include
 mv usr/lib/$LIB_ARCH/* /usr/local/$TARGET/lib
