@@ -161,12 +161,12 @@ fn main() -> anyhow::Result<()> {
                     ]
                 },
             }.to_item();
-            doc["target"]["aarch64-unknown-linux-musl"]["musl-root"] = "/musl-aarch64".into();
+            doc["target"]["aarch64-unknown-linux-musl"]["musl-root"] = "/musl-aarch64/aarch64-linux-musl".into();
             doc["target"]["loongarch64-unknown-linux-musl"]["musl-root"] = "/musl-loongarch64".into();
             doc["target"]["riscv64gc-unknown-linux-musl"]["musl-root"] = "/musl-riscv64gc".into();
-            doc["target"]["x86_64-unknown-linux-musl"]["musl-root"] = "/musl-x86_64".into();
-            doc["target"]["arm-unknown-linux-musleabi"]["musl-root"] = "/musl-arm".into();
-            doc["target"]["arm-unknown-linux-musleabihf"]["musl-root"] = "/musl-armhf".into();
+            doc["target"]["x86_64-unknown-linux-musl"]["musl-root"] = "/musl-x86_64/x86_64-linux-musl".into();
+            doc["target"]["arm-unknown-linux-musleabi"]["musl-root"] = "/musl-arm/arm-linux-musleab".into();
+            doc["target"]["arm-unknown-linux-musleabihf"]["musl-root"] = "/musl-armhf/arm-linux-musleabihf".into();
             doc["target"]["i586-unknown-linux-musl"]["musl-root"] = "/musl-i586".into();
             doc["target"]["i686-unknown-linux-musl"]["musl-root"] = "/musl-i686".into();
         },
