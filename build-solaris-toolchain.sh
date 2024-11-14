@@ -48,9 +48,9 @@ rm -rf binutils
 mkdir solaris
 cd solaris
 
-dpkg --add-architecture $APT_ARCH
-apt-get update
-apt-get install -y --download-only                           \
+sudo dpkg --add-architecture $APT_ARCH
+sudo apt-get update
+sudo apt-get install -y --download-only                           \
   libc:$APT_ARCH                                             \
   liblgrp:$APT_ARCH                                          \
   libm-dev:$APT_ARCH                                         \
