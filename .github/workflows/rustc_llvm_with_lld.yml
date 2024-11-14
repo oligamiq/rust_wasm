@@ -309,7 +309,6 @@ jobs:
           CXX: riscv64-linux-gnu-g++
         run: |
           FLAG_FILE="/tmp/musl-riscv64gc-installed"
-          rm -f "$FLAG_FILE"
           if [ ! -f "$FLAG_FILE" ]; then
             mkdir ~/build
             cd ~/build
