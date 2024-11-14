@@ -46,6 +46,7 @@ jobs:
           sudo chmod 777 /usr/local/bin/
           sudo chmod 777 /usr/bin/
           sudo chmod 777 /
+          sudo chmod 777 /lib
 
       - name: install-wasi-sdk
         working-directory: '${{ github.workspace }}/rust'
@@ -234,40 +235,42 @@ jobs:
           sudo apt install -y musl-dev musl-tools musl
           rm -rf ~/build/
 
-      - name: install musl dependencies armv7
-        env:
-          CC: arm-linux-gnueabi-gcc
-          CXX: arm-linux-gnueabi-g++
-          CFLAGS: '-march=armv7-a'
-          CXXFLAGS: '-march=armv7-a'
-        run: |
-          FLAG_FILE="/tmp/musl-armv7-installed"
-          if [ ! -f "$FLAG_FILE" ]; then
-            mkdir ~/build
-            cd ~/build
-            bash '${{ github.workspace }}/rust_wasm/musl.sh' armv7
-            cd /
-            rm -rf ~/build/
-            touch "$FLAG_FILE"
-          else
-            echo "musl armv7 is already installed, skipping installation."
-          fi
+      # - name: install musl dependencies armv7
+      #   env:
+      #     CC: arm-linux-gnueabi-gcc
+      #     CXX: arm-linux-gnueabi-g++
+      #     CFLAGS: '-march=armv7-a'
+      #     CXXFLAGS: '-march=armv7-a'
+      #   run: |
+      #     FLAG_FILE="/tmp/musl-armv7-installed"
+      #     rm -f "$FLAG_FILE"
+      #     if [ ! -f "$FLAG_FILE" ]; then
+      #       mkdir ~/build
+      #       cd ~/build
+      #       bash '${{ github.workspace }}/rust_wasm/musl.sh' armv7
+      #       cd /
+      #       rm -rf ~/build/
 
-      - name: install musl dependencies riscv64gc
-        env:
-          CC: riscv64-linux-gnu-gcc
-          CXX: riscv64-linux-gnu-g++
+      #       touch "$FLAG_FILE"
+      #     else
+      #       echo "musl armv7 is already installed, skipping installation."
+      #     fi
+
+      - name: install musl dependencies riscv64
+        # env:
+        #   CC: riscv64-linux-gnu-gcc
+        #   CXX: riscv64-linux-gnu-g++
         run: |
-          FLAG_FILE="/tmp/musl-riscv64gc-installed"
+          FLAG_FILE="/tmp/musl-riscv64-installed"
           if [ ! -f "$FLAG_FILE" ]; then
             mkdir ~/build
             cd ~/build
-            bash '${{ github.workspace }}/rust_wasm/musl.sh' riscv64gc
+            bash '${{ github.workspace }}/rust_wasm/musl-toolchain.sh' riscv64 riscv64-linux-musl
             cd /
             rm -rf ~/build/
             touch "$FLAG_FILE"
           else
-            echo "musl riscv64gc is already installed, skipping installation."
+            echo "musl riscv64 is already installed, skipping installation."
           fi
 
       - name: install musl dependencies i686 i586
@@ -284,24 +287,21 @@ jobs:
             bash '${{ github.workspace }}/rust_wasm/musl.sh' i686 --target=i686
             cd /
             rm -rf ~/build/
+            sudo ln -sf /musl-i686/bin/musl-gcc /usr/local/bin/i686-linux-musl-gcc
             touch "$FLAG_FILE"
           else
             echo "musl i686 is already installed, skipping installation."
           fi
 
           FLAG_FILE="/tmp/musl-i586-installed"
+          rm -f "$FLAG_FILE"
           if [ ! -f "$FLAG_FILE" ]; then
             mkdir ~/build
             cd ~/build
             bash '${{ github.workspace }}/rust_wasm/musl.sh' i586 --target=i586
             cd /
             rm -rf ~/build/
-            ENV RUST_CONFIGURE_ARGS \
-                  --musl-root-i586=/musl-i586 \
-                  --musl-root-i686=/musl-i686 \
-                  --disable-docs
-            echo 'RUST_CONFIGURE_ARGS="$RUST_CONFIGURE_ARGS --musl-root-i586=/musl-i586 --musl-root-i686=/musl-i686 --disable-docs"' >> $GITHUB_ENV
-
+            sudo ln -sf /musl-i586/bin/musl-gcc /usr/local/bin/i586-linux-musl-gcc
             touch "$FLAG_FILE"
           else
             echo "musl i586 is already installed, skipping installation."
@@ -316,7 +316,7 @@ jobs:
           if [ ! -f "$FLAG_FILE" ]; then
             mkdir ~/build
             cd ~/build
-            bash '${{ github.workspace }}/rust_wasm/musl.sh' aarch64
+            bash '${{ github.workspace }}/rust_wasm/musl-toolchain.sh' aarch64 aarch64-linux-musl
             cd /
             rm -rf ~/build/
             touch "$FLAG_FILE"
@@ -326,46 +326,42 @@ jobs:
 
       # https://github.com/rust-lang/rust/blob/65b3877488ccfef3b1a903bfdd269559c59b957c/src/ci/docker/host-x86_64/dist-various-1/Dockerfile#L89
       - name: install musl dependencies arm
-        env:
-          CC: arm-linux-gnueabi-gcc
-          CXX: arm-linux-gnueabi-g++
-          CFLAGS: '-march=armv6 -marm'
-          CXXFLAGS: '-march=armv6 -marm'
+        # env:
+        #   CC: arm-linux-gnueabi-gcc
+        #   CXX: arm-linux-gnueabi-g++
+        #   CFLAGS: '-march=armv6 -marm'
+        #   CXXFLAGS: '-march=armv6 -marm'
         run: |
           FLAG_FILE="/tmp/musl-arm-installed"
+          rm -f "$FLAG_FILE"
           if [ ! -f "$FLAG_FILE" ]; then
             mkdir ~/build
             cd ~/build
-            bash '${{ github.workspace }}/rust_wasm/musl.sh' arm
+            bash '${{ github.workspace }}/rust_wasm/musl-toolchain.sh' arm arm-linux-musleabi
             cd /
             rm -rf ~/build/
-            sudo ln -sf /musl-arm/bin/musl-gcc /usr/local/bin/arm-linux-musleabi-gcc
-            echo 'CFLAGS_arm_unknown_linux_musleabi="-march=armv6 -marm"' >> $GITHUB_ENV
-
-            which dcuniugtxdc
-            # touch "$FLAG_FILE"
+            touch "$FLAG_FILE"
           else
             echo "musl arm is already installed, skipping installation."
           fi
 
       # https://github.com/rust-lang/rust/blob/9a9daddd0dacfe8c5e8eaa07cfd054a3631bcde7/src/ci/docker/host-x86_64/dist-various-1/Dockerfile
       - name: install musl dependencies armhf
-        env:
-          CC: arm-linux-gnueabihf-gcc
-          CXX: arm-linux-gnueabihf-g++
-          CFLAGS: '-march=armv6 -marm -mfpu=vfp'
-          CXXFLAGS: '-march=armv6 -marm -mfpu=vfp'
+        # env:
+        #   CC: arm-linux-gnueabihf-gcc
+        #   CXX: arm-linux-gnueabihf-g++
+        #   CFLAGS: '-march=armv6 -marm -mfpu=vfp'
+        #   CXXFLAGS: '-march=armv6 -marm -mfpu=vfp'
         run: |
           FLAG_FILE="/tmp/musl-armhf-installed"
+          rm -f "$FLAG_FILE"
           if [ ! -f "$FLAG_FILE" ]; then
             mkdir ~/build
             cd ~/build
-            bash '${{ github.workspace }}/rust_wasm/musl.sh' armhf
+            bash '${{ github.workspace }}/rust_wasm/musl-toolchain.sh' armhf arm-linux-musleabihf
             cd /
             rm -rf ~/build/
-            sudo ln -sf /musl-armhf/bin/musl-gcc /usr/local/bin/arm-linux-musleabihf-gcc
-            echo 'CFLAGS_arm_unknown_linux_musleabihf="-march=armv6 -marm -mfpu=vfp"' >> $GITHUB_ENV
-            # touch "$FLAG_FILE"
+            touch "$FLAG_FILE"
           else
             echo "musl armhf is already installed, skipping installation."
           fi
@@ -376,7 +372,7 @@ jobs:
           if [ ! -f "$FLAG_FILE" ]; then
             mkdir ~/build
             cd ~/build
-            bash '${{ github.workspace }}/rust_wasm/musl-toolchain.sh' x86_64
+            bash '${{ github.workspace }}/rust_wasm/musl-toolchain.sh' x86_64 x86_64-linux-musl
             cd /
             rm -rf ~/build/
             sudo ln -sf /usr/local/bin/x86_64-linux-musl-gcc /usr/local/bin/musl-gcc
@@ -418,6 +414,7 @@ jobs:
         env:
           WASI_SDK_PATH: ${{ github.workspace }}/rust/wasi-sdk-24.0-x86_64-linux
         run: |
+          export RUST_CONFIGURE_ARGS='${{ env.RUST_CONFIGURE_ARGS }}'
           ./x.py install --config config.llvm.toml
 
       - name: rustc.wasm which big size to small size
