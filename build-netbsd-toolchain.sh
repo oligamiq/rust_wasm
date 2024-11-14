@@ -73,7 +73,7 @@ COMP_SHA=38ea54f30d5fc2afea87e5096f06873e00182789e8ad9cec0cb3e9f7c538c1aa4779e63
 # We should serve this from our own CDN
 # SOURCE_URL=https://cdn.netbsd.org/pub/NetBSD/NetBSD-9.0/source/sets
 # SOURCE_URL=http://archive.netbsd.org/pub/NetBSD-archive/NetBSD-9.0/source/sets
-SOURCE_URL=https://oligamiq.github.io/cdn/netbsd/NetBSD-9.0/source/sets
+SOURCE_URL=https://oligamiq.github.io/cdn/netbsd/NetBSD-9.0/sources/sets
 download_divided src.tgz "$SOURCE_URL/src.tgz" "$SRC_SHA" tar xzf src.tgz
 download_divided gnusrc.tgz "$SOURCE_URL/gnusrc.tgz" "$GNUSRC_SHA" tar xzf gnusrc.tgz
 download sharesrc.tgz "$SOURCE_URL/sharesrc.tgz" "$SHARESRC_SHA" tar xzf sharesrc.tgz
