@@ -84,9 +84,11 @@ jobs:
           rm -f "$FLAG_FILE"
           if [ ! -f "$FLAG_FILE" ]; then
             cd /tmp
+            rm -rf netbsd
             bash ${{ github.workspace }}/rust_wasm/build-netbsd-toolchain.sh
             sudo ln -sf /x-tools/x86_64-unknown-netbsd/bin/x86_64--netbsd-gcc-sysroot /usr/local/bin/x86_64--netbsd-gcc
             sudo ln -sf /x-tools/x86_64-unknown-netbsd/bin/x86_64--netbsd-g++-sysroot /usr/local/bin/x86_64--netbsd-g++
+            sudo ln -sf /x-tools/x86_64-unknown-netbsd/bin/x86_64--netbsd-ar /usr/local/bin/x86_64--netbsd-ar
             touch "$FLAG_FILE"
           else
             echo "netbsd is already installed, skipping installation."
@@ -118,7 +120,6 @@ jobs:
       - name: install loongarch64-unknown-linux-gnu
         run: |
           FLAG_FILE="/tmp/loongarch64-unknown-linux-gnu-installed"
-          rm -f "$FLAG_FILE"
           if [ ! -f "$FLAG_FILE" ]; then
             cd /tmp
             cp ${{ github.workspace }}/rust_wasm/loongarch64-unknown-linux-gnu.defconfig crosstool.defconfig
@@ -279,7 +280,6 @@ jobs:
           fi
 
           FLAG_FILE="/tmp/musl-i586-installed"
-          rm -f "$FLAG_FILE"
           if [ ! -f "$FLAG_FILE" ]; then
             mkdir ~/build
             cd ~/build
