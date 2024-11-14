@@ -57,7 +57,7 @@ cd -
 
 # Install musl library to make binaries executable
 sudo ln -sf $OUTPUT/$TARGET/lib/libc.so /lib/ld-musl-$ARCH.so.1
-echo $OUTPUT/$TARGET/lib >> /etc/ld-musl-$ARCH.path
+sudo echo $OUTPUT/$TARGET/lib >> /etc/ld-musl-$ARCH.path
 
 # Now when musl bootstraps itself create proper toolchain symlinks to make build and tests easier
 if [ "$REPLACE_CC" = "1" ]; then
