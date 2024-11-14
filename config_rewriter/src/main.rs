@@ -171,7 +171,7 @@ fn main() -> anyhow::Result<()> {
             doc["target"]["armv7-unknown-linux-musleabi"]["musl-root"] = "/musl-armv7".into();
             doc["target"]["armv7-unknown-linux-musleabihf"]["musl-root"] = "/musl-armv7hf".into();
             doc["target"]["i586-unknown-linux-musl"]["musl-root"] = "/musl-i586".into();
-            doc["target"]["i686-unknown-linux-musl"]["musl-root"] = "/musl-i686".into();
+            doc["target"]["i686-unknown-linux-musl"]["musl-root"] = "/musl-i686/i686-linux-musl".into();
         },
         Targets::WasmAndX64Linux => {
             doc["llvm"]["targets"] = "WebAssembly;X86".into();
