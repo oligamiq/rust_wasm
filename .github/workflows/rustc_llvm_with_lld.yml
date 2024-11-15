@@ -21,6 +21,7 @@ permissions:
 jobs:
   install:
     runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.job == 'install' }}
     steps:
       - name: copy source
         uses: actions/checkout@v4
@@ -116,6 +117,7 @@ jobs:
     #     WebAssembly: [true, false]
 
     runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.job == 'dist-linux' }}
     env:
       CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
     steps:
