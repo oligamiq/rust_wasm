@@ -15,28 +15,20 @@ fn main() -> anyhow::Result<()> {
         _ => panic!("invalid targets type"),
     };
 
+    #[derive(PartialEq)]
+    #[repr(u8)]
     enum OS {
         Linux,
         Windows,
         Mac,
+        False,
     }
     let os = match args[3].as_str() {
         "linux" => OS::Linux,
         "windows" => OS::Windows,
         "mac" => OS::Mac,
+        "false" => OS::False,
         _ => panic!("invalid os type"),
-    };
-
-    #[derive(PartialEq)]
-    #[repr(u8)]
-    enum EnableTarget {
-        True,
-        False,
-    }
-    let enable_target = match args[4].as_str() {
-        "true" => EnableTarget::True,
-        "false" => EnableTarget::False,
-        _ => panic!("invalid enable_target type"),
     };
 
     let file = std::fs::read_to_string(file_name)?;
@@ -47,7 +39,7 @@ fn main() -> anyhow::Result<()> {
         Targets::All => {
             doc["llvm"]["targets"] = "AArch64;ARM;BPF;Hexagon;LoongArch;MSP430;Mips;NVPTX;PowerPC;RISCV;Sparc;SystemZ;WebAssembly;X86".into();
             doc["llvm"]["experimental-targets"] = "AVR;M68k;CSKY".into();
-            if enable_target == EnableTarget::True {
+            if os != OS::False {
                 doc["build"]["target"] = match os {
                     OS::Linux => {
                         vec![
@@ -168,6 +160,7 @@ fn main() -> anyhow::Result<()> {
                             "x86_64-apple-ios-macabi",
                         ]
                     }
+                    OS::False => unreachable!(),
                 }
                 .to_item();
                 doc["target"]["aarch64-unknown-linux-musl"]["musl-root"] =
