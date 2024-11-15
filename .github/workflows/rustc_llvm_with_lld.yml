@@ -89,6 +89,13 @@ jobs:
         run:
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
+      - name: install wasm-opt
+        run: |
+          curl -OL https://github.com/WebAssembly/binaryen/releases/download/version_119/binaryen-version_119-x86_64-linux.tar.gz
+          tar -xzf binaryen-version_119-x86_64-linux.tar.gz
+          sudo cp binaryen-version_119/bin/wasm-opt /usr/local/bin/wasm-opt
+          rm -rf binaryen-version_119-x86_64-linux.tar.gz binaryen-version_119
+
       - name: upload bin
         run: |
           git clone --recursive --depth 1 --branch rustc_llvm_with_lld-bins --single-branch https://github.com/oligamiq/rust_wasm rustc_llvm_with_lld-bins

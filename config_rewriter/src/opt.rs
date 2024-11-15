@@ -3,6 +3,8 @@ pub fn main() -> anyhow::Result<()> {
 
     let mut file_size = std::fs::metadata(&wasm_path)?.len();
 
+    println!("Initial size: {} bytes", file_size);
+
     let mut i = 0;
 
     loop {
@@ -32,6 +34,8 @@ pub fn main() -> anyhow::Result<()> {
         wasm_path = file_name;
 
         i += 1;
+
+        println!("Optimized to {} bytes", file_size);
     }
 
     std::fs::rename(wasm_path, "opt.wasm")?;
@@ -39,6 +43,8 @@ pub fn main() -> anyhow::Result<()> {
     for i in 0..i {
         std::fs::remove_file(format!("opt_{i}.wasm"))?;
     }
+
+    println!("Final size: {} bytes", file_size);
 
     Ok(())
 }
