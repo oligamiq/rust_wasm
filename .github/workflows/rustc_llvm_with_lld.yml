@@ -131,12 +131,14 @@ jobs:
           path: 'rust'
 
       - name: restore cache
+        id: cache-primes
         uses: actions/cache/restore@v4
         with:
           path: ~/tmp/cache-build/build.tar.gz
           key: build-${{ runner.os }}-compile_rustc_for_wasm17
 
       - name: copy cache
+        if: steps.cache-primes.outputs.cache-hit == 'true'
         run: |
           rm -rf ${{ github.workspace }}/rust/build
           mkdir -p ${{ github.workspace }}/rust/build
