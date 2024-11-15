@@ -79,19 +79,11 @@ jobs:
         run: |
           ./x.py install --config config.llvm.toml
 
-      - name: pre cache
-        run: |
-          sudo apt install -y pigz
-          rm -rf ~/tmp/cache-build
-          mkdir -p ~/tmp/cache-build
-          tar c ${{ github.workspace }}/rust/build | pigz --best > ~/tmp/cache-build/build.tar.gz
-          echo "pre cache done"
-
       - name: cache build directory
         uses: actions/cache/save@v4
         with:
-          path: ~/tmp/cache-build/build.tar.gz
-          key: build-${{ runner.os }}-compile_rustc_for_wasm17
+          path: ${{ github.workspace }}/rust/build
+          key: build-dir-${{ runner.os }}-compile_rustc_for_wasm17
 
       - name: rustc.wasm which big size to small size
         working-directory: '${{ github.workspace }}/rust'
@@ -134,7 +126,7 @@ jobs:
         id: cache-primes
         uses: actions/cache/restore@v4
         with:
-          path: ~/tmp/cache-build/build.tar.gz
+          path: ~/tmp/cache-build/build
           key: build-${{ runner.os }}-compile_rustc_for_wasm17
 
       - name: copy cache
