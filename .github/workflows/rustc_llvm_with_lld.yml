@@ -62,12 +62,6 @@ jobs:
           cargo clean
           echo "rewrite done"
 
-      - name: ./x.py install
-        working-directory: '${{ github.workspace }}/rust'
-        run: |
-
-          ./x.py install --config ../rust_wasm/config.toml
-
       - name: build install
         working-directory: '${{ github.workspace }}/rust'
         env:
