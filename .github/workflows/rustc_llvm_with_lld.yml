@@ -21,7 +21,7 @@ permissions:
 jobs:
   install:
     runs-on: ubuntu-latest
-    if: ${{ github.event.inputs.job == 'install' }}
+    if: ${{ github.event.inputs.job == 'install' || github.event.inputs.job == '' }}
     steps:
       - name: copy source
         uses: actions/checkout@v4
@@ -74,8 +74,9 @@ jobs:
         working-directory: '${{ github.workspace }}/rust'
         env:
           WASI_SDK_PATH: ${{ github.workspace }}/rust/wasi-sdk-24.0-x86_64-linux
+          RUST_CONFIGURE_ARGS: "-A warnings"
+          RUSTFLAGS: "-A warnings"
         run: |
-          export RUST_CONFIGURE_ARGS='${{ env.RUST_CONFIGURE_ARGS }}'
           ./x.py install --config config.llvm.toml
 
       - name: pre cache
@@ -117,7 +118,7 @@ jobs:
     #     WebAssembly: [true, false]
 
     runs-on: ubuntu-latest
-    if: ${{ github.event.inputs.job == 'dist-linux' }}
+    if: ${{ github.event.inputs.job == 'dist-linux' || github.event.inputs.job == '' }}
     env:
       CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
     steps:
@@ -139,7 +140,7 @@ jobs:
         run: |
           rm -rf ${{ github.workspace }}/rust/build
           mkdir -p ${{ github.workspace }}/rust/build
-          tar -xvf multiple_files.tar.gz --use-compress-prog=pigz -C ${{ github.workspace }}/rust/build
+          tar -xvf ~/tmp/cache-build/build.tar.gz --use-compress-prog=pigz -C ${{ github.workspace }}/rust
           echo "copy cache done"
 
       - uses: actions/checkout@v4
@@ -689,8 +690,11 @@ jobs:
         working-directory: '${{ github.workspace }}/rust'
         env:
           WASI_SDK_PATH: ${{ github.workspace }}/rust/wasi-sdk-24.0-x86_64-linux
+          RUST_CONFIGURE_ARGS: "-A warnings"
+          RUSTFLAGS: "-A warnings"
         run: |
           export RUST_CONFIGURE_ARGS='${{ env.RUST_CONFIGURE_ARGS }}'
+          ./x.py build library/std --config config.llvm.toml
           ./x.py dist --config config.llvm.toml
 
       - name: Configure git to trust the workspace despite the different owner
