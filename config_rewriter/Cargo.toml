@@ -2,7 +2,17 @@
 name = "config_rewriter"
 version = "0.1.0"
 edition = "2021"
+default-run = "config_rewriter"
 
 [dependencies]
 toml_edit = "0.22"
 anyhow = "1.0"
+
+
+[[bin]]
+name = "config_rewriter"
+path = "src/main.rs"
+
+[[bin]]
+name = "wasm_optimizer"
+path = "src/opt.rs"

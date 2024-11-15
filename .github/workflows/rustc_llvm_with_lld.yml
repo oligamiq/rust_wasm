@@ -85,24 +85,41 @@ jobs:
           path: ${{ github.workspace }}/rust/build
           key: build-dir-${{ runner.os }}-compile_rustc_for_wasm17
 
-      - name: rustc.wasm which big size to small size
-        working-directory: '${{ github.workspace }}/rust'
-        run: |
-          tar -cvzf dist/bin/rustc.wasm.tar.gz dist/bin/rustc.wasm
-          rm dist/bin/rustc.wasm
-
       - name: Configure git to trust the workspace despite the different owner
         run:
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
       - name: upload bin
-        uses: JamesIves/github-pages-deploy-action@v4
-        with:
-          folder: rust/dist/bin
-          branch: rustc_llvm_with_lld
-          target-folder: rustc_llvm_with_lld/dist/bin
-          clean: false
-          commit-message: "update bin"
+        run: |
+          git clone --recursive --depth 1 --branch rustc_llvm_with_lld-bins --single-branch https://github.com/oligamiq/rust_wasm rustc_llvm_with_lld-bins
+          cd rustc_llvm_with_lld-bins
+          git config --global user.email "nziq53@gmail.com"
+          git config --global user.name "github-actions[bot]"
+          git rm --cached -r .
+          # reset files
+          rm -rf *
+          mkdir -p dist/bin
+
+          # prepare files
+          cd ${{ github.workspace }}/rust
+          tar -cvzf dist/bin/rustc.wasm.tar.gz dist/bin/rustc.wasm
+          # optimize wasm
+          cd ${{ github.workspace }}/rust_wasm/config_rewriter
+          cargo run --bin wasm_optimizer -- ${{ github.workspace }}/rust/dist/bin/rustc.wasm
+          mv opt.wasm ${{ github.workspace }}/rustc_llvm_with_lld-bins/rustc_opt.wasm
+          rm dist/bin/rustc.wasm
+          cd ${{ github.workspace }}/rustc_llvm_with_lld-bins
+
+          # copy files
+
+          # rust-gdb, rust-gdbgui, rust-lldb, rustc.wasm.tar.gz and optimized wasm
+          mv ${{ github.workspace }}/rust/dist/bin/rustc.wasm.tar.gz dist/bin/rustc.wasm.tar.gz
+          mv ${{ github.workspace }}/rust/dist/bin/rust-gdb dist/bin/rust-gdb
+          mv ${{ github.workspace }}/rust/dist/bin/rust-gdbgui dist/bin/rust-gdbgui
+          mv ${{ github.workspace }}/rust/dist/bin/rust-lldb dist/bin/rust-lldb
+          git add -A
+          git commit -m "reset files and add new files about rustc.wasm"
+          git push --set-upstream origin rustc_llvm_with_lld-bins
 
   dist-linux:
     # strategy:
