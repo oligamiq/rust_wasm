@@ -74,8 +74,8 @@ jobs:
         working-directory: '${{ github.workspace }}/rust'
         env:
           WASI_SDK_PATH: ${{ github.workspace }}/rust/wasi-sdk-24.0-x86_64-linux
-          RUST_CONFIGURE_ARGS: "-A warnings"
-          RUSTFLAGS: "-A warnings"
+          RUST_CONFIGURE_ARGS: "-W warnings"
+          RUSTFLAGS: "-W warnings"
         run: |
           ./x.py install --config config.llvm.toml
 
@@ -692,8 +692,8 @@ jobs:
         working-directory: '${{ github.workspace }}/rust'
         env:
           WASI_SDK_PATH: ${{ github.workspace }}/rust/wasi-sdk-24.0-x86_64-linux
-          RUST_CONFIGURE_ARGS: "-A warnings"
-          RUSTFLAGS: "-A warnings"
+          RUST_CONFIGURE_ARGS: "-W warnings"
+          RUSTFLAGS: "-W warnings"
         run: |
           export RUST_CONFIGURE_ARGS='${{ env.RUST_CONFIGURE_ARGS }}'
           ./x.py install --config config.llvm.toml
