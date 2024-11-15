@@ -140,6 +140,8 @@ jobs:
       - name: copy cache
         if: steps.cache-primes.outputs.cache-hit == 'true'
         run: |
+          sudo apt update
+          sudo apt install -y pigz
           rm -rf ${{ github.workspace }}/rust/build
           mkdir -p ${{ github.workspace }}/rust/build
           tar -xvf ~/tmp/cache-build/build.tar.gz --use-compress-prog=pigz -C ${{ github.workspace }}/rust
