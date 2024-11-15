@@ -6,6 +6,13 @@ name: rustc_llvm_with_lld
 on:
   workflow_dispatch:
     inputs:
+      job:
+        description: "Select job to run"
+        required: true
+        type: choice
+        options:
+          - install
+          - dist-linux
 
 permissions:
   packages: write
@@ -70,6 +77,20 @@ jobs:
           export RUST_CONFIGURE_ARGS='${{ env.RUST_CONFIGURE_ARGS }}'
           ./x.py install --config config.llvm.toml
 
+      - name: pre cache
+        run: |
+          sudo apt install -y pigz
+          rm -rf ~/tmp/cache-build
+          mkdir -p ~/tmp/cache-build
+          tar c ${{ github.workspace }}/rust/build | pigz --best > ~/tmp/cache-build/build.tar.gz
+          echo "pre cache done"
+
+      - name: cache build directory
+        uses: actions/cache/save@v4
+        with:
+          path: ~/tmp/cache-build/build.tar.gz
+          key: build-${{ runner.os }}-compile_rustc_for_wasm17
+
       - name: rustc.wasm which big size to small size
         working-directory: '${{ github.workspace }}/rust'
         run: |
@@ -89,7 +110,7 @@ jobs:
           clean: false
           commit-message: "update bin"
 
-  dist:
+  dist-linux:
     # strategy:
     #   matrix:
     #     WebAssembly: [true, false]
@@ -105,6 +126,19 @@ jobs:
           submodules: 'true'
           ref: 'compile_rustc_for_wasm17'
           path: 'rust'
+
+      - name: restore cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/tmp/cache-build/build.tar.gz
+          key: build-${{ runner.os }}-compile_rustc_for_wasm17
+
+      - name: copy cache
+        run: |
+          rm -rf ${{ github.workspace }}/rust/build
+          mkdir -p ${{ github.workspace }}/rust/build
+          tar -xvf multiple_files.tar.gz --use-compress-prog=pigz -C ${{ github.workspace }}/rust/build
+          echo "copy cache done"
 
       - uses: actions/checkout@v4
         with:
@@ -238,7 +272,6 @@ jobs:
       - name: loongarch64-unknown-linux-musl
         run: |
           FLAG_FILE="/tmp/musl-loongarch64-installed"
-          rm -f "$FLAG_FILE"
           if [ ! -f "$FLAG_FILE" ]; then
             cd /tmp
             cp ${{ github.workspace }}/rust_wasm/loongarch64-unknown-linux-musl.defconfig crosstool.defconfig
@@ -316,7 +349,7 @@ jobs:
           sudo apt install -y gcc-riscv64-linux-gnu     g++-riscv64-linux-gnu     libc6-dev-riscv64-cross
           sudo apt install -y gcc-riscv64-unknown-elf
           sudo apt install -y gcc-powerpc64-linux-gnu   g++-powerpc64-linux-gnu   libc6-dev-ppc64-powerpc-cross
-          sudo apt install -y gcc-powerpc-linux-gnu     g++-powerpc-linux-gnu     libc6-dev-ppc64-powerpc-cross
+          sudo apt install -y gcc-powerpc-linux-gnu     g++-powerpc-linux-gnu     libc6-dev-powerpc-cross
           sudo apt install -y gcc-powerpc64le-linux-gnu g++-powerpc64le-linux-gnu
           sudo apt install -y gcc-aarch64-linux-gnu     g++-aarch64-linux-gnu
           sudo apt install -y gcc-arm-linux-gnueabihf   g++-arm-linux-gnueabihf
