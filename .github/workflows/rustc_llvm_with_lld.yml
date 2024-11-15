@@ -12,7 +12,83 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - name: copy source
+        uses: actions/checkout@v4
+        with:
+          repository: 'bjorn3/rust'
+          submodules: 'true'
+          ref: 'compile_rustc_for_wasm17'
+          path: 'rust'
+
+      - uses: actions/checkout@v4
+        with:
+          path: 'rust_wasm'
+          ref: 'gh-actions'
+
+      - name: install-wasi-sdk
+        working-directory: '${{ github.workspace }}/rust'
+        run: |
+          curl -OL https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-24/wasi-sdk-24.0-x86_64-linux.tar.gz
+          tar -xzf wasi-sdk-24.0-x86_64-linux.tar.gz
+
+      - name: free space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: true
+
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: false
+
+      - name: install rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - name: update
+        run: |
+          sudo apt-get update
+          sudo apt upgrade -y
+          sudo apt install -y build-essential cmake pkg-config libclang-dev
+
+      - name: ./x.py install
+        working-directory: '${{ github.workspace }}/rust'
+        run: |
+
+          ./x.py install --config ../rust_wasm/config.toml
+
+      - name: build install
+        working-directory: '${{ github.workspace }}/rust'
+        env:
+          WASI_SDK_PATH: ${{ github.workspace }}/rust/wasi-sdk-24.0-x86_64-linux
+        run: |
+          export RUST_CONFIGURE_ARGS='${{ env.RUST_CONFIGURE_ARGS }}'
+          ./x.py install --config config.llvm.toml
+
+      - name: rustc.wasm which big size to small size
+        working-directory: '${{ github.workspace }}/rust'
+        run: |
+          tar -cvzf dist/bin/rustc.wasm.tar.gz dist/bin/rustc.wasm
+          rm dist/bin/rustc.wasm
+
+      - name: Configure git to trust the workspace despite the different owner
+        run:
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: upload bin
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: rust/dist/bin
+          branch: rustc_llvm_with_lld
+          target-folder: rustc_llvm_with_lld/dist/bin
+          clean: false
+          commit-message: "update bin"
+
+  dist:
     # strategy:
     #   matrix:
     #     WebAssembly: [true, false]
@@ -103,20 +179,25 @@ jobs:
       # https://github.com/rust-lang/rust/blob/44f233f2519ce5d633c87c38014d03d8a5f0e810/src/ci/docker/scripts/crosstool-ng-git.sh
       - name: install crosstool-ng
         env:
-          CT_NG: 1.26.0
+          URL: https://github.com/crosstool-ng/crosstool-ng
+          REV: ed12fa68402f58e171a6f79500f73f4781fdc9e5
         run: |
           FLAG_FILE="/tmp/crosstool-ng-installed"
           if [ ! -f "$FLAG_FILE" ]; then
             sudo apt install -y flex automake bison bzip2 ca-certificates cmake curl file g++ gawk gdb git gperf help2man libncurses-dev libssl-dev libtool-bin make ninja-build patch pkg-config python3 rsync sudo texinfo unzip wget xz-utils
-            curl -Lf "https://github.com/crosstool-ng/crosstool-ng/archive/crosstool-ng-$CT_NG.tar.gz" | tar xzf -
-            cd crosstool-ng-crosstool-ng-$CT_NG
-            sed -e "s|zlib.net/'|zlib.net/fossils'|" -i packages/zlib/package.desc
+            cd /tmp
+            rm -rf crosstool-ng
+            mkdir crosstool-ng
+            cd crosstool-ng
+            git init
+            git fetch --depth=1 ${URL} ${REV}
+            git reset --hard FETCH_HEAD
             ./bootstrap
             ./configure --prefix=/usr/local
             make -j$(nproc)
             sudo make install
             cd ..
-            rm -rf crosstool-ng-crosstool-ng-$CT_NG
+            rm -rf crosstool-ng
             touch "$FLAG_FILE"
           else
             echo "crosstool-ng is already installed, skipping installation."
@@ -129,6 +210,7 @@ jobs:
           if [ ! -f "$FLAG_FILE" ]; then
             cd /tmp
             cp ${{ github.workspace }}/rust_wasm/loongarch64-unknown-linux-gnu.defconfig crosstool.defconfig
+            rm -rf build
             bash ${{ github.workspace }}/rust_wasm/crosstool-ng-build.sh
             echo "/x-tools/loongarch64-unknown-linux-gnu/bin" >> $GITHUB_PATH
             echo "CC_loongarch64_unknown_linux_gnu=loongarch64-unknown-linux-gnu-gcc" >> $GITHUB_ENV
@@ -159,6 +241,7 @@ jobs:
           if [ ! -f "$FLAG_FILE" ]; then
             cd /tmp
             cp ${{ github.workspace }}/rust_wasm/loongarch64-unknown-linux-musl.defconfig crosstool.defconfig
+            rm -rf build
             bash ${{ github.workspace }}/rust_wasm/crosstool-ng-build.sh
             echo "/x-tools/loongarch64-unknown-linux-musl/bin" >> $GITHUB_PATH
             echo "CC_loongarch64_unknown_linux_musl=loongarch64-unknown-linux-musl-gcc" >> $GITHUB_ENV
@@ -562,35 +645,21 @@ jobs:
       - name: rewrite
         run: |
           cd rust_wasm/config_rewriter
-          cargo run -- ../../rust/config.llvm.toml all linux
+          cargo run -- ../../rust/config.llvm.toml all linux true
           cargo clean
           echo "rewrite done"
 
-      - name: build
+      - name: build dist
         working-directory: '${{ github.workspace }}/rust'
         env:
           WASI_SDK_PATH: ${{ github.workspace }}/rust/wasi-sdk-24.0-x86_64-linux
         run: |
           export RUST_CONFIGURE_ARGS='${{ env.RUST_CONFIGURE_ARGS }}'
-          ./x.py install --config config.llvm.toml
-      - name: rustc.wasm which big size to small size
-        working-directory: '${{ github.workspace }}/rust'
-        run: |
-          tar -cvzf dist/bin/rustc.wasm.tar.gz dist/bin/rustc.wasm
-          rm dist/bin/rustc.wasm
+          ./x.py dist --config config.llvm.toml
 
       - name: Configure git to trust the workspace despite the different owner
         run:
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
-
-      - name: upload bin
-        uses: JamesIves/github-pages-deploy-action@v4
-        with:
-          folder: rust/dist/bin
-          branch: rustc_llvm_with_lld
-          target-folder: rustc_llvm_with_lld/dist/bin
-          clean: false
-          commit-message: "update bin"
 
       # - name: upload wasm32-unknown-unknown
       #   uses: JamesIves/github-pages-deploy-action@v4
