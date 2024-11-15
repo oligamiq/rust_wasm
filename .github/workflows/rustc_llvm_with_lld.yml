@@ -152,6 +152,22 @@ jobs:
             echo "loongarch64-unknown-linux-gnu is already installed, skipping installation."
           fi
 
+      - name: loongarch64-unknown-linux-musl
+        run: |
+          FLAG_FILE="/tmp/musl-loongarch64-installed"
+          rm -f "$FLAG_FILE"
+          if [ ! -f "$FLAG_FILE" ]; then
+            cd /tmp
+            cp ${{ github.workspace }}/rust_wasm/loongarch64-unknown-linux-musl.defconfig crosstool.defconfig
+            bash ${{ github.workspace }}/rust_wasm/crosstool-ng-build.sh
+            echo "/x-tools/loongarch64-unknown-linux-musl/bin" >> $GITHUB_PATH
+            echo "CC_loongarch64_unknown_linux_musl=loongarch64-unknown-linux-musl-gcc" >> $GITHUB_ENV
+            echo "AR_loongarch64_unknown_linux_musl=loongarch64-unknown-linux-musl-ar" >> $GITHUB_ENV
+            echo "CXX_loongarch64_unknown_linux_musl=loongarch64-unknown-linux-musl-g++" >> $GITHUB_ENV
+          else
+            echo "musl loongarch64 is already installed, skipping installation."
+          fi
+
       - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
@@ -520,20 +536,6 @@ jobs:
             touch "$FLAG_FILE"
           else
             echo "musl x86_64 is already installed, skipping installation."
-          fi
-
-      - name: install musl loongarch64
-        run: |
-          FLAG_FILE="/tmp/musl-loongarch64-installed"
-          if [ ! -f "$FLAG_FILE" ]; then
-            mkdir ~/build
-            cd ~/build
-            bash '${{ github.workspace }}/rust_wasm/musl.sh' loongarch64
-            cd /
-            rm -rf ~/build/
-            touch "$FLAG_FILE"
-          else
-            echo "musl loongarch64 is already installed, skipping installation."
           fi
 
       # https://github.com/rust-lang/rust/blob/65b3877488ccfef3b1a903bfdd269559c59b957c/src/doc/rustc/src/platform-support/wasm32-unknown-emscripten.md

@@ -162,7 +162,7 @@ fn main() -> anyhow::Result<()> {
                 },
             }.to_item();
             doc["target"]["aarch64-unknown-linux-musl"]["musl-root"] = "/musl-aarch64/aarch64-linux-musl".into();
-            doc["target"]["loongarch64-unknown-linux-musl"]["musl-root"] = "/musl-loongarch64".into();
+            doc["target"]["loongarch64-unknown-linux-musl"]["musl-root"] = "/x-tools/loongarch64-unknown-linux-musl/loongarch64-unknown-linux-musl/sysroot/usr".into();
             doc["target"]["riscv64gc-unknown-linux-musl"]["musl-root"] = "/musl-riscv64gc".into();
             doc["target"]["x86_64-unknown-linux-musl"]["musl-root"] = "/musl-x86_64/x86_64-linux-musl".into();
             doc["target"]["arm-unknown-linux-musleabi"]["musl-root"] = "/musl-arm/arm-linux-musleabi".into();
