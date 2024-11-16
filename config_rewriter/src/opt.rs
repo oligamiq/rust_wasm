@@ -38,7 +38,7 @@ pub fn main() -> anyhow::Result<()> {
         println!("Optimized to {} bytes", file_size);
     }
 
-    std::fs::rename(wasm_path, "opt.wasm")?;
+    std::fs::copy(wasm_path, "opt.wasm")?;
 
     for i in 0..i {
         std::fs::remove_file(format!("opt_{i}.wasm"))?;
