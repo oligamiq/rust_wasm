@@ -40,7 +40,7 @@ pub fn main() -> anyhow::Result<()> {
 
     std::fs::copy(wasm_path, "opt.wasm")?;
 
-    for i in 0..i {
+    for i in 0..=i {
         std::fs::remove_file(format!("opt_{i}.wasm"))?;
     }
 

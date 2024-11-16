@@ -190,12 +190,6 @@ jobs:
           docker-images: true
           swap-storage: false
 
-      - name: restore cache
-        uses: actions/cache/restore@v4
-        with:
-          path: ${{ github.workspace }}/rust/build
-          key: build-dir-${{ runner.os }}-compile_rustc_for_wasm17
-
       - name: install rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
 
@@ -295,6 +289,22 @@ jobs:
             echo "CXX_loongarch64_unknown_linux_musl=loongarch64-unknown-linux-musl-g++" >> $GITHUB_ENV
           else
             echo "musl loongarch64 is already installed, skipping installation."
+          fi
+
+      - name: install powerpc-unknown-linux-gnu
+        run: |
+          FLAG_FILE="/tmp/powerpc-unknown-linux-gnu-installed"
+          if [ ! -f "$FLAG_FILE" ]; then
+            cd /tmp
+            cp ${{ github.workspace }}/rust_wasm/powerpc-linux-gnu.defconfig crosstool.defconfig
+            rm -rf build
+            bash ${{ github.workspace }}/rust_wasm/crosstool-ng-build.sh
+            echo "/x-tools/powerpc-unknown-linux-gnu/bin" >> $GITHUB_PATH
+            echo "CC_powerpc_unknown_linux_gnu=powerpc-unknown-linux-gnu-gcc" >> $GITHUB_ENV
+            echo "AR_powerpc_unknown_linux_gnu=powerpc-unknown-linux-gnu-ar" >> $GITHUB_ENV
+            echo "CXX_powerpc_unknown_linux_gnu=powerpc-unknown-linux-gnu-g++" >> $GITHUB_ENV
+          else
+            echo "powerpc-unknown-linux-gnu is already installed, skipping installation."
           fi
 
       - name: Set up JDK 17
@@ -695,6 +705,12 @@ jobs:
           cargo run -- ../../rust/config.llvm.toml all linux
           cargo clean
           echo "rewrite done"
+
+      - name: restore cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ github.workspace }}/rust/build
+          key: build-dir-${{ runner.os }}-compile_rustc_for_wasm17
 
       - name: build dist
         working-directory: '${{ github.workspace }}/rust'
