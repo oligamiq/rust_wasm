@@ -374,7 +374,6 @@ jobs:
           sudo apt install -y gcc-riscv64-unknown-elf
           sudo apt install -y linux-libc-dev-powerpc-cross
           sudo apt install -y gcc-powerpc64-linux-gnu      g++-powerpc64-linux-gnu      lib64gcc-9-dev-powerpc-cross lib64stdc++-9-dev-powerpc-cross
-          sudo apt install -y gcc-powerpc-linux-gnu        g++-powerpc-linux-gnu        libgcc-9-dev-powerpc-cross   libstdc++-9-dev-powerpc-cross
           sudo apt install -y gcc-powerpc64le-linux-gnu    g++-powerpc64le-linux-gnu
           sudo apt install -y gcc-aarch64-linux-gnu        g++-aarch64-linux-gnu
           sudo apt install -y gcc-arm-linux-gnueabihf      g++-arm-linux-gnueabihf
