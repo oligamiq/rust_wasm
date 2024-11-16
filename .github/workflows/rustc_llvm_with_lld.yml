@@ -146,12 +146,6 @@ jobs:
           ref: 'compile_rustc_for_wasm17'
           path: 'rust'
 
-      - name: restore cache
-        uses: actions/cache/restore@v4
-        with:
-          path: ${{ github.workspace }}/rust/build
-          key: build-dir-${{ runner.os }}-compile_rustc_for_wasm17
-
       - uses: actions/checkout@v4
         with:
           path: 'rust_wasm'
@@ -195,6 +189,12 @@ jobs:
           large-packages: true
           docker-images: true
           swap-storage: false
+
+      - name: restore cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ github.workspace }}/rust/build
+          key: build-dir-${{ runner.os }}-compile_rustc_for_wasm17
 
       - name: install rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
