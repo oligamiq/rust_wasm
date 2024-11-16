@@ -251,35 +251,35 @@ jobs:
           fi
 
       # https://github.com/rust-lang/rust/blob/44f233f2519ce5d633c87c38014d03d8a5f0e810/src/ci/docker/host-x86_64/dist-loongarch64-linux/Dockerfile#L20
-      # - name: install loongarch64-unknown-linux-gnu
-      #   run: |
-      #     FLAG_FILE="/tmp/loongarch64-unknown-linux-gnu-installed"
-      #     if [ ! -f "$FLAG_FILE" ]; then
-      #       cd /tmp
-      #       cp ${{ github.workspace }}/rust_wasm/loongarch64-unknown-linux-gnu.defconfig crosstool.defconfig
-      #       rm -rf build
-      #       bash ${{ github.workspace }}/rust_wasm/crosstool-ng-build.sh
-      #       echo "/x-tools/loongarch64-unknown-linux-gnu/bin" >> $GITHUB_PATH
-      #       echo "CC_loongarch64_unknown_linux_gnu=loongarch64-unknown-linux-gnu-gcc" >> $GITHUB_ENV
-      #       echo "AR_loongarch64_unknown_linux_gnu=loongarch64-unknown-linux-gnu-ar" >> $GITHUB_ENV
-      #       echo "CXX_loongarch64_unknown_linux_gnu=loongarch64-unknown-linux-gnu-g++" >> $GITHUB_ENV
-      #       echo "CC_loongarch64_unknown_none=loongarch64-unknown-linux-gnu-gcc" >> $GITHUB_ENV
-      #       echo "AR_loongarch64_unknown_none=loongarch64-unknown-linux-gnu-ar" >> $GITHUB_ENV
-      #       echo "CXX_loongarch64_unknown_none=loongarch64-unknown-linux-gnu-g++" >> $GITHUB_ENV
-      #       echo 'CFLAGS_loongarch64_unknown_none="-ffreestanding -mabi=lp64d"' >> $GITHUB_ENV
-      #       echo 'CXXFLAGS_loongarch64_unknown_none="-ffreestanding -mabi=lp64d"' >> $GITHUB_ENV
-      #       echo 'CC_loongarch64_unknown_none_softfloat=loongarch64-unknown-linux-gnu-gcc' >> $GITHUB_ENV
-      #       echo 'AR_loongarch64_unknown_none_softfloat=loongarch64-unknown-linux-gnu-ar' >> $GITHUB_ENV
-      #       echo 'CXX_loongarch64_unknown_none_softfloat=loongarch64-unknown-linux-gnu-g++' >> $GITHUB_ENV
-      #       echo 'CFLAGS_loongarch64_unknown_none_softfloat="-ffreestanding -mabi=lp64s -mfpu=none"' >> $GITHUB_ENV
-      #       echo 'CXXFLAGS_loongarch64_unknown_none_softfloat="-ffreestanding -mabi=lp64s -mfpu=none"' >> $GITHUB_ENV
-      #       sudo ln -sf /x-tools/loongarch64-unknown-linux-gnu/bin/loongarch64-unknown-linux-gnu-gcc /usr/local/bin/loongarch64-linux-gnu-gcc
-      #       sudo ln -sf /x-tools/loongarch64-unknown-linux-gnu/bin/loongarch64-unknown-linux-gnu-g++ /usr/local/bin/loongarch64-linux-gnu-g++
-      #       sudo ln -sf /x-tools/loongarch64-unknown-linux-gnu/bin/loongarch64-unknown-linux-gnu-ar /usr/local/bin/loongarch64-linux-gnu-ar
-      #       touch "$FLAG_FILE"
-      #     else
-      #       echo "loongarch64-unknown-linux-gnu is already installed, skipping installation."
-      #     fi
+      - name: install loongarch64-unknown-linux-gnu
+        run: |
+          FLAG_FILE="/tmp/loongarch64-unknown-linux-gnu-installed"
+          if [ ! -f "$FLAG_FILE" ]; then
+            cd /tmp
+            cp ${{ github.workspace }}/rust_wasm/loongarch64-unknown-linux-gnu.defconfig crosstool.defconfig
+            rm -rf build
+            bash ${{ github.workspace }}/rust_wasm/crosstool-ng-build.sh
+            echo "/x-tools/loongarch64-unknown-linux-gnu/bin" >> $GITHUB_PATH
+            echo "CC_loongarch64_unknown_linux_gnu=loongarch64-unknown-linux-gnu-gcc" >> $GITHUB_ENV
+            echo "AR_loongarch64_unknown_linux_gnu=loongarch64-unknown-linux-gnu-ar" >> $GITHUB_ENV
+            echo "CXX_loongarch64_unknown_linux_gnu=loongarch64-unknown-linux-gnu-g++" >> $GITHUB_ENV
+            echo "CC_loongarch64_unknown_none=loongarch64-unknown-linux-gnu-gcc" >> $GITHUB_ENV
+            echo "AR_loongarch64_unknown_none=loongarch64-unknown-linux-gnu-ar" >> $GITHUB_ENV
+            echo "CXX_loongarch64_unknown_none=loongarch64-unknown-linux-gnu-g++" >> $GITHUB_ENV
+            echo 'CFLAGS_loongarch64_unknown_none="-ffreestanding -mabi=lp64d"' >> $GITHUB_ENV
+            echo 'CXXFLAGS_loongarch64_unknown_none="-ffreestanding -mabi=lp64d"' >> $GITHUB_ENV
+            echo 'CC_loongarch64_unknown_none_softfloat=loongarch64-unknown-linux-gnu-gcc' >> $GITHUB_ENV
+            echo 'AR_loongarch64_unknown_none_softfloat=loongarch64-unknown-linux-gnu-ar' >> $GITHUB_ENV
+            echo 'CXX_loongarch64_unknown_none_softfloat=loongarch64-unknown-linux-gnu-g++' >> $GITHUB_ENV
+            echo 'CFLAGS_loongarch64_unknown_none_softfloat="-ffreestanding -mabi=lp64s -mfpu=none"' >> $GITHUB_ENV
+            echo 'CXXFLAGS_loongarch64_unknown_none_softfloat="-ffreestanding -mabi=lp64s -mfpu=none"' >> $GITHUB_ENV
+            sudo ln -sf /x-tools/loongarch64-unknown-linux-gnu/bin/loongarch64-unknown-linux-gnu-gcc /usr/local/bin/loongarch64-linux-gnu-gcc
+            sudo ln -sf /x-tools/loongarch64-unknown-linux-gnu/bin/loongarch64-unknown-linux-gnu-g++ /usr/local/bin/loongarch64-linux-gnu-g++
+            sudo ln -sf /x-tools/loongarch64-unknown-linux-gnu/bin/loongarch64-unknown-linux-gnu-ar /usr/local/bin/loongarch64-linux-gnu-ar
+            touch "$FLAG_FILE"
+          else
+            echo "loongarch64-unknown-linux-gnu is already installed, skipping installation."
+          fi
 
       - name: install loongarch64-unknown-linux-musl
         run: |
@@ -360,10 +360,9 @@ jobs:
           sudo apt install -y gcc-multilib                 g++-multilib
           sudo apt install -y gcc-riscv64-linux-gnu        g++-riscv64-linux-gnu        libc6-dev-riscv64-cross
           sudo apt install -y gcc-riscv64-unknown-elf
-          sudo apt install -y gcc-14-loongarch64-linux-gnu g++-14-loongarch64-linux-gnu binutils-loongarch64-linux-gnu
           sudo apt install -y linux-libc-dev-powerpc-cross
-          sudo apt install -y gcc-powerpc64-linux-gnu      g++-powerpc64-linux-gnu      lib64gcc-14-dev-powerpc-cross lib64stdc++-14-dev-powerpc-cross
-          sudo apt install -y gcc-powerpc-linux-gnu        g++-powerpc-linux-gnu        libgcc-14-dev-powerpc-cross   libstdc++-14-dev-powerpc-cross
+          sudo apt install -y gcc-powerpc64-linux-gnu      g++-powerpc64-linux-gnu      lib64gcc-9-dev-powerpc-cross lib64stdc++-9-dev-powerpc-cross
+          sudo apt install -y gcc-powerpc-linux-gnu        g++-powerpc-linux-gnu        libgcc-9-dev-powerpc-cross   libstdc++-9-dev-powerpc-cross
           sudo apt install -y gcc-powerpc64le-linux-gnu    g++-powerpc64le-linux-gnu
           sudo apt install -y gcc-aarch64-linux-gnu        g++-aarch64-linux-gnu
           sudo apt install -y gcc-arm-linux-gnueabihf      g++-arm-linux-gnueabihf
