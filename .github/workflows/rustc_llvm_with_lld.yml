@@ -289,6 +289,9 @@ jobs:
             echo "CC_loongarch64_unknown_linux_musl=loongarch64-unknown-linux-musl-gcc" >> $GITHUB_ENV
             echo "AR_loongarch64_unknown_linux_musl=loongarch64-unknown-linux-musl-ar" >> $GITHUB_ENV
             echo "CXX_loongarch64_unknown_linux_musl=loongarch64-unknown-linux-musl-g++" >> $GITHUB_ENV
+            sudo ln -sf /x-tools/loongarch64-unknown-linux-musl/bin/loongarch64-unknown-linux-musl-gcc /usr/local/bin/loongarch64-linux-musl-gcc
+            sudo ln -sf /x-tools/loongarch64-unknown-linux-musl/bin/loongarch64-unknown-linux-musl-g++ /usr/local/bin/loongarch64-linux-musl-g++
+            sudo ln -sf /x-tools/loongarch64-unknown-linux-musl/bin/loongarch64-unknown-linux-musl-ar /usr/local/bin/loongarch64-linux-musl-ar
           else
             echo "musl loongarch64 is already installed, skipping installation."
           fi
@@ -305,6 +308,9 @@ jobs:
             echo "CC_powerpc_unknown_linux_gnu=powerpc-unknown-linux-gnu-gcc" >> $GITHUB_ENV
             echo "AR_powerpc_unknown_linux_gnu=powerpc-unknown-linux-gnu-ar" >> $GITHUB_ENV
             echo "CXX_powerpc_unknown_linux_gnu=powerpc-unknown-linux-gnu-g++" >> $GITHUB_ENV
+            sudo ln -sf /x-tools/powerpc-unknown-linux-gnu/bin/powerpc-unknown-linux-gnu-gcc /usr/local/bin/powerpc-linux-gnu-gcc
+            sudo ln -sf /x-tools/powerpc-unknown-linux-gnu/bin/powerpc-unknown-linux-gnu-g++ /usr/local/bin/powerpc-linux-gnu-g++
+            sudo ln -sf /x-tools/powerpc-unknown-linux-gnu/bin/powerpc-unknown-linux-gnu-ar /usr/local/bin/powerpc-linux-gnu-ar
           else
             echo "powerpc-unknown-linux-gnu is already installed, skipping installation."
           fi
