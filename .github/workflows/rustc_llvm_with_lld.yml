@@ -114,7 +114,7 @@ jobs:
           cd ${{ github.workspace }}/rust_wasm/config_rewriter
           cargo run --bin wasm_optimizer -- ${{ github.workspace }}/rust/dist/bin/rustc.wasm
           mv opt.wasm ${{ github.workspace }}/rustc_llvm_with_lld-bins/rustc_opt.wasm
-          rm dist/bin/rustc.wasm
+          rm ${{ github.workspace }}/rust/dist/bin/rustc.wasm
           cd ${{ github.workspace }}/rustc_llvm_with_lld-bins
 
           # copy files
@@ -124,6 +124,8 @@ jobs:
           mv ${{ github.workspace }}/rust/dist/bin/rust-gdb dist/bin/rust-gdb
           mv ${{ github.workspace }}/rust/dist/bin/rust-gdbgui dist/bin/rust-gdbgui
           mv ${{ github.workspace }}/rust/dist/bin/rust-lldb dist/bin/rust-lldb
+          tar -cvzf rustc_opt.wasm.tar.gz rustc_opt.wasm
+          rm rustc_opt.wasm
           git add -A
           git commit -m "reset files and add new files about rustc.wasm"
           git push --set-upstream origin rustc_llvm_with_lld-bins
