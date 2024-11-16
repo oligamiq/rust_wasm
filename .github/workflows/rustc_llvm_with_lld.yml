@@ -101,7 +101,7 @@ jobs:
           git clone --recursive --depth 1 --branch rustc_llvm_with_lld-bins --single-branch https://github.com/oligamiq/rust_wasm rustc_llvm_with_lld-bins
           cd rustc_llvm_with_lld-bins
           git config --global user.email "nziq53@gmail.com"
-          git config --global user.name "github-actions[bot]"
+          git config --global user.name "oligamiq"
           git rm --cached -r .
           # reset files
           rm -rf *
