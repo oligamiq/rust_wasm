@@ -427,12 +427,6 @@ jobs:
       - name: install rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
 
-      - name: update
-        run: |
-          sudo apt-get update
-          sudo apt upgrade -y
-          sudo apt install -y build-essential cmake pkg-config libclang-dev
-
       - name: install toolchain-for-building-rustc
         working-directory: '${{ github.workspace }}/rust'
         env:
