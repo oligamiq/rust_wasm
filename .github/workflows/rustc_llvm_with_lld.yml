@@ -322,7 +322,7 @@ jobs:
           RUSTFLAGS: "-W warnings"
         run: |
           cargo install --git https://github.com/oligamiq/toolchain-for-building-rustc
-          cargo toolchain-for-building-rustc --tier 1 --tier 2-host --os linux -t sparcv9-sun-solaris --install --no_cache -f config.llvm.toml
+          toolchain-for-building-rustc --tier 1 --tier 2-host --os linux -t sparcv9-sun-solaris --install --no_cache -f config.llvm.toml
 
       - name: build dist
         working-directory: '${{ github.workspace }}/rust'
