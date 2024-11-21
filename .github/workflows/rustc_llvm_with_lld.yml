@@ -201,120 +201,6 @@ jobs:
           sudo apt upgrade -y
           sudo apt install -y build-essential cmake pkg-config libclang-dev
 
-      # https://github.com/rust-lang/rust/blob/master/src/ci/docker/host-x86_64/dist-x86_64-netbsd/build-netbsd-toolchain.sh
-      - name: install netbsd
-        env:
-          HOST_CFLAGS: "-O -fcommon"
-        run: |
-          FLAG_FILE="/tmp/netbsd-installed"
-          if [ ! -f "$FLAG_FILE" ]; then
-            cd /tmp
-            rm -rf netbsd
-            bash ${{ github.workspace }}/rust_wasm/build-netbsd-toolchain.sh
-            sudo ln -sf /x-tools/x86_64-unknown-netbsd/bin/x86_64--netbsd-gcc-sysroot /usr/local/bin/x86_64--netbsd-gcc
-            sudo ln -sf /x-tools/x86_64-unknown-netbsd/bin/x86_64--netbsd-g++-sysroot /usr/local/bin/x86_64--netbsd-g++
-            sudo ln -sf /x-tools/x86_64-unknown-netbsd/bin/x86_64--netbsd-ar /usr/local/bin/x86_64--netbsd-ar
-            touch "$FLAG_FILE"
-          else
-            echo "netbsd is already installed, skipping installation."
-          fi
-
-      # https://github.com/rust-lang/rust/blob/44f233f2519ce5d633c87c38014d03d8a5f0e810/src/ci/docker/scripts/crosstool-ng-git.sh
-      - name: install crosstool-ng
-        env:
-          URL: https://github.com/crosstool-ng/crosstool-ng
-          REV: ed12fa68402f58e171a6f79500f73f4781fdc9e5
-        run: |
-          FLAG_FILE="/tmp/crosstool-ng-installed"
-          if [ ! -f "$FLAG_FILE" ]; then
-            sudo apt install -y flex automake bison bzip2 ca-certificates cmake curl file g++ gawk gdb git gperf help2man libncurses-dev libssl-dev libtool-bin make ninja-build patch pkg-config python3 rsync sudo texinfo unzip wget xz-utils
-            cd /tmp
-            rm -rf crosstool-ng
-            mkdir crosstool-ng
-            cd crosstool-ng
-            git init
-            git fetch --depth=1 ${URL} ${REV}
-            git reset --hard FETCH_HEAD
-            ./bootstrap
-            ./configure --prefix=/usr/local
-            make -j$(nproc)
-            sudo make install
-            cd ..
-            rm -rf crosstool-ng
-            touch "$FLAG_FILE"
-          else
-            echo "crosstool-ng is already installed, skipping installation."
-          fi
-
-      # https://github.com/rust-lang/rust/blob/44f233f2519ce5d633c87c38014d03d8a5f0e810/src/ci/docker/host-x86_64/dist-loongarch64-linux/Dockerfile#L20
-      - name: install loongarch64-unknown-linux-gnu
-        run: |
-          FLAG_FILE="/tmp/loongarch64-unknown-linux-gnu-installed"
-          if [ ! -f "$FLAG_FILE" ]; then
-            cd /tmp
-            cp ${{ github.workspace }}/rust_wasm/loongarch64-unknown-linux-gnu.defconfig crosstool.defconfig
-            rm -rf build
-            bash ${{ github.workspace }}/rust_wasm/crosstool-ng-build.sh
-            echo "/x-tools/loongarch64-unknown-linux-gnu/bin" >> $GITHUB_PATH
-            echo "CC_loongarch64_unknown_linux_gnu=loongarch64-unknown-linux-gnu-gcc" >> $GITHUB_ENV
-            echo "AR_loongarch64_unknown_linux_gnu=loongarch64-unknown-linux-gnu-ar" >> $GITHUB_ENV
-            echo "CXX_loongarch64_unknown_linux_gnu=loongarch64-unknown-linux-gnu-g++" >> $GITHUB_ENV
-            echo "CC_loongarch64_unknown_none=loongarch64-unknown-linux-gnu-gcc" >> $GITHUB_ENV
-            echo "AR_loongarch64_unknown_none=loongarch64-unknown-linux-gnu-ar" >> $GITHUB_ENV
-            echo "CXX_loongarch64_unknown_none=loongarch64-unknown-linux-gnu-g++" >> $GITHUB_ENV
-            echo 'CFLAGS_loongarch64_unknown_none="-ffreestanding -mabi=lp64d"' >> $GITHUB_ENV
-            echo 'CXXFLAGS_loongarch64_unknown_none="-ffreestanding -mabi=lp64d"' >> $GITHUB_ENV
-            echo 'CC_loongarch64_unknown_none_softfloat=loongarch64-unknown-linux-gnu-gcc' >> $GITHUB_ENV
-            echo 'AR_loongarch64_unknown_none_softfloat=loongarch64-unknown-linux-gnu-ar' >> $GITHUB_ENV
-            echo 'CXX_loongarch64_unknown_none_softfloat=loongarch64-unknown-linux-gnu-g++' >> $GITHUB_ENV
-            echo 'CFLAGS_loongarch64_unknown_none_softfloat="-ffreestanding -mabi=lp64s -mfpu=none"' >> $GITHUB_ENV
-            echo 'CXXFLAGS_loongarch64_unknown_none_softfloat="-ffreestanding -mabi=lp64s -mfpu=none"' >> $GITHUB_ENV
-            sudo ln -sf /x-tools/loongarch64-unknown-linux-gnu/bin/loongarch64-unknown-linux-gnu-gcc /usr/local/bin/loongarch64-linux-gnu-gcc
-            sudo ln -sf /x-tools/loongarch64-unknown-linux-gnu/bin/loongarch64-unknown-linux-gnu-g++ /usr/local/bin/loongarch64-linux-gnu-g++
-            sudo ln -sf /x-tools/loongarch64-unknown-linux-gnu/bin/loongarch64-unknown-linux-gnu-ar /usr/local/bin/loongarch64-linux-gnu-ar
-            touch "$FLAG_FILE"
-          else
-            echo "loongarch64-unknown-linux-gnu is already installed, skipping installation."
-          fi
-
-      - name: install loongarch64-unknown-linux-musl
-        run: |
-          FLAG_FILE="/tmp/musl-loongarch64-installed"
-          if [ ! -f "$FLAG_FILE" ]; then
-            cd /tmp
-            cp ${{ github.workspace }}/rust_wasm/loongarch64-unknown-linux-musl.defconfig crosstool.defconfig
-            rm -rf build
-            bash ${{ github.workspace }}/rust_wasm/crosstool-ng-build.sh
-            echo "/x-tools/loongarch64-unknown-linux-musl/bin" >> $GITHUB_PATH
-            echo "CC_loongarch64_unknown_linux_musl=loongarch64-unknown-linux-musl-gcc" >> $GITHUB_ENV
-            echo "AR_loongarch64_unknown_linux_musl=loongarch64-unknown-linux-musl-ar" >> $GITHUB_ENV
-            echo "CXX_loongarch64_unknown_linux_musl=loongarch64-unknown-linux-musl-g++" >> $GITHUB_ENV
-            sudo ln -sf /x-tools/loongarch64-unknown-linux-musl/bin/loongarch64-unknown-linux-musl-gcc /usr/local/bin/loongarch64-linux-musl-gcc
-            sudo ln -sf /x-tools/loongarch64-unknown-linux-musl/bin/loongarch64-unknown-linux-musl-g++ /usr/local/bin/loongarch64-linux-musl-g++
-            sudo ln -sf /x-tools/loongarch64-unknown-linux-musl/bin/loongarch64-unknown-linux-musl-ar /usr/local/bin/loongarch64-linux-musl-ar
-          else
-            echo "musl loongarch64 is already installed, skipping installation."
-          fi
-
-      - name: install powerpc-unknown-linux-gnu
-        run: |
-          FLAG_FILE="/tmp/powerpc-unknown-linux-gnu-installed"
-          if [ ! -f "$FLAG_FILE" ]; then
-            cd /tmp
-            cp ${{ github.workspace }}/rust_wasm/powerpc-linux-gnu.defconfig crosstool.defconfig
-            rm -rf build
-            bash ${{ github.workspace }}/rust_wasm/crosstool-ng-build.sh
-            echo "/x-tools/powerpc-unknown-linux-gnu/bin" >> $GITHUB_PATH
-            echo "CC_powerpc_unknown_linux_gnu=powerpc-unknown-linux-gnu-gcc" >> $GITHUB_ENV
-            echo "AR_powerpc_unknown_linux_gnu=powerpc-unknown-linux-gnu-ar" >> $GITHUB_ENV
-            echo "CXX_powerpc_unknown_linux_gnu=powerpc-unknown-linux-gnu-g++" >> $GITHUB_ENV
-            sudo ln -sf /x-tools/powerpc-unknown-linux-gnu/bin/powerpc-unknown-linux-gnu-gcc /usr/local/bin/powerpc-linux-gnu-gcc
-            sudo ln -sf /x-tools/powerpc-unknown-linux-gnu/bin/powerpc-unknown-linux-gnu-g++ /usr/local/bin/powerpc-linux-gnu-g++
-            sudo ln -sf /x-tools/powerpc-unknown-linux-gnu/bin/powerpc-unknown-linux-gnu-ar /usr/local/bin/powerpc-linux-gnu-ar
-          else
-            echo "powerpc-unknown-linux-gnu is already installed, skipping installation."
-          fi
-
       - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
@@ -373,317 +259,27 @@ jobs:
           clang --version
           x86_64-linux-android-clang --version
 
-      - name: install dependencies
-        run: |
-          sudo apt install -y gcc-multilib                 g++-multilib
-          sudo apt install -y gcc-riscv64-linux-gnu        g++-riscv64-linux-gnu        libc6-dev-riscv64-cross
-          sudo apt install -y gcc-riscv64-unknown-elf
-          sudo apt install -y linux-libc-dev-powerpc-cross
-          sudo apt install -y gcc-powerpc64-linux-gnu      g++-powerpc64-linux-gnu      lib64gcc-9-dev-powerpc-cross lib64stdc++-9-dev-powerpc-cross
-          sudo apt install -y gcc-powerpc64le-linux-gnu    g++-powerpc64le-linux-gnu
-          sudo apt install -y gcc-aarch64-linux-gnu        g++-aarch64-linux-gnu
-          sudo apt install -y gcc-arm-linux-gnueabihf      g++-arm-linux-gnueabihf
-          sudo apt install -y gcc-arm-linux-gnueabi        g++-arm-linux-gnueabi
-          sudo apt install -y gcc-s390x-linux-gnu          g++-s390x-linux-gnu          linux-libc-dev-s390x-cross
-          sudo apt install -y gcc-sparc64-linux-gnu        g++-sparc64-linux-gnu
-          sudo apt install -y gcc-i686-linux-gnu           g++-i686-linux-gnu
-          sudo apt install -y gcc-arm-none-eabi
-
-      # https://github.com/rust-lang/rust/blob/bd0826a4521a845f36cce1b00e1dd2918ba09e90/src/ci/docker/host-x86_64/dist-various-2/Dockerfile#L46
-      - name: install sparcv9-sun-solaris
-        run: |
-          FLAG_FILE="/tmp/sparcv9-sun-solaris-installed"
-          if [ ! -f "$FLAG_FILE" ]; then
-            sudo apt install -y software-properties-common libgmp-dev libmpfr-dev libmpc-dev
-            sudo sed -i 's/^# deb-src/deb-src/' /etc/apt/sources.list
-            sudo apt-key adv --batch --yes --keyserver keyserver.ubuntu.com --recv-keys 74DA7924C5513486
-            sudo add-apt-repository -y 'deb https://apt.dilos.org/dilos dilos2 main'
-            mkdir -p ~/build
-            cd ~/build
-            rm -rf solaris
-            rm -rf gcc
-            rm -rf /usr/local/sparcv9-sun-solaris2.10
-            bash '${{ github.workspace }}/rust_wasm/build-solaris-toolchain.sh' sparcv9 sparcv9 solaris-sparc sun
-            cd /
-            rm -rf ~/build/
-            sudo ln -sf /usr/local/bin/sparcv9-sun-solaris2.10-gcc /usr/local/bin/sparcv9-sun-solaris-gcc
-            sudo ln -sf /usr/local/bin/sparcv9-sun-solaris2.10-g++ /usr/local/bin/sparcv9-sun-solaris-g++
-            sudo ln -sf /usr/local/bin/sparcv9-sun-solaris2.10-ar /usr/local/bin/sparcv9-sun-solaris-ar
-            touch "$FLAG_FILE"
-          else
-            echo "sparcv9-sun-solaris is already installed, skipping installation."
-          fi
-
-      # https://musl.cc/
-      - name: install musl base
-        run: |
-          sudo apt install -y musl-dev musl-tools musl
-          rm -rf ~/build/
-
-      # - name: install musl dependencies armv7
-      #   env:
-      #     CC: arm-linux-gnueabi-gcc
-      #     CXX: arm-linux-gnueabi-g++
-      #     CFLAGS: '-march=armv7-a'
-      #     CXXFLAGS: '-march=armv7-a'
+      # - name: install musl dependencies x86_64
       #   run: |
-      #     FLAG_FILE="/tmp/musl-armv7-installed"
-      #     rm -f "$FLAG_FILE"
+      #     FLAG_FILE="/tmp/musl-x86_64-installed"
       #     if [ ! -f "$FLAG_FILE" ]; then
       #       mkdir ~/build
       #       cd ~/build
-      #       bash '${{ github.workspace }}/rust_wasm/musl.sh' armv7
+      #       curl -OL https://oligamiq.github.io/cdn/musl-bin/x86_64-linux-musl-cross.tgz_aa
+      #       curl -OL https://oligamiq.github.io/cdn/musl-bin/x86_64-linux-musl-cross.tgz_ab
+      #       cat x86_64-linux-musl-cross.tgz_* | tar -xzv
+      #       rm x86_64-linux-musl-cross.tgz_*
+      #       rm -rf /musl-x86_64
+      #       mkdir -p /musl-x86_64
+      #       sudo mv x86_64-linux-musl-cross/* /musl-x86_64
       #       cd /
       #       rm -rf ~/build/
-
+      #       sudo ln -sf /musl-x86_64/bin/x86_64-linux-musl-gcc /usr/local/bin/musl-gcc
+      #       sudo ln -sf /musl-x86_64/bin/x86_64-linux-musl-g++ /usr/local/bin/musl-g++
       #       touch "$FLAG_FILE"
       #     else
-      #       echo "musl armv7 is already installed, skipping installation."
+      #       echo "musl x86_64 is already installed, skipping installation."
       #     fi
-
-      - name: install musl dependencies riscv64
-        # env:
-        #   CC: riscv64-linux-gnu-gcc
-        #   CXX: riscv64-linux-gnu-g++
-        run: |
-          FLAG_FILE="/tmp/musl-riscv64-installed"
-          if [ ! -f "$FLAG_FILE" ]; then
-            mkdir ~/build
-            cd ~/build
-            curl -OL https://oligamiq.github.io/cdn/musl-bin/riscv64-linux-musl-cross.tgz_aa
-            curl -OL https://oligamiq.github.io/cdn/musl-bin/riscv64-linux-musl-cross.tgz_ab
-            cat riscv64-linux-musl-cross.tgz_* | tar -xzv
-            rm riscv64-linux-musl-cross.tgz_*
-            rm -rf /musl-riscv64
-            mkdir -p /musl-riscv64
-            sudo mv riscv64-linux-musl-cross/* /musl-riscv64
-            sudo ln -sf /musl-riscv64/bin/riscv64-linux-musl-gcc /usr/local/bin/riscv64-linux-musl-gcc
-            sudo ln -sf /musl-riscv64/bin/riscv64-linux-musl-g++ /usr/local/bin/riscv64-linux-musl-g++
-            cd /
-            rm -rf ~/build/
-            touch "$FLAG_FILE"
-          else
-            echo "musl riscv64 is already installed, skipping installation."
-          fi
-
-      - name: install musl dependencies riscv64gc
-        env:
-          CC: riscv64-linux-gnu-gcc
-          CXX: riscv64-linux-gnu-g++
-        run: |
-          FLAG_FILE="/tmp/musl-riscv64gc-installed"
-          if [ ! -f "$FLAG_FILE" ]; then
-            mkdir ~/build
-            cd ~/build
-            bash '${{ github.workspace }}/rust_wasm/musl.sh' riscv64gc
-            cd /
-            rm -rf ~/build/
-            touch "$FLAG_FILE"
-          else
-            echo "musl riscv64gc is already installed, skipping installation."
-          fi
-
-      - name: install musl dependencies i686 i586
-        env:
-          CC: i686-linux-gnu-gcc
-          CXX: i686-linux-gnu-g++
-          CFLAGS: '-m32 -Wa,-mrelax-relocations=no'
-          CXXFLAGS: '-m32 -Wa,-mrelax-relocations=no'
-        run: |
-          FLAG_FILE="/tmp/musl-i686-installed"
-          if [ ! -f "$FLAG_FILE" ]; then
-            mkdir ~/build
-            cd ~/build
-            curl -OL https://oligamiq.github.io/cdn/musl-bin/i686-linux-musl-cross.tgz_aa
-            curl -OL https://oligamiq.github.io/cdn/musl-bin/i686-linux-musl-cross.tgz_ab
-            cat i686-linux-musl-cross.tgz_* | tar -xzv
-            rm i686-linux-musl-cross.tgz_*
-            rm -rf /musl-i686
-            mkdir -p /musl-i686
-            sudo mv i686-linux-musl-cross/* /musl-i686
-            sudo ln -sf /musl-i686/bin/i686-linux-musl-gcc /usr/local/bin/i686-linux-musl-gcc
-            sudo ln -sf /musl-i686/bin/i686-linux-musl-g++ /usr/local/bin/i686-linux-musl-g++
-            cd /
-            rm -rf ~/build/
-            sudo ln -sf /musl-i686/bin/musl-gcc /usr/local/bin/i686-linux-musl-gcc
-            touch "$FLAG_FILE"
-          else
-            echo "musl i686 is already installed, skipping installation."
-          fi
-
-          FLAG_FILE="/tmp/musl-i586-installed"
-          if [ ! -f "$FLAG_FILE" ]; then
-            mkdir ~/build
-            cd ~/build
-            bash '${{ github.workspace }}/rust_wasm/musl.sh' i586 --target=i586
-            cd /
-            rm -rf ~/build/
-            sudo ln -sf /musl-i586/bin/musl-gcc /usr/local/bin/i586-linux-musl-gcc
-            touch "$FLAG_FILE"
-          else
-            echo "musl i586 is already installed, skipping installation."
-          fi
-
-      - name: install musl dependencies aarch64
-        env:
-          CFLAGS: "-Wa,--compress-debug-sections=none -Wl,--compress-debug-sections=none"
-          CXXFLAGS: "-Wa,--compress-debug-sections=none -Wl,--compress-debug-sections=none"
-        run: |
-          FLAG_FILE="/tmp/musl-aarch64-installed"
-          if [ ! -f "$FLAG_FILE" ]; then
-            mkdir ~/build
-            cd ~/build
-            curl -OL https://oligamiq.github.io/cdn/musl-bin/aarch64-linux-musl-cross.tgz_aa
-            curl -OL https://oligamiq.github.io/cdn/musl-bin/aarch64-linux-musl-cross.tgz_ab
-            cat aarch64-linux-musl-cross.tgz_* | tar -xzv
-            rm aarch64-linux-musl-cross.tgz_*
-            rm -rf /musl-aarch64
-            mkdir -p /musl-aarch64
-            sudo mv aarch64-linux-musl-cross/* /musl-aarch64
-            sudo ln -sf /musl-aarch64/bin/aarch64-linux-musl-gcc /usr/local/bin/aarch64-linux-musl-gcc
-            sudo ln -sf /musl-aarch64/bin/aarch64-linux-musl-g++ /usr/local/bin/aarch64-linux-musl-g++
-            cd /
-            rm -rf ~/build/
-            touch "$FLAG_FILE"
-          else
-            echo "musl aarch64 is already installed, skipping installation."
-          fi
-
-      # https://github.com/rust-lang/rust/blob/65b3877488ccfef3b1a903bfdd269559c59b957c/src/ci/docker/host-x86_64/dist-various-1/Dockerfile#L89
-      - name: install musl dependencies arm
-        # env:
-        #   CC: arm-linux-gnueabi-gcc
-        #   CXX: arm-linux-gnueabi-g++
-        #   CFLAGS: '-march=armv6 -marm'
-        #   CXXFLAGS: '-march=armv6 -marm'
-        run: |
-          FLAG_FILE="/tmp/musl-arm-installed"
-          if [ ! -f "$FLAG_FILE" ]; then
-            mkdir ~/build
-            cd ~/build
-            curl -OL https://oligamiq.github.io/cdn/musl-bin/arm-linux-musleabi-cross.tgz
-            cat arm-linux-musleabi-cross.tgz | tar -xzv
-            rm arm-linux-musleabi-cross.tgz
-            rm -rf /musl-arm
-            mkdir -p /musl-arm
-            sudo mv arm-linux-musleabi-cross/* /musl-arm
-            sudo ln -sf /musl-arm/bin/arm-linux-musleabi-gcc /usr/local/bin/arm-linux-musleabi-gcc
-            sudo ln -sf /musl-arm/bin/arm-linux-musleabi-g++ /usr/local/bin/arm-linux-musleabi-g++
-            cd /
-            rm -rf ~/build/
-            touch "$FLAG_FILE"
-          else
-            echo "musl arm is already installed, skipping installation."
-          fi
-
-      # https://github.com/rust-lang/rust/blob/9a9daddd0dacfe8c5e8eaa07cfd054a3631bcde7/src/ci/docker/host-x86_64/dist-various-1/Dockerfile
-      - name: install musl dependencies armhf
-        # env:
-        #   CC: arm-linux-gnueabihf-gcc
-        #   CXX: arm-linux-gnueabihf-g++
-        #   CFLAGS: '-march=armv6 -marm -mfpu=vfp'
-        #   CXXFLAGS: '-march=armv6 -marm -mfpu=vfp'
-        run: |
-          FLAG_FILE="/tmp/musl-armhf-installed"
-          if [ ! -f "$FLAG_FILE" ]; then
-            mkdir ~/build
-            cd ~/build
-            curl -OL https://oligamiq.github.io/cdn/musl-bin/arm-linux-musleabihf-cross.tgz
-            cat arm-linux-musleabihf-cross.tgz | tar -xzv
-            rm arm-linux-musleabihf-cross.tgz
-            rm -rf /musl-armhf
-            mkdir -p /musl-armhf
-            sudo mv arm-linux-musleabihf-cross/* /musl-armhf
-            sudo ln -sf /musl-armhf/bin/arm-linux-musleabihf-gcc /usr/local/bin/arm-linux-musleabihf-gcc
-            sudo ln -sf /musl-armhf/bin/arm-linux-musleabihf-g++ /usr/local/bin/arm-linux-musleabihf-g++
-            cd /
-            rm -rf ~/build/
-            touch "$FLAG_FILE"
-          else
-            echo "musl armhf is already installed, skipping installation."
-          fi
-
-      # https://github.com/rust-lang/rust/blob/a4cedecc9ec76b46dcbb954750068c832cf2dd43/src/ci/docker/host-x86_64/dist-various-1/Dockerfile#L79
-      - name: install musl dependencies armv5te
-        env:
-          CC: arm-linux-gnueabi-gcc
-          CXX: arm-linux-gnueabi-g++
-          CFLAGS: "-march=armv5te -marm -mfloat-abi=soft"
-          CXXFLAGS: "-march=armv5te -marm -mfloat-abi=soft"
-        run: |
-          FLAG_FILE="/tmp/musl-armv5te-installed"
-          if [ ! -f "$FLAG_FILE" ]; then
-            mkdir ~/build
-            cd ~/build
-            bash '${{ github.workspace }}/rust_wasm/musl.sh' armv5te
-            cd /
-            rm -rf ~/build/
-            touch "$FLAG_FILE"
-          else
-            echo "musl armv5te is already installed, skipping installation."
-          fi
-
-      # https://github.com/rust-lang/rust/blob/a4cedecc9ec76b46dcbb954750068c832cf2dd43/src/ci/docker/host-x86_64/dist-various-2/Dockerfile#L127
-      - name: install musl dependencies armv7
-        env:
-          CC: arm-linux-gnueabi-gcc
-          CXX: arm-linux-gnueabi-g++
-          CFLAGS: '-march=armv7-a'
-          CXXFLAGS: '-march=armv7-a'
-        run: |
-          FLAG_FILE="/tmp/musl-armv7-installed"
-          if [ ! -f "$FLAG_FILE" ]; then
-            mkdir ~/build
-            cd ~/build
-            bash '${{ github.workspace }}/rust_wasm/musl.sh' armv7
-            cd /
-            rm -rf ~/build/
-            touch "$FLAG_FILE"
-          else
-            echo "musl armv7 is already installed, skipping installation."
-          fi
-
-      # https://github.com/rust-lang/rust/blob/a4cedecc9ec76b46dcbb954750068c832cf2dd43/src/ci/docker/host-x86_64/dist-various-1/Dockerfile#L79
-      - name: install musl dependencies armv7hf
-        env:
-          CC: arm-linux-gnueabihf-gcc
-          CXX: arm-linux-gnueabihf-g++
-          CFLAGS: "-march=armv7-a+fp"
-          CXXFLAGS: "-march=armv7-a+fp"
-        run: |
-          FLAG_FILE="/tmp/musl-armv7hf-installed"
-          if [ ! -f "$FLAG_FILE" ]; then
-            mkdir ~/build
-            cd ~/build
-            bash '${{ github.workspace }}/rust_wasm/musl.sh' armv7hf
-            cd /
-            rm -rf ~/build/
-            touch "$FLAG_FILE"
-          else
-            echo "musl armv7hf is already installed, skipping installation."
-          fi
-
-      - name: install musl dependencies x86_64
-        run: |
-          FLAG_FILE="/tmp/musl-x86_64-installed"
-          if [ ! -f "$FLAG_FILE" ]; then
-            mkdir ~/build
-            cd ~/build
-            curl -OL https://oligamiq.github.io/cdn/musl-bin/x86_64-linux-musl-cross.tgz_aa
-            curl -OL https://oligamiq.github.io/cdn/musl-bin/x86_64-linux-musl-cross.tgz_ab
-            cat x86_64-linux-musl-cross.tgz_* | tar -xzv
-            rm x86_64-linux-musl-cross.tgz_*
-            rm -rf /musl-x86_64
-            mkdir -p /musl-x86_64
-            sudo mv x86_64-linux-musl-cross/* /musl-x86_64
-            cd /
-            rm -rf ~/build/
-            sudo ln -sf /musl-x86_64/bin/x86_64-linux-musl-gcc /usr/local/bin/musl-gcc
-            sudo ln -sf /musl-x86_64/bin/x86_64-linux-musl-g++ /usr/local/bin/musl-g++
-            touch "$FLAG_FILE"
-          else
-            echo "musl x86_64 is already installed, skipping installation."
-          fi
 
       # https://github.com/rust-lang/rust/blob/65b3877488ccfef3b1a903bfdd269559c59b957c/src/doc/rustc/src/platform-support/wasm32-unknown-emscripten.md
       - name: install emscripten
@@ -706,18 +302,24 @@ jobs:
             echo "emscripten is already installed, skipping installation."
           fi
 
-      - name: rewrite
-        run: |
-          cd rust_wasm/config_rewriter
-          cargo run -- ../../rust/config.llvm.toml all linux
-          cargo clean
-          echo "rewrite done"
+      # - name: rewrite
+      #   run: |
+      #     cd rust_wasm/config_rewriter
+      #     cargo run -- ../../rust/config.llvm.toml all linux
+      #     cargo clean
+      #     echo "rewrite done"
 
       - name: restore cache
         uses: actions/cache/restore@v4
         with:
           path: ${{ github.workspace }}/rust/build
           key: build-dir-${{ runner.os }}-compile_rustc_for_wasm17
+
+      - name: install toolchain-for-building-rustc
+        working-directory: '${{ github.workspace }}/rust'
+        run: |
+          cargo install --git https://github.com/oligamiq/toolchain-for-building-rustc
+          cargo toolchain-for-building-rustc --tier 1 --tier 2-host --os linux -t sparcv9-sun-solaris --install --no_cache -f config.llvm.toml
 
       - name: build dist
         working-directory: '${{ github.workspace }}/rust'

@@ -186,6 +186,15 @@ fn main() -> anyhow::Result<()> {
                         doc["target"]["i686-unknown-linux-musl"]["musl-root"] =
                             "/musl-i686/i686-linux-musl".into();
                         doc["target"]["wasm32-wasip2"] = doc["target"]["wasm32-wasip1"].clone();
+
+                        doc["target"]["riscv64gc-unknown-linux-musl"]["cc"] =
+                            "riscv64-linux-gnu-gcc".into();
+                        doc["target"]["riscv64gc-unknown-linux-musl"]["cxx"] =
+                            "riscv64-linux-gnu-g++".into();
+                        doc["target"]["riscv64gc-unknown-linux-musl"]["ar"] =
+                            "riscv64-linux-gnu-ar".into();
+                        doc["target"]["riscv64gc-unknown-linux-musl"]["linker"] =
+                            "riscv64-linux-gnu-gcc".into();
                     }
                     OS::Windows => todo!(),
                     OS::Mac => todo!(),
