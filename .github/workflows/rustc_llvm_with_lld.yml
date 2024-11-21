@@ -109,6 +109,10 @@ jobs:
       - name: upload bin
         working-directory: '${{ github.workspace }}/rust_wasm'
         run: |
+          # backup config_rewriter
+          cp -r ${{ github.workspace }}/rust_wasm/config_rewriter /tmp/config_rewriter
+
+          # change branch
           git pull
           git branch -a
           git switch rustc_llvm_with_lld-bins
@@ -122,7 +126,7 @@ jobs:
           cd ${{ github.workspace }}/rust
           tar -cvzf dist/bin/rustc.wasm.tar.gz dist/bin/rustc.wasm
           # optimize wasm
-          cd ${{ github.workspace }}/rust_wasm/config_rewriter
+          cd /tmp/config_rewriter
           cargo run --bin wasm_optimizer -- ${{ github.workspace }}/rust/dist/bin/rustc.wasm
           mv opt.wasm ${{ github.workspace }}/rust_wasm/rustc_opt.wasm
           rm ${{ github.workspace }}/rust/dist/bin/rustc.wasm
