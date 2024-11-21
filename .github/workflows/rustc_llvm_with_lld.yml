@@ -397,13 +397,6 @@ jobs:
           repository: 'bjorn3/rust'
           submodules: 'true'
           ref: 'compile_rustc_for_wasm17'
-
-      - name: copy source
-        uses: actions/checkout@v4
-        with:
-          repository: 'bjorn3/rust'
-          submodules: 'true'
-          ref: 'compile_rustc_for_wasm17'
           path: 'rust'
 
       - uses: actions/checkout@v4
@@ -435,6 +428,12 @@ jobs:
         run: |
           cargo install --git https://github.com/oligamiq/toolchain-for-building-rustc
           toolchain-for-building-rustc --tier 1 --tier 2-host --os mac --install --no-cache -f config.llvm.toml
+
+      - name: install-wasi-sdk
+        working-directory: '${{ github.workspace }}/rust'
+        run: |
+          curl -OL https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-24/wasi-sdk-24.0-x86_64-linux.tar.gz
+          tar -xzf wasi-sdk-24.0-x86_64-linux.tar.gz
 
       - name: build dist
         working-directory: '${{ github.workspace }}/rust'
