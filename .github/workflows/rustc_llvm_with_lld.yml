@@ -426,6 +426,7 @@ jobs:
           RUST_CONFIGURE_ARGS: "-Clink-arg=-fuse-ld=lld -W warnings"
           RUSTFLAGS: "-Clink-arg=-fuse-ld=lld -W warnings"
         run: |
+          brew install llvm
           cargo install --git https://github.com/oligamiq/toolchain-for-building-rustc
           toolchain-for-building-rustc --tier 1 --tier 2-host --os mac --install --no-cache -f config.llvm.toml
 
