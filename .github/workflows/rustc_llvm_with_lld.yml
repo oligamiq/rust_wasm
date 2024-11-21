@@ -35,6 +35,7 @@ jobs:
         with:
           path: 'rust_wasm'
           ref: 'gh-actions'
+          fetch-depth: 0
 
       - name: install-wasi-sdk
         working-directory: '${{ github.workspace }}/rust'
@@ -63,12 +64,21 @@ jobs:
           sudo apt upgrade -y
           sudo apt install -y build-essential cmake pkg-config libclang-dev
 
-      - name: rewrite
+      - name: install toolchain-for-building-rustc
+        working-directory: '${{ github.workspace }}/rust'
+        env:
+          RUST_CONFIGURE_ARGS: "-W warnings"
+          RUSTFLAGS: "-W warnings"
         run: |
-          cd rust_wasm/config_rewriter
-          cargo run -- ../../rust/config.llvm.toml all false
-          cargo clean
-          echo "rewrite done"
+          cargo install --git https://github.com/oligamiq/toolchain-for-building-rustc
+          toolchain-for-building-rustc --tier all --os linux --os windows --os mac -f config.llvm.toml --only-llvm
+
+      # - name: rewrite
+      #   run: |
+      #     cd rust_wasm/config_rewriter
+      #     cargo run -- ../../rust/config.llvm.toml all false
+      #     cargo clean
+      #     echo "rewrite done"
 
       - name: build install
         working-directory: '${{ github.workspace }}/rust'
@@ -97,12 +107,13 @@ jobs:
           rm -rf binaryen-version_119-x86_64-linux.tar.gz binaryen-version_119
 
       - name: upload bin
+        working-directory: '${{ github.workspace }}/rust_wasm'
         run: |
-          git clone --recursive --depth 1 --branch rustc_llvm_with_lld-bins --single-branch https://github.com/oligamiq/rust_wasm rustc_llvm_with_lld-bins
-          cd rustc_llvm_with_lld-bins
-          git config --global user.email "nziq53@gmail.com"
-          git config --global user.name "oligamiq"
-          git rm --cached -r .
+          git pull
+          git branch -a
+          git switch rustc_llvm_with_lld-bins
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
           # reset files
           rm -rf *
           mkdir -p dist/bin
@@ -113,9 +124,9 @@ jobs:
           # optimize wasm
           cd ${{ github.workspace }}/rust_wasm/config_rewriter
           cargo run --bin wasm_optimizer -- ${{ github.workspace }}/rust/dist/bin/rustc.wasm
-          mv opt.wasm ${{ github.workspace }}/rustc_llvm_with_lld-bins/rustc_opt.wasm
+          mv opt.wasm ${{ github.workspace }}/rust_wasm/rustc_opt.wasm
           rm ${{ github.workspace }}/rust/dist/bin/rustc.wasm
-          cd ${{ github.workspace }}/rustc_llvm_with_lld-bins
+          cd ${{ github.workspace }}/rust_wasm
 
           # copy files
 
@@ -128,7 +139,13 @@ jobs:
           rm rustc_opt.wasm
           git add -A
           git commit -m "reset files and add new files about rustc.wasm"
-          git push --set-upstream origin rustc_llvm_with_lld-bins
+
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ github.token }}
+          directory: "${{ github.workspace }}/rust_wasm"
+          branch: rustc_llvm_with_lld-bins
 
   dist-linux:
     # strategy:
@@ -152,6 +169,7 @@ jobs:
         with:
           path: 'rust_wasm'
           ref: 'gh-actions'
+          fetch-depth: 0
 
       - name: rustbuild setup
         run: |
@@ -338,38 +356,23 @@ jobs:
         run:
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
-      # - name: upload wasm32-unknown-unknown
-      #   uses: JamesIves/github-pages-deploy-action@v4
-      #   with:
-      #     folder: rust/dist/lib/rustlib/wasm32-unknown-unknown
-      #     branch: rustc_llvm_with_lld
-      #     target-folder: rustc_llvm_with_lld/dist/lib/rustlib/wasm32-unknown-unknown
-      #     clean: false
-      #     commit-message: "update wasm32-unknown-unknown"
+      - name: upload
+        working-directory: '${{ github.workspace }}/rust_wasm'
+        run: |
+          git pull
+          git branch -a
+          git switch rustc_llvm_with_lld-bins-tier2-host
+          rm -rf dist
+          mv ../rust/dist dist
+          rm -rf dist/bin
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add *
+          git commit -m "update dist"
 
-      - name: upload wasm32-wasip1
-        uses: JamesIves/github-pages-deploy-action@v4
+      - name: Push changes
+        uses: ad-m/github-push-action@master
         with:
-          folder: rust/dist/lib/rustlib/wasm32-wasip1
-          branch: rustc_llvm_with_lld
-          target-folder: rustc_llvm_with_lld/dist/lib/rustlib/wasm32-wasip1
-          clean: false
-          commit-message: "update wasm32-wasip1"
-
-      # - name: upload wasm32-wasip1-threads
-      #   uses: JamesIves/github-pages-deploy-action@v4
-      #   with:
-      #     folder: rust/dist/lib/rustlib/wasm32-wasip1-threads
-      #     branch: rustc_llvm_with_lld
-      #     target-folder: rustc_llvm_with_lld/dist/lib/rustlib/wasm32-wasip1-threads
-      #     clean: false
-      #     commit-message: "update wasm32-wasip1-threads"
-
-      - name: upload x86_64-unknown-linux-gnu
-        uses: JamesIves/github-pages-deploy-action@v4
-        with:
-          folder: rust/dist/lib/rustlib/x86_64-unknown-linux-gnu
-          branch: rustc_llvm_with_lld
-          target-folder: rustc_llvm_with_lld/dist/lib/rustlib/x86_64-unknown-linux-gnu
-          clean: false
-          commit-message: "update x86_64-unknown-linux-gnu"
+          github_token: ${{ github.token }}
+          directory: "${{ github.workspace }}/rust_wasm"
+          branch: rustc_llvm_with_lld-bins-tier2-host
