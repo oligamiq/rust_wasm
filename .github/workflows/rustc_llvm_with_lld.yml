@@ -423,7 +423,7 @@ jobs:
       - name: install toolchain-for-building-rustc
         working-directory: '${{ github.workspace }}/rust'
         env:
-          RUST_CONFIGURE_ARGS: "-W warnings"
+          RUST_CONFIGURE_ARGS: "-Clink-arg=-fuse-ld=lld -W warnings"
           RUSTFLAGS: "-Clink-arg=-fuse-ld=lld -W warnings"
         run: |
           cargo install --git https://github.com/oligamiq/toolchain-for-building-rustc
