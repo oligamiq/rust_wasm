@@ -2,6 +2,11 @@ name: create release
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'version of the toolchain to build'
+        required: true
+        default: 'v0.1.0'
 
 permissions:
   contents: write
