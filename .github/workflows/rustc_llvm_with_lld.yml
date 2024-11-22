@@ -420,11 +420,25 @@ jobs:
       - name: install rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
 
+      - name: install llvm
+        env:
+          LLVM_VERSION: "15.0.7"
+          MIRRORS_BASE: "https://ci-mirrors.rust-lang.org/rustc"
+        run: |
+          file="${MIRRORS_BASE}/clang%2Bllvm-${LLVM_VERSION}-x86_64-apple-darwin21.0.tar.xz"
+          retry curl -f "${file}" -o "clang+llvm-${LLVM_VERSION}-x86_64-apple-darwin21.0.tar.xz"
+          tar xJf "clang+llvm-${LLVM_VERSION}-x86_64-apple-darwin21.0.tar.xz"
+          bindir="$(pwd)/clang+llvm-${LLVM_VERSION}-x86_64-apple-darwin21.0/bin"
+          echo "CC=${bindir}/clang" >> $GITHUB_ENV
+          echo "CXX=${bindir}/clang++" >> $GITHUB_ENV
+          echo "SDKROOT=$(xcrun --sdk macosx --show-sdk-path)" >> $GITHUB_ENV
+          echo "AR=ar" >> $GITHUB_ENV
+
       - name: install toolchain-for-building-rustc
         working-directory: '${{ github.workspace }}/rust'
         env:
-          RUST_CONFIGURE_ARGS: "-Clink-arg=-fuse-ld=ld -W warnings"
-          RUSTFLAGS: "-Clink-arg=-fuse-ld=ld -W warnings"
+          RUST_CONFIGURE_ARGS: "-W warnings"
+          RUSTFLAGS: "-W warnings"
         run: |
           brew install llvm
           cargo install --git https://github.com/oligamiq/toolchain-for-building-rustc
@@ -440,8 +454,8 @@ jobs:
         working-directory: '${{ github.workspace }}/rust'
         env:
           WASI_SDK_PATH: ${{ github.workspace }}/rust/wasi-sdk-24.0-x86_64-linux
-          RUST_CONFIGURE_ARGS: "-Clink-arg=-fuse-ld=ld -W warnings"
-          RUSTFLAGS: "-Clink-arg=-fuse-ld=ld -W warnings"
+          RUST_CONFIGURE_ARGS: "-W warnings"
+          RUSTFLAGS: "-W warnings"
         run: |
           export RUST_CONFIGURE_ARGS='${{ env.RUST_CONFIGURE_ARGS }}'
           ./x.py install --config config.llvm.toml
