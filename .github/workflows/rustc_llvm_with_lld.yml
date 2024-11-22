@@ -544,7 +544,6 @@ jobs:
           RUST_CONFIGURE_ARGS: "-W warnings"
           RUSTFLAGS: "-W warnings"
         run: |
-          export RUST_CONFIGURE_ARGS='${{ env.RUST_CONFIGURE_ARGS }}'
           ./x.py install --config config.llvm.toml
 
       - name: Configure git to trust the workspace despite the different owner
