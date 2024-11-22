@@ -91,3 +91,9 @@ jobs:
           tag: "${{ github.event.inputs.version }}-release"
           allowUpdates: true
           prerelease: true
+
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: "${{ github.token }}"
+          publish_dir: ./x-tools
