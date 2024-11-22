@@ -115,7 +115,7 @@ jobs:
           cp -r ${{ github.workspace }}/rust_wasm/config_rewriter /tmp/config_rewriter
 
           # change branch
-          git pull
+          git fetch origin rustc_llvm_with_lld-bins
           git branch -a
           git switch rustc_llvm_with_lld-bins
           git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -367,7 +367,7 @@ jobs:
       - name: upload
         working-directory: '${{ github.workspace }}/rust_wasm'
         run: |
-          git pull
+          git fetch origin rustc_llvm_with_lld-bins-tier2-host
           git branch -a
           git switch rustc_llvm_with_lld-bins-tier2-host
           rm -rf dist
@@ -469,7 +469,7 @@ jobs:
       - name: upload
         working-directory: '${{ github.workspace }}/rust_wasm'
         run: |
-          git pull
+          git fetch origin rustc_llvm_with_lld-bins-tier2-host-mac
           git branch -a
           git switch rustc_llvm_with_lld-bins-tier2-host-mac
           rm -rf dist
@@ -559,7 +559,7 @@ jobs:
       - name: upload
         working-directory: '${{ github.workspace }}/rust_wasm'
         run: |
-          git pull
+          git fetch origin rustc_llvm_with_lld-bins-tier2-host-windows
           git branch -a
           git switch rustc_llvm_with_lld-bins-tier2-host-windows
 
