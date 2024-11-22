@@ -432,6 +432,7 @@ jobs:
           echo "CXX=${bindir}/clang++" >> $GITHUB_ENV
           echo "SDKROOT=$(xcrun --sdk macosx --show-sdk-path)" >> $GITHUB_ENV
           echo "AR=ar" >> $GITHUB_ENV
+          echo "${bindir}" >> $GITHUB_PATH
 
       - name: install toolchain-for-building-rustc
         working-directory: '${{ github.workspace }}/rust'
@@ -439,7 +440,6 @@ jobs:
           RUST_CONFIGURE_ARGS: "-W warnings"
           RUSTFLAGS: "-W warnings"
         run: |
-          brew install llvm
           cargo install --git https://github.com/oligamiq/toolchain-for-building-rustc
           toolchain-for-building-rustc --tier 1 --tier 2-host --os mac --install --no-cache -f config.llvm.toml
 
@@ -455,6 +455,8 @@ jobs:
           WASI_SDK_PATH: ${{ github.workspace }}/rust/wasi-sdk-24.0-x86_64-linux
           RUST_CONFIGURE_ARGS: "-W warnings"
           RUSTFLAGS: "-W warnings"
+          CC: "${{ github.workspace }}/clang+llvm-15.0.7-x86_64-apple-darwin21.0/bin/clang"
+          CXX: "${{ github.workspace }}/clang+llvm-15.0.7-x86_64-apple-darwin21.0/bin/clang++"
         run: |
           export RUST_CONFIGURE_ARGS='${{ env.RUST_CONFIGURE_ARGS }}'
           ./x.py install --config config.llvm.toml
