@@ -556,11 +556,27 @@ jobs:
           git pull
           git branch -a
           git switch rustc_llvm_with_lld-bins-tier2-host-windows
-          rm -rf dist
-          mv ../rust/dist dist
-          rm -rf dist/bin
+
+          # Remove 'dist' directory if it exists
+          if (Test-Path -Path "dist") {
+              Remove-Item -Recurse -Force -Path "dist"
+          }
+
+          # Move directory using PowerShell's Move-Item
+          if (Test-Path -Path "..\rust\dist") {
+              Move-Item -Path "..\rust\dist" -Destination "dist"
+          }
+
+          # Remove 'dist/bin' directory if it exists
+          if (Test-Path -Path "dist\bin") {
+              Remove-Item -Recurse -Force -Path "dist\bin"
+          }
+
+          # Configure Git user
           git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
+
+          # Add changes, commit, and push
           git add *
           git commit -m "update dist"
 
