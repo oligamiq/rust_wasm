@@ -78,6 +78,11 @@ jobs:
             cd ..
           done
 
+          # bin
+          cd "${{ github.workspace }}/rust_wasm"
+          git switch rustc_llvm_with_lld-bins
+          cp rustc_opt.wasm.tar.gz "${{ github.workspace }}/x-tools/rustc_opt.wasm.tar.gz"
+
       - name: upload release
         uses: ncipollo/release-action@v1
         with:
