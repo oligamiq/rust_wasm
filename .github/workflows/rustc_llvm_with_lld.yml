@@ -447,13 +447,13 @@ jobs:
       - name: install-wasi-sdk
         working-directory: '${{ github.workspace }}/rust'
         run: |
-          curl -OL https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-24/wasi-sdk-24.0-x86_64-linux.tar.gz
-          tar -xzf wasi-sdk-24.0-x86_64-linux.tar.gz
+          curl -OL https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-24/wasi-sdk-24.0-arm64-macos.tar.gz
+          tar -xzf wasi-sdk-24.0-arm64-macos.tar.gz
 
       - name: build dist
         working-directory: '${{ github.workspace }}/rust'
         env:
-          WASI_SDK_PATH: ${{ github.workspace }}/rust/wasi-sdk-24.0-x86_64-linux
+          WASI_SDK_PATH: ${{ github.workspace }}/rust/wasi-sdk-24.0-arm64-macos
           RUST_CONFIGURE_ARGS: "-W warnings"
           RUSTFLAGS: "-W warnings"
           CC: "${{ github.workspace }}/clang+llvm-15.0.7-x86_64-apple-darwin21.0/bin/clang"
