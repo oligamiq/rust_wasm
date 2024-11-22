@@ -426,7 +426,7 @@ jobs:
           MIRRORS_BASE: "https://ci-mirrors.rust-lang.org/rustc"
         run: |
           file="${MIRRORS_BASE}/clang%2Bllvm-${LLVM_VERSION}-x86_64-apple-darwin21.0.tar.xz"
-          retry curl -f "${file}" -o "clang+llvm-${LLVM_VERSION}-x86_64-apple-darwin21.0.tar.xz"
+          curl -f "${file}" -o "clang+llvm-${LLVM_VERSION}-x86_64-apple-darwin21.0.tar.xz"
           tar xJf "clang+llvm-${LLVM_VERSION}-x86_64-apple-darwin21.0.tar.xz"
           bindir="$(pwd)/clang+llvm-${LLVM_VERSION}-x86_64-apple-darwin21.0/bin"
           echo "CC=${bindir}/clang" >> $GITHUB_ENV
