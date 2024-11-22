@@ -442,7 +442,7 @@ jobs:
           RUSTFLAGS: "-W warnings"
         run: |
           cargo install --git https://github.com/oligamiq/toolchain-for-building-rustc
-          toolchain-for-building-rustc --tier 1 --tier 2-host --os mac --install --no-cache -f config.llvm.toml
+          toolchain-for-building-rustc --tier 1 --tier 2-host --os mac --install --no-cache -f config.llvm.toml --overwrite
 
       - name: install-wasi-sdk
         working-directory: '${{ github.workspace }}/rust'
@@ -529,7 +529,7 @@ jobs:
           RUSTFLAGS: "-W warnings"
         run: |
           cargo install --git https://github.com/oligamiq/toolchain-for-building-rustc
-          toolchain-for-building-rustc --tier 1 --tier 2-host --os windows --install --no-cache -f config.llvm.toml
+          toolchain-for-building-rustc --tier 1 --tier 2-host --os windows --install --no-cache -f config.llvm.toml --overwrite
 
       - name: install-wasi-sdk
         working-directory: '${{ github.workspace }}/rust'
