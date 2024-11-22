@@ -16,8 +16,17 @@ jobs:
         with:
           path: rust_wasm
 
-      - name: adjust permissions
-        uses: ./.github/actions/permission
+      - name: free space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: true
+
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: false
 
       - name: switch branch
         working-directory: "${{ github.workspace }}/rust_wasm"
