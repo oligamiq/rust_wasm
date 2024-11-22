@@ -537,6 +537,11 @@ jobs:
           curl -OL https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-24/wasi-sdk-24.0-x86_64-linux.tar.gz
           tar -xzf wasi-sdk-24.0-x86_64-linux.tar.gz
 
+      - name: Set up MinGW
+        uses: egor-tensin/setup-mingw@v2
+        with:
+          platform: x64
+
       - name: build dist
         working-directory: '${{ github.workspace }}/rust'
         env:
