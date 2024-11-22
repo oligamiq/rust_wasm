@@ -423,8 +423,8 @@ jobs:
       - name: install toolchain-for-building-rustc
         working-directory: '${{ github.workspace }}/rust'
         env:
-          RUST_CONFIGURE_ARGS: "-Clink-arg=-fuse-ld=lld -W warnings"
-          RUSTFLAGS: "-Clink-arg=-fuse-ld=lld -W warnings"
+          RUST_CONFIGURE_ARGS: "-Clink-arg=-fuse-ld=ld -W warnings"
+          RUSTFLAGS: "-Clink-arg=-fuse-ld=ld -W warnings"
         run: |
           brew install llvm
           cargo install --git https://github.com/oligamiq/toolchain-for-building-rustc
@@ -440,8 +440,8 @@ jobs:
         working-directory: '${{ github.workspace }}/rust'
         env:
           WASI_SDK_PATH: ${{ github.workspace }}/rust/wasi-sdk-24.0-x86_64-linux
-          RUST_CONFIGURE_ARGS: "-Clink-arg=-fuse-ld=lld -W warnings"
-          RUSTFLAGS: "-Clink-arg=-fuse-ld=lld -W warnings"
+          RUST_CONFIGURE_ARGS: "-Clink-arg=-fuse-ld=ld -W warnings"
+          RUSTFLAGS: "-Clink-arg=-fuse-ld=ld -W warnings"
         run: |
           export RUST_CONFIGURE_ARGS='${{ env.RUST_CONFIGURE_ARGS }}'
           ./x.py install --config config.llvm.toml
@@ -455,7 +455,7 @@ jobs:
         run: |
           git pull
           git branch -a
-          git switch rustc_llvm_with_lld-bins-tier2-host
+          git switch rustc_llvm_with_lld-bins-tier2-host-mac
           rm -rf dist
           mv ../rust/dist dist
           rm -rf dist/bin
@@ -469,4 +469,4 @@ jobs:
         with:
           github_token: ${{ github.token }}
           directory: "${{ github.workspace }}/rust_wasm"
-          branch: rustc_llvm_with_lld-bins-tier2-host
+          branch: rustc_llvm_with_lld-bins-tier2-host-mac
