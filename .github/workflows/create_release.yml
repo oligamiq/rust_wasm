@@ -94,7 +94,7 @@ jobs:
           git switch rustc_llvm_with_lld-bins
           cp rustc_opt.wasm.tar.gz "${{ github.workspace }}/x-tools/rustc_opt.wasm.tar.gz"
 
-          tar -czf "${{ github.workspace }}/x-tools/build-cache.tar.gz" "${{ github.workspace }}/rust/build
+          tar -czf "${{ github.workspace }}/x-tools/build-cache.tar.gz" "${{ github.workspace }}/rust/build"
 
       - name: upload release
         uses: ncipollo/release-action@v1
