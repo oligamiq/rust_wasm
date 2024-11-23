@@ -28,8 +28,8 @@ jobs:
       - name: copy source
         uses: actions/checkout@v4
         with:
-          # repository: 'bjorn3/rust'
-          repository: 'oligamiq/rust' # patch
+          repository: 'bjorn3/rust'
+          # repository: 'oligamiq/rust' # patch
           submodules: 'true'
           ref: 'compile_rustc_for_wasm17'
           path: 'rust'
