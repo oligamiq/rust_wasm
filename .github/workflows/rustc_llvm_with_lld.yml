@@ -447,6 +447,7 @@ jobs:
         run: |
           cargo install --git https://github.com/oligamiq/toolchain-for-building-rustc
           toolchain-for-building-rustc --tier 1 --tier 2-host --os mac --install --no-cache -f config.llvm.toml --overwrite -t wasm32-wasip1 -t wasm32-wasip1-threads
+          toolchain-for-building-rustc --tier 1 --tier 2-host --os mac -f config.llvm.toml --overwrite
           toolchain-for-building-rustc --tier all --os linux --os windows --os mac -f config.llvm.toml --only-llvm
 
       - name: install-wasi-sdk
@@ -541,6 +542,7 @@ jobs:
         run: |
           cargo install --git https://github.com/oligamiq/toolchain-for-building-rustc
           toolchain-for-building-rustc --tier 1 --tier 2-host --os windows --install --no-cache -f config.llvm.toml --overwrite -t wasm32-wasip1 -t wasm32-wasip1-threads --exclude x86_64-pc-windows-gnu
+          toolchain-for-building-rustc --tier 1 --tier 2-host --os windows -f config.llvm.toml --overwrite --exclude x86_64-pc-windows-gnu
           toolchain-for-building-rustc --tier all --os linux --os windows --os mac -f config.llvm.toml --only-llvm
 
       - name: install-wasi-sdk
