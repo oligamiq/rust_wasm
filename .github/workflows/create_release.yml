@@ -107,6 +107,7 @@ jobs:
 
       - name: preupload
         run: |
+          rm -f "${{ github.workspace }}/x-tools/build-cache.tar.gz"
           rm -rf "${{ github.workspace }}/x-tools/${{ github.event.inputs.version }}"
           mkdir -p "${{ github.workspace }}/x-tools/${{ github.event.inputs.version }}"
           mv "${{ github.workspace }}/x-tools"/*.tar.gz "${{ github.workspace }}/x-tools/${{ github.event.inputs.version }}"
