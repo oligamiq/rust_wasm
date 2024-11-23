@@ -40,12 +40,6 @@ jobs:
           git branch -a
           git switch rustc_llvm_with_lld-bins-tier2-host
 
-      - name: restore cache
-        uses: actions/cache/restore@v4
-        with:
-          path: ${{ github.workspace }}/rust/build
-          key: build-dir-Linux-compile_rustc_for_wasm17
-
       - name: create release
         working-directory: "${{ github.workspace }}/rust_wasm"
         run: |
@@ -93,10 +87,6 @@ jobs:
           cd "${{ github.workspace }}/rust_wasm"
           git switch rustc_llvm_with_lld-bins
           cp rustc_opt.wasm.tar.gz "${{ github.workspace }}/x-tools/rustc_opt.wasm.tar.gz"
-
-          tar -czf "${{ github.workspace }}/x-tools/build-cache.tar.gz" "${{ github.workspace }}/rust/build"
-          cat "${{ github.workspace }}/x-tools/build-cache.tar.gz" | curl -T - https://ppng.io/build-cache.tar.gz
-          rm -f "${{ github.workspace }}/x-tools/build-cache.tar.gz"
 
       - name: upload release
         uses: ncipollo/release-action@v1
