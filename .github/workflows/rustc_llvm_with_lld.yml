@@ -451,6 +451,12 @@ jobs:
           curl -OL https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-24/wasi-sdk-24.0-arm64-macos.tar.gz
           tar -xzf wasi-sdk-24.0-arm64-macos.tar.gz
 
+      - name: restore cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ github.workspace }}/rust/build
+          key: build-dir-Linux-compile_rustc_for_wasm17
+
       - name: build dist
         working-directory: '${{ github.workspace }}/rust'
         env:
