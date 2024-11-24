@@ -177,8 +177,15 @@ jobs:
       - uses: actions/checkout@v4
         with:
           path: 'rust_wasm'
-          ref: 'gh-actions'
-          fetch-depth: 0
+          ref: 'main'
+
+      - name: switch branch
+        working-directory: '${{ github.workspace }}/rust_wasm'
+        run: |
+          git fetch origin all_features
+          git branch -a
+          git switch all_features
+          git switch -c rustc_llvm_with_lld-bins-tier2-host
 
       - name: rustbuild setup
         run: |
@@ -372,9 +379,6 @@ jobs:
       - name: upload
         working-directory: '${{ github.workspace }}/rust_wasm'
         run: |
-          git fetch origin rustc_llvm_with_lld-bins-tier2-host
-          git branch -a
-          git switch rustc_llvm_with_lld-bins-tier2-host
           rm -rf dist
           mv ../rust/dist dist
           rm -rf dist/bin
@@ -389,6 +393,7 @@ jobs:
           github_token: ${{ github.token }}
           directory: "${{ github.workspace }}/rust_wasm"
           branch: rustc_llvm_with_lld-bins-tier2-host
+          force-with-lease: true
 
   dist-macos:
     runs-on: macos-latest
@@ -473,7 +478,7 @@ jobs:
           CC: "${{ github.workspace }}/clang+llvm-15.0.7-x86_64-apple-darwin21.0/bin/clang"
           CXX: "${{ github.workspace }}/clang+llvm-15.0.7-x86_64-apple-darwin21.0/bin/clang++"
         run: |
-          ./x.py build library/std --config config.llvm.toml
+          ./x.py build library/std --config config.llvm.toml --stage 1
           ./x.py dist --config config.llvm.toml
 
       - name: Configure git to trust the workspace despite the different owner
@@ -573,7 +578,7 @@ jobs:
           RUST_CONFIGURE_ARGS: "-W warnings"
           RUSTFLAGS: "-W warnings"
         run: |
-          python ./x.py build library/std --config config.llvm.toml
+          python ./x.py build library/std --config config.llvm.toml --stage 1
           python ./x.py dist --config config.llvm.toml
 
       - name: Configure git to trust the workspace despite the different owner
