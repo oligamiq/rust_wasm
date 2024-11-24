@@ -569,8 +569,14 @@ jobs:
         run: |
           python ./x.py build library --config config.llvm.toml --stage 1
           mkdir -p dist\lib\rustlib
+          # This cmd return 1 if success
           robocopy build\x86_64-pc-windows-msvc\stage1\lib\rustlib dist\lib\rustlib /E /XD "rustc-src" "src"
-          Remove-Item -Recurse -Force -Path "dist\lib\rustlib\x86_64-pc-windows-msvc\bin"
+          if ((robocopy build\x86_64-pc-windows-msvc\stage1\lib\rustlib dist\lib\rustlib /E /XD "rustc-src" "src") -eq 1) {
+            Remove-Item -Recurse -Force -Path "dist\lib\rustlib\x86_64-pc-windows-msvc\bin"
+            exit 0
+          } else {
+            exit 1
+          }
 
       - name: Configure git to trust the workspace despite the different owner
         run:
