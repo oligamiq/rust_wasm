@@ -1,0 +1,17 @@
+file:/home/runner/work/rust_wasm/rust_wasm/rust/dist/bin/rust-gdb
+file:/home/runner/work/rust_wasm/rust_wasm/rust/dist/bin/rust-gdbgui
+file:/home/runner/work/rust_wasm/rust_wasm/rust/dist/bin/rust-lldb
+file:/home/runner/work/rust_wasm/rust_wasm/rust/dist/bin/rustc.wasm
+file:/home/runner/work/rust_wasm/rust_wasm/rust/dist/lib/rustlib/etc/gdb_load_rust_pretty_printers.py
+file:/home/runner/work/rust_wasm/rust_wasm/rust/dist/lib/rustlib/etc/gdb_lookup.py
+file:/home/runner/work/rust_wasm/rust_wasm/rust/dist/lib/rustlib/etc/gdb_providers.py
+file:/home/runner/work/rust_wasm/rust_wasm/rust/dist/lib/rustlib/etc/lldb_commands
+file:/home/runner/work/rust_wasm/rust_wasm/rust/dist/lib/rustlib/etc/lldb_lookup.py
+file:/home/runner/work/rust_wasm/rust_wasm/rust/dist/lib/rustlib/etc/lldb_providers.py
+file:/home/runner/work/rust_wasm/rust_wasm/rust/dist/lib/rustlib/etc/rust_types.py
+file:/home/runner/work/rust_wasm/rust_wasm/rust/dist/share/doc/rustc/COPYRIGHT
+file:/home/runner/work/rust_wasm/rust_wasm/rust/dist/share/doc/rustc/LICENSE-APACHE
+file:/home/runner/work/rust_wasm/rust_wasm/rust/dist/share/doc/rustc/LICENSE-MIT
+file:/home/runner/work/rust_wasm/rust_wasm/rust/dist/share/doc/rustc/README.md
+file:/home/runner/work/rust_wasm/rust_wasm/rust/dist/share/man/man1/rustc.1
+file:/home/runner/work/rust_wasm/rust_wasm/rust/dist/share/man/man1/rustdoc.1
