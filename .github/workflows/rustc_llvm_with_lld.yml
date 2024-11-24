@@ -393,7 +393,7 @@ jobs:
           github_token: ${{ github.token }}
           directory: "${{ github.workspace }}/rust_wasm"
           branch: rustc_llvm_with_lld-bins-tier2-host
-          force-with-lease: true
+          force: true
 
   dist-macos:
     runs-on: macos-latest
