@@ -431,20 +431,9 @@ jobs:
       - name: install rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
 
-      - name: install llvm
-        env:
-          LLVM_VERSION: "15.0.7"
-          MIRRORS_BASE: "https://ci-mirrors.rust-lang.org/rustc"
+      - name: set SDKROOT
         run: |
-          file="${MIRRORS_BASE}/clang%2Bllvm-${LLVM_VERSION}-x86_64-apple-darwin21.0.tar.xz"
-          curl -f "${file}" -o "clang+llvm-${LLVM_VERSION}-x86_64-apple-darwin21.0.tar.xz"
-          tar xJf "clang+llvm-${LLVM_VERSION}-x86_64-apple-darwin21.0.tar.xz"
-          bindir="$(pwd)/clang+llvm-${LLVM_VERSION}-x86_64-apple-darwin21.0/bin"
-          echo "CC=${bindir}/clang" >> $GITHUB_ENV
-          echo "CXX=${bindir}/clang++" >> $GITHUB_ENV
           echo "SDKROOT=$(xcrun --sdk macosx --show-sdk-path)" >> $GITHUB_ENV
-          echo "AR=ar" >> $GITHUB_ENV
-          echo "${bindir}" >> $GITHUB_PATH
 
       - name: install toolchain-for-building-rustc
         working-directory: '${{ github.workspace }}/rust'
@@ -454,7 +443,6 @@ jobs:
         run: |
           cargo install --git https://github.com/oligamiq/toolchain-for-building-rustc
           toolchain-for-building-rustc --tier 1 --tier 2-host --os mac --install --no-cache -f config.llvm.toml --overwrite -t wasm32-wasip1 -t wasm32-wasip1-threads
-          toolchain-for-building-rustc --tier 1 --tier 2-host --os mac -f config.llvm.toml --overwrite
           toolchain-for-building-rustc --tier all --os linux --os windows --os mac -f config.llvm.toml --only-llvm
 
       - name: install-wasi-sdk
@@ -476,12 +464,11 @@ jobs:
           WASI_SYSROOT: ${{ github.workspace }}/rust/wasi-sdk-24.0-arm64-macos/share/wasi-sysroot
           RUST_CONFIGURE_ARGS: "-W warnings"
           RUSTFLAGS: "-W warnings"
-          CC: "${{ github.workspace }}/clang+llvm-15.0.7-x86_64-apple-darwin21.0/bin/clang"
-          CXX: "${{ github.workspace }}/clang+llvm-15.0.7-x86_64-apple-darwin21.0/bin/clang++"
         run: |
           ./x.py build library --config config.llvm.toml --stage 1
-          cp -r "build/aarch64-apple-darwin/stage1/lib" dist
-          rm -rf dist/rustc-src
+          mkdir -p dist/lib/rustlib
+          rsync -av --exclude "rustc-src" --exclude "src" build/aarch64-apple-darwin/stage1/lib/rustlib/ dist/lib/rustlib/
+          rm -rf dist/lib/rustlib/aarch64-apple-darwin/bin
 
       - name: Configure git to trust the workspace despite the different owner
         run:
@@ -551,7 +538,6 @@ jobs:
         run: |
           cargo install --git https://github.com/oligamiq/toolchain-for-building-rustc
           toolchain-for-building-rustc --tier 1 --tier 2-host --os windows --install --no-cache -f config.llvm.toml --overwrite -t wasm32-wasip1 -t wasm32-wasip1-threads --exclude x86_64-pc-windows-gnu
-          toolchain-for-building-rustc --tier 1 --tier 2-host --os windows -f config.llvm.toml --overwrite --exclude x86_64-pc-windows-gnu
           toolchain-for-building-rustc --tier all --os linux --os windows --os mac -f config.llvm.toml --only-llvm
 
       - name: install-wasi-sdk
@@ -580,8 +566,10 @@ jobs:
           RUST_CONFIGURE_ARGS: "-W warnings"
           RUSTFLAGS: "-W warnings"
         run: |
-          python ./x.py build library/std --config config.llvm.toml --stage 1
-          python ./x.py dist --config config.llvm.toml
+          python ./x.py build library --config config.llvm.toml --stage 1
+          mkdir -p dist\lib\rustlib
+          robocopy build\x86_64-pc-windows-msvc\stage1\lib\rustlib dist\lib\rustlib /E /XD "rustc-src" "src"
+          Remove-Item -Recurse -Force -Path "dist\lib\rustlib\x86_64-pc-windows-msvc\bin"
 
       - name: Configure git to trust the workspace despite the different owner
         run:
