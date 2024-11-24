@@ -560,6 +560,7 @@ jobs:
 
       - name: build dist
         working-directory: '${{ github.workspace }}/rust'
+        shell: pwsh
         env:
           WASI_SDK_PATH: ${{ github.workspace }}/rust/wasi-sdk-24.0-x86_64-windows
           WASI_SYSROOT: ${{ github.workspace }}/rust/wasi-sdk-24.0-x86_64-windows/share/wasi-sysroot
@@ -576,6 +577,7 @@ jobs:
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
       - name: upload
+        shell: pwsh
         working-directory: '${{ github.workspace }}/rust_wasm'
         run: |
           git fetch origin rustc_llvm_with_lld-bins-tier2-host-windows
