@@ -143,7 +143,7 @@ jobs:
           mv ${{ github.workspace }}/rust/dist/bin/rust-gdb dist/bin/rust-gdb
           mv ${{ github.workspace }}/rust/dist/bin/rust-gdbgui dist/bin/rust-gdbgui
           mv ${{ github.workspace }}/rust/dist/bin/rust-lldb dist/bin/rust-lldb
-          mv ${{ github.workspace }}/rust/dist/lib/rustlib dist/lib/rustlib
+          mv ${{ github.workspace }}/rust/dist/* dist/
           tar -cvzf rustc_opt.wasm.tar.gz rustc_opt.wasm
           rm rustc_opt.wasm
           git add -A
