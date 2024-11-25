@@ -592,7 +592,9 @@ jobs:
               }
           }
           ls dist-cp
-          mv dist-cp\x86_64-pc-windows-msvc\stage1\* dist
+          # only first directory
+          $child = Get-ChildItem -Path "dist-cp" -Recurse -Directory | Select-Object -First 1
+          mv dist-cp\$($child.Name)\stage1\* dist
           Remove-Item -Recurse -Force -Path dist-cp
           Remove-Item -Recurse -Force -Path dist\lib\rustlib\src
           Remove-Item -Recurse -Force -Path dist\lib\rustlib\rustc-src
