@@ -568,14 +568,33 @@ jobs:
           RUSTFLAGS: "-W warnings"
         run: |
           python ./x.py build library --config config.llvm.toml --stage 1
-          mkdir -p dist\lib\rustlib
-          # This cmd return 1 if success
-          if ((robocopy build\x86_64-pc-windows-msvc\stage1\lib\rustlib dist\lib\rustlib /E /XD "rustc-src" "src") -eq 1) {
-            Remove-Item -Recurse -Force -Path "dist\lib\rustlib\x86_64-pc-windows-msvc\bin"
-            exit 0
-          } else {
-            exit 1
+          if (Test-Path -Path "dist") {
+            Remove-Item -Recurse -Force -Path dist
           }
+          if (Test-Path -Path "dist-cp") {
+            Remove-Item -Recurse -Force -Path dist-cp
+          }
+          mkdir -p dist
+          $source = "build\x86_64-pc-windows-msvc\stage1\lib\rustlib"
+          $destination = "dist-cp"
+          $excludeDirs = @("rustc-src", "src")
+
+          Get-ChildItem -Path $source -Recurse | Where-Object {
+              $excludeDirs -notcontains $_.Name
+          } | ForEach-Object {
+              $destPath = Join-Path -Path $destination -ChildPath $_.FullName.Substring($source.Length + 1)
+              if ($_.PSIsContainer) {
+                  # ディレクトリを作成
+                  New-Item -ItemType Directory -Path $destPath -Force | Out-Null
+              } else {
+                  # ファイルをコピー
+                  Copy-Item -Path $_.FullName -Destination $destPath -Force
+              }
+          }
+          mv dist-cp\_64-pc-windows-msvc\stage1\* dist
+          Remove-Item -Recurse -Force -Path dist-cp
+          Remove-Item -Recurse -Force -Path dist\lib\rustlib\src
+          Remove-Item -Recurse -Force -Path dist\lib\rustlib\rustc-src
 
       - name: Configure git to trust the workspace despite the different owner
         run:
