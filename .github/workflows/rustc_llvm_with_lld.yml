@@ -591,7 +591,8 @@ jobs:
                   Copy-Item -Path $_.FullName -Destination $destPath -Force
               }
           }
-          mv dist-cp\_64-pc-windows-msvc\stage1\* dist
+          ls dist-cp
+          mv dist-cp\x86_64-pc-windows-msvc\stage1\* dist
           Remove-Item -Recurse -Force -Path dist-cp
           Remove-Item -Recurse -Force -Path dist\lib\rustlib\src
           Remove-Item -Recurse -Force -Path dist\lib\rustlib\rustc-src
