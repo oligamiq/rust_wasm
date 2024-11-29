@@ -89,7 +89,7 @@ jobs:
           cd /tmp/config_rewriter
           cargo run --bin wasm_optimizer -- ${{ github.workspace }}/clang/dist/bin/rustc.wasm
           mv opt.wasm ${{ github.workspace }}/rust_wasm/llvm_opt.wasm
-          rm ${{ github.workspace }}/rust/dist/bin/llvm.wasm
+          rm ${{ github.workspace }}/clang/dist/bin/llvm.wasm
           cd ${{ github.workspace }}/rust_wasm
 
           # copy files
