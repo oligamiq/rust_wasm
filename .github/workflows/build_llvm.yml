@@ -40,6 +40,12 @@ jobs:
           docker-images: true
           swap-storage: false
 
+      - name: Setup swap space
+        uses: thejerrybao/setup-swap-space@v1
+        with:
+          swap-size-gb: 10
+          remove-existing-swap-files: true
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
