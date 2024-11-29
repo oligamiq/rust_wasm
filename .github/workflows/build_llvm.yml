@@ -84,7 +84,7 @@ jobs:
 
           # prepare files
           cd "${{ github.workspace }}/clang"
-          tar -cvzf dist/bin/llvm.wasm.tar.gz" dist/bin/llvm.wasm
+          tar -cvzf dist/bin/llvm.wasm.tar.gz dist/bin/llvm.wasm
 
           # optimize wasm
           cd /tmp/config_rewriter
