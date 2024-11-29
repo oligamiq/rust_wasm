@@ -57,6 +57,7 @@ jobs:
       - name: Build WASM binaries
         working-directory: "${{ github.workspace }}/clang"
         run: |
+          sed -i 's/DLLVM_TARGETS_TO_BUILD=WebAssembly/DLLVM_TARGETS_TO_BUILD=X86;AArch64;ARM;LoongArch;PowerPC;RISCV;SystemZ;NVPTX;Sparc;WebAssembly/' build.sh
           MAKEFLAGS=-j$(nproc) ./build.sh
 
       - name: Rename WASI prefix
