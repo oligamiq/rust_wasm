@@ -94,7 +94,7 @@ jobs:
 
           # optimize wasm
           cd /tmp/config_rewriter
-          cargo run --bin wasm_optimizer -- ${{ github.workspace }}/clang/dist/bin/rustc.wasm
+          cargo run --bin wasm_optimizer -- ${{ github.workspace }}/clang/dist/bin/llvm.wasm
           mv opt.wasm ${{ github.workspace }}/rust_wasm/llvm_opt.wasm
           rm ${{ github.workspace }}/clang/dist/bin/llvm.wasm
           cd ${{ github.workspace }}/rust_wasm
@@ -105,7 +105,7 @@ jobs:
           tar -cvzf llvm_opt.wasm.tar.gz llvm_opt.wasm
           rm llvm_opt.wasm
           git add -A
-          git commit -m "reset files and add new files about rustc.wasm"
+          git commit -m "reset files and add new files about llvm.wasm"
 
       - name: Push changes
         uses: ad-m/github-push-action@master
