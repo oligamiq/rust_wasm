@@ -40,6 +40,15 @@ jobs:
           docker-images: true
           swap-storage: false
 
+      - name: install wasm-opt
+        run: |
+          cd /tmp
+          curl -OL https://github.com/WebAssembly/binaryen/releases/download/version_119/binaryen-version_119-x86_64-linux.tar.gz
+          tar -xvf binaryen-version_119-x86_64-linux.tar.gz
+          sudo ln -s /tmp/binaryen-version_119/bin/wasm-opt /usr/local/bin/wasm-opt
+          echo "wasm-opt installed"
+          echo "/tmp/binaryen-version_119/bin/" >> $GITHUB_PATH
+
       - name: Setup swap space
         uses: thejerrybao/setup-swap-space@v1
         with:
@@ -95,6 +104,8 @@ jobs:
           # optimize wasm
           cd /tmp/config_rewriter
           cargo run --bin wasm_optimizer -- ${{ github.workspace }}/clang/dist/bin/llvm.wasm
+          echo "optimized wasm"
+          ls -l
           mv opt.wasm ${{ github.workspace }}/rust_wasm/llvm_opt.wasm
           rm ${{ github.workspace }}/clang/dist/bin/llvm.wasm
           cd ${{ github.workspace }}/rust_wasm
