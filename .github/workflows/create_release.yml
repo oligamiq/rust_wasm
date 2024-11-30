@@ -127,6 +127,9 @@ jobs:
           git switch rustc_llvm_with_lld-bins
           cp rustc_opt.wasm.tar.gz "${{ github.workspace }}/x-tools/rustc_opt.wasm.tar.gz"
 
+          git switch llvm-tools
+          cp llvm_opt.wasm.tar.gz "${{ github.workspace }}/x-tools/llvm_opt.wasm.tar.gz"
+
       - name: upload release
         uses: ncipollo/release-action@v1
         with:
