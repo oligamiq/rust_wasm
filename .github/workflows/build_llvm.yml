@@ -112,7 +112,8 @@ jobs:
 
           # copy files
           ls -l ${{ github.workspace }}/clang
-          mv ${{ github.workspace }}/clang/dist/lib/* dist/lib/
+          ls -l ${{ github.workspace }}/clang/dist
+          mv ${{ github.workspace }}/clang/dist/* dist/
           tar -cvzf llvm_opt.wasm.tar.gz llvm_opt.wasm
           rm llvm_opt.wasm
           git add -A
