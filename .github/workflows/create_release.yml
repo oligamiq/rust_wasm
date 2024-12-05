@@ -135,7 +135,7 @@ jobs:
 
           # bin
           cd "${{ github.workspace }}/rust_wasm"
-          git fetch origin rustc_llvm_with_lld-bins-tier2-host-bin --depth 1
+          git fetch origin rustc_llvm_with_lld-bins --depth 1
           git switch rustc_llvm_with_lld-bins
           cp rustc_opt.wasm.tar.gz "${{ github.workspace }}/x-tools/rustc_opt.wasm.tar.gz"
           mkdir unpack
