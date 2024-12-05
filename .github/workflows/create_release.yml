@@ -33,6 +33,12 @@ jobs:
           docker-images: true
           swap-storage: false
 
+      - name: install brotli
+        run: |
+          sudo apt-get update
+          sudo apt-get install brotli
+          echo "brotli installed"
+
       - name: switch branch
         working-directory: "${{ github.workspace }}/rust_wasm"
         run: |
@@ -80,6 +86,7 @@ jobs:
             cd "${target}"
             cd lib
             tar -czf "${{ github.workspace }}/x-tools/${target}.tar.gz" *
+            tar -I "brotli -q 11" -cf "${{ github.workspace }}/x-tools/${target}.tar.br" *
             cd ..
             cd ..
           done
@@ -100,6 +107,7 @@ jobs:
             cd "${target}"
             cd lib
             tar -czf "${{ github.workspace }}/x-tools/${target}.tar.gz" *
+            tar -I "brotli -q 11" -cf "${{ github.workspace }}/x-tools/${target}.tar.br" *
             cd ..
             cd ..
           done
@@ -118,6 +126,7 @@ jobs:
             cd "${target}"
             cd lib
             tar -czf "${{ github.workspace }}/x-tools/${target}.tar.gz" *
+            tar -I "brotli -q 11" -cf "${{ github.workspace }}/x-tools/${target}.tar.br" *
             cd ..
             cd ..
           done
@@ -126,12 +135,18 @@ jobs:
           cd "${{ github.workspace }}/rust_wasm"
           git switch rustc_llvm_with_lld-bins
           cp rustc_opt.wasm.tar.gz "${{ github.workspace }}/x-tools/rustc_opt.wasm.tar.gz"
+          mkdir unpack
+          cd unpack
+          tar -xzf ../rustc_opt.wasm.tar.gz
+          tar -I "brotli -q 11" -cf "${{ github.workspace }}/x-tools/rustc_opt.wasm.tar.br" *
+          cd ..
+          rm -rf unpack
 
       - name: upload release
         uses: ncipollo/release-action@v1
         with:
           artifacts: |
-            x-tools/*.tar.gz
+            x-tools/*.tar.br, x-tools/*.tar.gz
           tag: "${{ github.event.inputs.version }}-release"
           allowUpdates: true
           prerelease: true
@@ -140,6 +155,7 @@ jobs:
         run: |
           rm -rf "${{ github.workspace }}/x-tools/${{ github.event.inputs.version }}"
           mkdir -p "${{ github.workspace }}/x-tools/${{ github.event.inputs.version }}"
+          mv "${{ github.workspace }}/x-tools"/*.tar.br "${{ github.workspace }}/x-tools/${{ github.event.inputs.version }}"
           mv "${{ github.workspace }}/x-tools"/*.tar.gz "${{ github.workspace }}/x-tools/${{ github.event.inputs.version }}"
 
       - name: Deploy
