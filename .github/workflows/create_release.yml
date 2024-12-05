@@ -81,6 +81,9 @@ jobs:
             "x86_64-unknown-linux-gnu"
             "x86_64-unknown-linux-musl"
             "x86_64-unknown-netbsd"
+            "wasm32v1_none"
+            "wasm32_unknown_unknown"
+            "wasm32_unknown_emscripten"
           )
           for target in "${TARGETS[@]}"; do
             cd "${target}"
