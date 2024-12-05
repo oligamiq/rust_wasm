@@ -371,7 +371,13 @@ jobs:
           RUSTFLAGS: "-W warnings"
         run: |
           export RUST_CONFIGURE_ARGS='${{ env.RUST_CONFIGURE_ARGS }}'
-          ./x.py install --config config.llvm.toml
+          # ./x.py install --config config.llvm.toml
+          ./x.py build library --config config.llvm.toml --stage 1
+
+          # copy files
+          mkdir -p dist/lib/rustlib
+          rsync -av --exclude "rustc-src" --exclude "src" build/x86_64-unknown-linux-gnu/stage1/lib/rustlib/ dist/lib/rustlib/
+          rm -rf dist/lib/rustlib/x86_64-unknown-linux-gnu/bin
 
       - name: Configure git to trust the workspace despite the different owner
         run:
