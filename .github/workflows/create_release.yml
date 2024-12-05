@@ -142,6 +142,9 @@ jobs:
           cd ..
           rm -rf unpack
 
+          git switch llvm-tools
+          cp llvm_opt.wasm.tar.gz "${{ github.workspace }}/x-tools/llvm_opt.wasm.tar.gz"
+
       - name: upload release
         uses: ncipollo/release-action@v1
         with:
