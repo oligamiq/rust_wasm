@@ -42,7 +42,7 @@ jobs:
       - name: switch branch
         working-directory: "${{ github.workspace }}/rust_wasm"
         run: |
-          git pull
+          git fetch origin rustc_llvm_with_lld-bins-tier2-host --depth 1
           git branch -a
           git switch rustc_llvm_with_lld-bins-tier2-host
 
@@ -93,6 +93,7 @@ jobs:
 
           # windows
           cd "${{ github.workspace }}/rust_wasm"
+          git fetch origin rustc_llvm_with_lld-bins-tier2-host-windows --depth 1
           git switch rustc_llvm_with_lld-bins-tier2-host-windows
           cd dist/lib/rustlib
 
@@ -114,6 +115,7 @@ jobs:
 
           # mac
           cd "${{ github.workspace }}/rust_wasm"
+          git fetch origin rustc_llvm_with_lld-bins-tier2-host-mac --depth 1
           git switch rustc_llvm_with_lld-bins-tier2-host-mac
           cd dist/lib/rustlib
 
@@ -133,6 +135,7 @@ jobs:
 
           # bin
           cd "${{ github.workspace }}/rust_wasm"
+          git fetch origin rustc_llvm_with_lld-bins-tier2-host-bin --depth 1
           git switch rustc_llvm_with_lld-bins
           cp rustc_opt.wasm.tar.gz "${{ github.workspace }}/x-tools/rustc_opt.wasm.tar.gz"
           mkdir unpack
@@ -142,6 +145,7 @@ jobs:
           cd ..
           rm -rf unpack
 
+          git fetch origin llvm-tools --depth 1
           git switch llvm-tools
           cp llvm_opt.wasm.tar.gz "${{ github.workspace }}/x-tools/llvm_opt.wasm.tar.gz"
 
@@ -158,11 +162,23 @@ jobs:
         run: |
           rm -rf "${{ github.workspace }}/x-tools/${{ github.event.inputs.version }}"
           mkdir -p "${{ github.workspace }}/x-tools/${{ github.event.inputs.version }}"
-          mv "${{ github.workspace }}/x-tools"/*.tar.br "${{ github.workspace }}/x-tools/${{ github.event.inputs.version }}"
-          mv "${{ github.workspace }}/x-tools"/*.tar.gz "${{ github.workspace }}/x-tools/${{ github.event.inputs.version }}"
+          mv "${{ github.workspace }}/x-tools/*.tar.br" "${{ github.workspace }}/x-tools/${{ github.event.inputs.version }}"
+          mv "${{ github.workspace }}/x-tools/*.tar.gz" "${{ github.workspace }}/x-tools/${{ github.event.inputs.version }}"
 
-      - name: Deploy
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: "${{ github.token }}"
-          publish_dir: ./x-tools
+      # - name: Deploy
+      #   uses: peaceiris/actions-gh-pages@v4
+      #   with:
+      #     github_token: "${{ github.token }}"
+      #     publish_dir: ./x-tools
+
+      - name: deploy
+        run: |
+          git fetch origin gh-pages
+          git switch gh-pages
+          mkdir -p "${{ github.event.inputs.version }}"
+          mv "${{ github.workspace }}/x-tools/${{ github.event.inputs.version }}/*" "./${{ github.event.inputs.version }}/."
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add .
+          git commit -m "release ${{ github.event.inputs.version }}"
+          git push
