@@ -83,6 +83,8 @@ jobs:
 
       - name: upload bin
         working-directory: '${{ github.workspace }}/rust_wasm'
+        env:
+          GZIP: -9
         run: |
           # backup config_rewriter
           cp -r ${{ github.workspace }}/rust_wasm/config_rewriter /tmp/config_rewriter

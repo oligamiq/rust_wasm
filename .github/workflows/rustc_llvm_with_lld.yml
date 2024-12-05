@@ -44,7 +44,6 @@ jobs:
         with:
           path: 'rust_wasm'
           ref: 'gh-actions'
-          fetch-depth: 0
 
       - name: install-wasi-sdk
         working-directory: '${{ github.workspace }}/rust'
@@ -118,6 +117,8 @@ jobs:
 
       - name: upload bin
         working-directory: '${{ github.workspace }}/rust_wasm'
+        env:
+          GZIP: -9
         run: |
           # backup config_rewriter
           cp -r ${{ github.workspace }}/rust_wasm/config_rewriter /tmp/config_rewriter
