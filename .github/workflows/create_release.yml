@@ -144,19 +144,25 @@ jobs:
           mkdir unpack
           cd unpack
           tar -xzf ../rustc_opt.wasm.tar.gz
-          tar -I "brotli -q 11" -cf "${{ github.workspace }}/x-tools/rustc_opt.wasm.tar.br" *
+          brotli -q 11 -o "${{ github.workspace }}/x-tools/rustc_opt.wasm.br" rustc_opt.wasm
           cd ..
           rm -rf unpack
 
           git fetch origin llvm-tools --depth 1
           git switch llvm-tools
           cp llvm_opt.wasm.tar.gz "${{ github.workspace }}/x-tools/llvm_opt.wasm.tar.gz"
+          mkdir unpack
+          cd unpack
+          tar -xzf ../llvm_opt.wasm.tar.gz
+          brotli -q 11 -o "${{ github.workspace }}/x-tools/llvm_opt.wasm.br" llvm_opt.wasm
+          cd ..
+          rm -rf unpack
 
       - name: upload release
         uses: ncipollo/release-action@v1
         with:
           artifacts: |
-            x-tools/*.tar.br, x-tools/*.tar.gz
+            x-tools/*.tar.br, x-tools/*.tar.gz, x-tools/*.br
           tag: "${{ github.event.inputs.version }}-release"
           allowUpdates: true
           prerelease: true
@@ -167,6 +173,7 @@ jobs:
           mkdir -p "${{ github.workspace }}/x-tools/${{ github.event.inputs.version }}"
           mv "${{ github.workspace }}/x-tools/*.tar.br" "${{ github.workspace }}/x-tools/${{ github.event.inputs.version }}"
           mv "${{ github.workspace }}/x-tools/*.tar.gz" "${{ github.workspace }}/x-tools/${{ github.event.inputs.version }}"
+          mv "${{ github.workspace }}/x-tools/*.br" "${{ github.workspace }}/x-tools/${{ github.event.inputs.version }}"
 
       # - name: Deploy
       #   uses: peaceiris/actions-gh-pages@v4
