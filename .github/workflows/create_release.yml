@@ -90,6 +90,7 @@ jobs:
             cd lib
             tar -czf "${{ github.workspace }}/x-tools/${target}.tar.gz" *
             tar -I "brotli -q 11" -cf "${{ github.workspace }}/x-tools/${target}.tar.br" *
+            echo "${target} done"
             cd ..
             cd ..
           done
@@ -112,6 +113,7 @@ jobs:
             cd lib
             tar -czf "${{ github.workspace }}/x-tools/${target}.tar.gz" *
             tar -I "brotli -q 11" -cf "${{ github.workspace }}/x-tools/${target}.tar.br" *
+            echo "${target} done"
             cd ..
             cd ..
           done
@@ -132,6 +134,7 @@ jobs:
             cd lib
             tar -czf "${{ github.workspace }}/x-tools/${target}.tar.gz" *
             tar -I "brotli -q 11" -cf "${{ github.workspace }}/x-tools/${target}.tar.br" *
+            echo "${target} done"
             cd ..
             cd ..
           done
@@ -147,6 +150,7 @@ jobs:
           brotli -q 11 -o "${{ github.workspace }}/x-tools/rustc_opt.wasm.br" rustc_opt.wasm
           cd ..
           rm -rf unpack
+          echo "rustc done"
 
           git fetch origin llvm-tools --depth 1
           git switch llvm-tools
@@ -157,6 +161,7 @@ jobs:
           brotli -q 11 -o "${{ github.workspace }}/x-tools/llvm_opt.wasm.br" llvm_opt.wasm
           cd ..
           rm -rf unpack
+          echo "llvm done"
 
       - name: upload release
         uses: ncipollo/release-action@v1
