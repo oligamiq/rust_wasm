@@ -176,6 +176,7 @@ jobs:
 
       - name: preupload
         run: |
+          echo "moving files"
           rm -rf "${{ github.workspace }}/x-tools/${{ github.event.inputs.version }}"
           mkdir -p "${{ github.workspace }}/x-tools/${{ github.event.inputs.version }}"
           mv "${{ github.workspace }}/x-tools"/*.tar.gz "${{ github.workspace }}/x-tools/${{ github.event.inputs.version }}"
@@ -188,6 +189,7 @@ jobs:
       #     publish_dir: ./x-tools
 
       - name: deploy
+        working-directory: "${{ github.workspace }}/rust_wasm"
         run: |
           git fetch origin gh-pages
           git switch gh-pages
@@ -198,4 +200,10 @@ jobs:
           git config --local user.name "github-actions[bot]"
           git add .
           git commit -m "release ${{ github.event.inputs.version }}"
-          git push
+
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ github.token }}
+          directory: "${{ github.workspace }}/rust_wasm"
+          branch: gh-pages
