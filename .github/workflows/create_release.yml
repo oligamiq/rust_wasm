@@ -169,7 +169,7 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           artifacts: |
-            x-tools/*.tar.br, x-tools/*.tar.gz, x-tools/*.br
+            x-tools/*.tar.gz, x-tools/*.br
           tag: "${{ github.event.inputs.version }}-release"
           allowUpdates: true
           prerelease: true
