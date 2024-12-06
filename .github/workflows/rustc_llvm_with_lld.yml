@@ -34,6 +34,12 @@ jobs:
           ref: 'compile_rustc_for_wasm17'
           path: 'rust'
 
+      - name: checkout
+        run: |
+          cd rust
+          git fetch origin compile_rustc_for_wasm16_cargo --depth 40
+          git checkout cf327c2068549194a29160499c2ecafa9061e46e
+
       - uses: actions/checkout@v4
         with:
           path: 'rust_wasm'
