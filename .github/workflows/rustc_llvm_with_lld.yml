@@ -28,17 +28,11 @@ jobs:
       - name: copy source
         uses: actions/checkout@v4
         with:
-          repository: 'bjorn3/rust'
-          # repository: 'oligamiq/rust' # patch
+          # repository: 'bjorn3/rust'
+          repository: 'oligamiq/rust' # patch
           submodules: 'true'
           ref: 'compile_rustc_for_wasm17'
           path: 'rust'
-          fetch-depth: 2
-
-      - name: checkout to compilable branch
-        working-directory: '${{ github.workspace }}/rust'
-        run: |
-          git checkout f7a223c1c21d00cbd63b75f8836b8e64192f24b5
 
       - uses: actions/checkout@v4
         with:
