@@ -181,6 +181,8 @@ jobs:
           mkdir -p "${{ github.workspace }}/x-tools/${{ github.event.inputs.version }}"
           mv "${{ github.workspace }}/x-tools"/*.tar.gz "${{ github.workspace }}/x-tools/${{ github.event.inputs.version }}"
           mv "${{ github.workspace }}/x-tools"/*.br "${{ github.workspace }}/x-tools/${{ github.event.inputs.version }}"
+          ls -l "${{ github.workspace }}/x-tools/"
+          ls -l "${{ github.workspace }}/x-tools/${{ github.event.inputs.version }}"
 
       # - name: Deploy
       #   uses: peaceiris/actions-gh-pages@v4
