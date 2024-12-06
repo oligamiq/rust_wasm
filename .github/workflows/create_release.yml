@@ -48,6 +48,8 @@ jobs:
 
       - name: create release
         working-directory: "${{ github.workspace }}/rust_wasm"
+        env:
+          GZIP: -9
         run: |
           mkdir -p "${{ github.workspace }}/x-tools"
           cd dist/lib/rustlib
