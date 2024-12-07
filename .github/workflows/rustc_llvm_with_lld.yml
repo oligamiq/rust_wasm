@@ -373,7 +373,7 @@ jobs:
           RUSTFLAGS: "-W warnings"
         run: |
           cargo install --git https://github.com/oligamiq/toolchain-for-building-rustc
-          toolchain-for-building-rustc --tier 1 --tier 2-host --os linux -t sparcv9-sun-solaris --install --no-cache -f config.llvm.toml -t arm-unknown-linux-musleabi -t arm-unknown-linux-musleabihf -t i586-unknown-linux-gnu -t i686-unknown-linux-musl -t wasm32-wasip1 -t wasm32-wasip1-threads -t x86_64-pc-windows-gnu -t wasm32v1-none -t wasm32-unknown-unknown -t wasm32-unknown-emscripten
+          toolchain-for-building-rustc --tier 1 --tier 2-host --os linux -t sparcv9-sun-solaris --install --no-cache -f config.llvm.toml -t arm-unknown-linux-musleabi -t arm-unknown-linux-musleabihf -t i586-unknown-linux-gnu -t i686-unknown-linux-musl -t wasm32-wasip1 -t wasm32-wasip1-threads -t x86_64-pc-windows-gnu -t wasm32-unknown-unknown -t wasm32-unknown-emscripten
           toolchain-for-building-rustc --tier all --os linux --os windows --os mac -f config.llvm.toml --only-llvm
 
       - name: build dist
