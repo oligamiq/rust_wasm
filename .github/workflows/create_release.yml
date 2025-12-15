@@ -1,0 +1,212 @@
+name: create release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'version of the toolchain to build'
+        required: true
+        default: 'v0.2.0'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: rust_wasm
+
+      - name: free space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: true
+
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: false
+
+      - name: install brotli
+        run: |
+          sudo apt-get update
+          sudo apt-get install brotli
+          echo "brotli installed time: $(date)"
+
+      - name: switch branch
+        working-directory: "${{ github.workspace }}/rust_wasm"
+        run: |
+          git fetch origin rustc_llvm_with_lld-bins-tier2-host --depth 1
+          git branch -a
+          git switch rustc_llvm_with_lld-bins-tier2-host
+
+      - name: create release
+        working-directory: "${{ github.workspace }}/rust_wasm"
+        env:
+          GZIP: -9
+        run: |
+          mkdir -p "${{ github.workspace }}/x-tools"
+          cd dist/lib/rustlib
+
+          # targets
+          TARGETS=(
+            "aarch64-unknown-linux-gnu"
+            "aarch64-unknown-linux-musl"
+            "arm-unknown-linux-gnueabi"
+            "arm-unknown-linux-gnueabihf"
+            "arm-unknown-linux-musleabi"
+            "arm-unknown-linux-musleabihf"
+            "armv7-unknown-linux-gnueabihf"
+            "i586-unknown-linux-gnu"
+            "i686-unknown-linux-gnu"
+            "i686-unknown-linux-musl"
+            "loongarch64-unknown-linux-gnu"
+            "loongarch64-unknown-linux-musl"
+            "powerpc-unknown-linux-gnu"
+            "powerpc64-unknown-linux-gnu"
+            "powerpc64le-unknown-linux-gnu"
+            "riscv64gc-unknown-linux-gnu"
+            "riscv64gc-unknown-linux-musl"
+            "s390x-unknown-linux-gnu"
+            "sparcv9-sun-solaris"
+            "wasm32-unknown-emscripten"
+            "wasm32-unknown-unknown"
+            "wasm32-wasip1-threads"
+            "wasm32-wasip1"
+            "wasm32-wasip2"
+            "x86_64-pc-windows-gnu"
+            "x86_64-unknown-freebsd"
+            "x86_64-unknown-illumos"
+            "x86_64-unknown-linux-gnu"
+            "x86_64-unknown-linux-musl"
+            "x86_64-unknown-netbsd"
+            # "wasm32v1-none" This target is latest and not available in the current build
+          )
+          for target in "${TARGETS[@]}"; do
+            cd "${target}"
+            cd lib
+            tar -czf "${{ github.workspace }}/x-tools/${target}.tar.gz" *
+            tar -I "brotli -q 11" -cf "${{ github.workspace }}/x-tools/${target}.tar.br" *
+            echo "${target} done time: $(date)"
+            cd ..
+            cd ..
+          done
+
+          # windows
+          cd "${{ github.workspace }}/rust_wasm"
+          git fetch origin rustc_llvm_with_lld-bins-tier2-host-windows --depth 1
+          git switch rustc_llvm_with_lld-bins-tier2-host-windows
+          cd dist/lib/rustlib
+
+          # targets
+          TARGETS=(
+            "aarch64-pc-windows-msvc"
+            "i686-pc-windows-gnu"
+            "i686-pc-windows-msvc"
+            "x86_64-pc-windows-msvc"
+          )
+          for target in "${TARGETS[@]}"; do
+            cd "${target}"
+            cd lib
+            tar -czf "${{ github.workspace }}/x-tools/${target}.tar.gz" *
+            tar -I "brotli -q 11" -cf "${{ github.workspace }}/x-tools/${target}.tar.br" *
+            echo "${target} done time: $(date)"
+            cd ..
+            cd ..
+          done
+
+          # mac
+          cd "${{ github.workspace }}/rust_wasm"
+          git fetch origin rustc_llvm_with_lld-bins-tier2-host-mac --depth 1
+          git switch rustc_llvm_with_lld-bins-tier2-host-mac
+          cd dist/lib/rustlib
+
+          # targets
+          TARGETS=(
+            "aarch64-apple-darwin"
+            "x86_64-apple-darwin"
+          )
+          for target in "${TARGETS[@]}"; do
+            cd "${target}"
+            cd lib
+            tar -czf "${{ github.workspace }}/x-tools/${target}.tar.gz" *
+            tar -I "brotli -q 11" -cf "${{ github.workspace }}/x-tools/${target}.tar.br" *
+            echo "${target} done time: $(date)"
+            cd ..
+            cd ..
+          done
+
+          # bin
+          cd "${{ github.workspace }}/rust_wasm"
+          git fetch origin rustc_llvm_with_lld-bins --depth 1
+          git switch rustc_llvm_with_lld-bins
+          cp rustc_opt.wasm.tar.gz "${{ github.workspace }}/x-tools/rustc_opt.wasm.tar.gz"
+          mkdir unpack
+          cd unpack
+          tar -xzf ../rustc_opt.wasm.tar.gz
+          brotli -q 11 -o "${{ github.workspace }}/x-tools/rustc_opt.wasm.br" rustc_opt.wasm
+          cd ..
+          rm -rf unpack
+          echo "rustc done time: $(date)"
+
+          git fetch origin llvm-tools --depth 1
+          git switch llvm-tools
+          cp llvm_opt.wasm.tar.gz "${{ github.workspace }}/x-tools/llvm_opt.wasm.tar.gz"
+          mkdir unpack
+          cd unpack
+          tar -xzf ../llvm_opt.wasm.tar.gz
+          brotli -q 11 -o "${{ github.workspace }}/x-tools/llvm_opt.wasm.br" llvm_opt.wasm
+          cd ..
+          rm -rf unpack
+          echo "llvm done time: $(date)"
+
+      - name: upload release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: |
+            x-tools/*.tar.gz, x-tools/*.br
+          tag: "${{ github.event.inputs.version }}-release"
+          allowUpdates: true
+          prerelease: true
+
+      - name: preupload
+        run: |
+          echo "moving files"
+          rm -rf "${{ github.workspace }}/x-tools/${{ github.event.inputs.version }}"
+          mkdir -p "${{ github.workspace }}/x-tools/${{ github.event.inputs.version }}"
+          mv "${{ github.workspace }}/x-tools"/*.tar.gz "${{ github.workspace }}/x-tools/${{ github.event.inputs.version }}"
+          mv "${{ github.workspace }}/x-tools"/*.br "${{ github.workspace }}/x-tools/${{ github.event.inputs.version }}"
+          ls -l "${{ github.workspace }}/x-tools/"
+          ls -l "${{ github.workspace }}/x-tools/${{ github.event.inputs.version }}"
+
+      # - name: Deploy
+      #   uses: peaceiris/actions-gh-pages@v4
+      #   with:
+      #     github_token: "${{ github.token }}"
+      #     publish_dir: ./x-tools
+
+      - name: deploy
+        working-directory: "${{ github.workspace }}/rust_wasm"
+        run: |
+          git fetch origin gh-pages
+          git switch gh-pages
+          rm -rf "${{ github.event.inputs.version }}"
+          mkdir "${{ github.event.inputs.version }}"
+          mv "${{ github.workspace }}/x-tools/${{ github.event.inputs.version }}"/* "./${{ github.event.inputs.version }}/."
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add .
+          git commit -m "release ${{ github.event.inputs.version }}"
+
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ github.token }}
+          directory: "${{ github.workspace }}/rust_wasm"
+          branch: gh-pages
