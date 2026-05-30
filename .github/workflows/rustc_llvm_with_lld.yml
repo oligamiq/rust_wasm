@@ -161,11 +161,16 @@ jobs:
           cp dist/bin/rust-lldb ${{ github.workspace }}/rust_wasm/bin-artifacts/dist/bin/
           cp -r dist/lib/* ${{ github.workspace }}/rust_wasm/bin-artifacts/dist/lib/
 
+          # Archive into a single file
+          cd ${{ github.workspace }}/rust_wasm
+          tar -cf rustc-bins.tar -C bin-artifacts .
+          rm -rf bin-artifacts
+
       - name: upload bin artifacts
         uses: actions/upload-artifact@v4
         with:
           name: rustc-bins
-          path: rust_wasm/bin-artifacts/
+          path: rust_wasm/rustc-bins.tar
 
   dist-linux:
     # strategy:
@@ -413,12 +418,15 @@ jobs:
           mkdir -p dist-artifacts
           mv ../rust/dist dist-artifacts/dist
           rm -rf dist-artifacts/dist/bin
+          # Archive into a single file to avoid API limits (800k+ files is too many)
+          tar -cf dist-linux.tar -C dist-artifacts .
+          rm -rf dist-artifacts
 
       - name: upload dist artifacts
         uses: actions/upload-artifact@v4
         with:
           name: dist-linux
-          path: rust_wasm/dist-artifacts/
+          path: rust_wasm/dist-linux.tar
 
   dist-macos:
     runs-on: macos-latest
@@ -530,12 +538,15 @@ jobs:
           mkdir -p dist-artifacts
           mv ../rust/dist dist-artifacts/dist
           rm -rf dist-artifacts/dist/bin
+          # Archive into a single file
+          tar -cf dist-macos.tar -C dist-artifacts .
+          rm -rf dist-artifacts
 
       - name: upload dist artifacts
         uses: actions/upload-artifact@v4
         with:
           name: dist-macos
-          path: rust_wasm/dist-artifacts/
+          path: rust_wasm/dist-macos.tar
 
   dist-windows:
     runs-on: windows-latest
@@ -656,24 +667,18 @@ jobs:
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
       - name: prepare dist artifacts
-        shell: pwsh
+        shell: bash
         working-directory: '${{ github.workspace }}/rust_wasm'
         run: |
-          if (Test-Path -Path "dist-artifacts") {
-              Remove-Item -Recurse -Force -Path "dist-artifacts"
-          }
-          New-Item -ItemType Directory -Path "dist-artifacts" -Force | Out-Null
-          
-          if (Test-Path -Path "..\rust\dist") {
-              Move-Item -Path "..\rust\dist" -Destination "dist-artifacts\dist"
-          }
-
-          if (Test-Path -Path "dist-artifacts\dist\bin") {
-              Remove-Item -Recurse -Force -Path "dist-artifacts\dist\bin"
-          }
+          mkdir -p dist-artifacts
+          mv ../rust/dist dist-artifacts/dist
+          rm -rf dist-artifacts/dist/bin
+          # Archive into a single file (tar is available in Git Bash on Windows)
+          tar -cf dist-windows.tar -C dist-artifacts .
+          rm -rf dist-artifacts
 
       - name: upload dist artifacts
         uses: actions/upload-artifact@v4
         with:
           name: dist-windows
-          path: rust_wasm/dist-artifacts/
+          path: rust_wasm/dist-windows.tar

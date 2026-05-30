@@ -49,6 +49,16 @@ jobs:
           gh run download --name dist-linux --workflow rustc_llvm_with_lld.yml --limit 1 --dir artifacts/dist-linux || echo "dist-linux not found"
           gh run download --name dist-macos --workflow rustc_llvm_with_lld.yml --limit 1 --dir artifacts/dist-macos || echo "dist-macos not found"
           gh run download --name dist-windows --workflow rustc_llvm_with_lld.yml --limit 1 --dir artifacts/dist-windows || echo "dist-windows not found"
+          
+          # Extract tar artifacts
+          for f in artifacts/*/llvm-bins.tar artifacts/*/rustc-bins.tar artifacts/dist-*/dist-*.tar; do
+            if [ -f "$f" ]; then
+              dir=$(dirname "$f")
+              tar -xf "$f" -C "$dir"
+              rm "$f"
+            fi
+          done
+          
           ls -R artifacts
 
       - name: create release assets

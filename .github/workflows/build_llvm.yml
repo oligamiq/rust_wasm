@@ -119,8 +119,13 @@ jobs:
           # remove the raw wasm from dist to avoid duplication (it's already in llvm_raw.wasm.tar.gz)
           rm -f ${{ github.workspace }}/rust_wasm/llvm-artifacts/$WASM_FILE
 
+          # Archive into a single file
+          cd ${{ github.workspace }}/rust_wasm
+          tar -cf llvm-bins.tar -C llvm-artifacts .
+          rm -rf llvm-artifacts
+
       - name: upload llvm artifacts
         uses: actions/upload-artifact@v4
         with:
           name: llvm-bins
-          path: rust_wasm/llvm-artifacts/
+          path: rust_wasm/llvm-bins.tar
