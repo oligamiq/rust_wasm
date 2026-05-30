@@ -91,6 +91,10 @@ jobs:
           # Convert workspace path to forward slashes for TOML compatibility
           WS_FORWARD=$(echo "${{ github.workspace }}" | tr '\\' '/')
           
+          # Global fix: replace ALL backslashes with forward slashes in the config file to avoid TOML escape character errors
+          sed 's|\\|/|g' config.llvm.toml > config.llvm.toml.tmp
+          mv config.llvm.toml.tmp config.llvm.toml
+
           echo "=== config.llvm.toml before patching ==="
           grep wasi config.llvm.toml || true
           # Aggressively patch config to use absolute path and standardized folder name
@@ -382,6 +386,10 @@ jobs:
           # Convert workspace path to forward slashes for TOML compatibility
           WS_FORWARD=$(echo "${{ github.workspace }}" | tr '\\' '/')
           
+          # Global fix: replace ALL backslashes with forward slashes in the config file to avoid TOML escape character errors
+          sed 's|\\|/|g' config.llvm.toml > config.llvm.toml.tmp
+          mv config.llvm.toml.tmp config.llvm.toml
+
           echo "=== config.llvm.toml before patching ==="
           grep wasi config.llvm.toml || true
           # Aggressively patch config to use absolute path and standardized folder name
@@ -500,6 +508,10 @@ jobs:
           # Convert workspace path to forward slashes for TOML compatibility
           WS_FORWARD=$(echo "${{ github.workspace }}" | tr '\\' '/')
           
+          # Global fix: replace ALL backslashes with forward slashes in the config file to avoid TOML escape character errors
+          sed 's|\\|/|g' config.llvm.toml > config.llvm.toml.tmp
+          mv config.llvm.toml.tmp config.llvm.toml
+
           echo "=== config.llvm.toml before patching ==="
           grep wasi config.llvm.toml || true
           # Aggressively patch config to use absolute path and standardized folder name
@@ -616,6 +628,10 @@ jobs:
           # Convert workspace path to forward slashes for TOML compatibility
           WS_FORWARD=$(echo "${{ github.workspace }}" | tr '\\' '/')
           
+          # Global fix: replace ALL backslashes with forward slashes in the config file to avoid TOML escape character errors
+          sed 's|\\|/|g' config.llvm.toml > config.llvm.toml.tmp
+          mv config.llvm.toml.tmp config.llvm.toml
+
           echo "=== config.llvm.toml before patching ==="
           grep wasi config.llvm.toml || true
           # Aggressively patch config to use absolute path and standardized folder name
