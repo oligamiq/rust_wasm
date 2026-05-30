@@ -131,3 +131,4 @@ jobs:
         with:
           name: llvm-bins
           path: ${{ github.workspace }}/rust_wasm/llvm-bins.tar
+          if-no-files-found: error
