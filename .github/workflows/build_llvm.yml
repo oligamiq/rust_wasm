@@ -88,13 +88,16 @@ jobs:
           
           # Diagnostic: list files to find the correct binary name
           echo "=== Files in clang/dist ==="
-          ls -R "${{ github.workspace }}/clang/dist"
-
+          ls -R "${{ github.workspace }}/clang/dist" || true
+          
           # prepare files from clang build
           cd "${{ github.workspace }}/clang"
           
-          # Use a more flexible search for the wasm file (it might be clang.wasm or llvm.wasm)
-          WASM_FILE=$(find dist -name "*.wasm" | head -n 1)
+          echo "=== Searching for .wasm files ==="
+          find . -name "*.wasm"
+          
+          # Use a flexible search for the wasm file across the entire checkout
+          WASM_FILE=$(find . -name "*.wasm" | grep -v "test" | head -n 1)
           if [ -n "$WASM_FILE" ]; then
             echo "Found WASM file: $WASM_FILE"
             tar -I "gzip -9" -cvf ${{ github.workspace }}/rust_wasm/llvm-artifacts/dist/llvm_raw.wasm.tar.gz "$WASM_FILE"
