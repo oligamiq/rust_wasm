@@ -94,10 +94,11 @@ jobs:
           echo "=== config.llvm.toml before patching ==="
           grep wasi config.llvm.toml || true
           # Aggressively patch config to use absolute path and standardized folder name
-          sed -i.bak "s|wasi-root = .*|wasi-root = \"${WS_FORWARD}/rust/wasi-sdk/share/wasi-sysroot\"|g" config.llvm.toml
+          sed "s|wasi-root = .*|wasi-root = \"${WS_FORWARD}/rust/wasi-sdk/share/wasi-sysroot\"|g" config.llvm.toml > config.llvm.toml.tmp
+          mv config.llvm.toml.tmp config.llvm.toml
           # Fallback for any other occurrences
-          sed -i.bak "s|wasi-sdk-24\.0-[^/\"]*|${WS_FORWARD}/rust/wasi-sdk|g" config.llvm.toml
-          rm -f config.llvm.toml.bak
+          sed "s|wasi-sdk-24\.0-[^/\"]*|${WS_FORWARD}/rust/wasi-sdk|g" config.llvm.toml > config.llvm.toml.tmp
+          mv config.llvm.toml.tmp config.llvm.toml
           echo "=== config.llvm.toml after patching ==="
           grep wasi config.llvm.toml || true
 
@@ -381,10 +382,11 @@ jobs:
           echo "=== config.llvm.toml before patching ==="
           grep wasi config.llvm.toml || true
           # Aggressively patch config to use absolute path and standardized folder name
-          sed -i.bak "s|wasi-root = .*|wasi-root = \"${WS_FORWARD}/rust/wasi-sdk/share/wasi-sysroot\"|g" config.llvm.toml
+          sed "s|wasi-root = .*|wasi-root = \"${WS_FORWARD}/rust/wasi-sdk/share/wasi-sysroot\"|g" config.llvm.toml > config.llvm.toml.tmp
+          mv config.llvm.toml.tmp config.llvm.toml
           # Fallback for any other occurrences
-          sed -i.bak "s|wasi-sdk-24\.0-[^/\"]*|${WS_FORWARD}/rust/wasi-sdk|g" config.llvm.toml
-          rm -f config.llvm.toml.bak
+          sed "s|wasi-sdk-24\.0-[^/\"]*|${WS_FORWARD}/rust/wasi-sdk|g" config.llvm.toml > config.llvm.toml.tmp
+          mv config.llvm.toml.tmp config.llvm.toml
           echo "=== config.llvm.toml after patching ==="
           grep wasi config.llvm.toml || true
 
@@ -495,10 +497,11 @@ jobs:
           echo "=== config.llvm.toml before patching ==="
           grep wasi config.llvm.toml || true
           # Aggressively patch config to use absolute path and standardized folder name
-          sed -i.bak "s|wasi-root = .*|wasi-root = \"${WS_FORWARD}/rust/wasi-sdk/share/wasi-sysroot\"|g" config.llvm.toml
+          sed "s|wasi-root = .*|wasi-root = \"${WS_FORWARD}/rust/wasi-sdk/share/wasi-sysroot\"|g" config.llvm.toml > config.llvm.toml.tmp
+          mv config.llvm.toml.tmp config.llvm.toml
           # Fallback for any other occurrences
-          sed -i.bak "s|wasi-sdk-24\.0-[^/\"]*|${WS_FORWARD}/rust/wasi-sdk|g" config.llvm.toml
-          rm -f config.llvm.toml.bak
+          sed "s|wasi-sdk-24\.0-[^/\"]*|${WS_FORWARD}/rust/wasi-sdk|g" config.llvm.toml > config.llvm.toml.tmp
+          mv config.llvm.toml.tmp config.llvm.toml
           echo "=== config.llvm.toml after patching ==="
           grep wasi config.llvm.toml || true
 
@@ -607,10 +610,11 @@ jobs:
           echo "=== config.llvm.toml before patching ==="
           grep wasi config.llvm.toml || true
           # Aggressively patch config to use absolute path and standardized folder name
-          sed -i.bak "s|wasi-root = .*|wasi-root = \"${WS_FORWARD}/rust/wasi-sdk/share/wasi-sysroot\"|g" config.llvm.toml
+          sed "s|wasi-root = .*|wasi-root = \"${WS_FORWARD}/rust/wasi-sdk/share/wasi-sysroot\"|g" config.llvm.toml > config.llvm.toml.tmp
+          mv config.llvm.toml.tmp config.llvm.toml
           # Fallback for any other occurrences
-          sed -i.bak "s|wasi-sdk-24\.0-[^/\"]*|${WS_FORWARD}/rust/wasi-sdk|g" config.llvm.toml
-          rm -f config.llvm.toml.bak
+          sed "s|wasi-sdk-24\.0-[^/\"]*|${WS_FORWARD}/rust/wasi-sdk|g" config.llvm.toml > config.llvm.toml.tmp
+          mv config.llvm.toml.tmp config.llvm.toml
           echo "=== config.llvm.toml after patching ==="
           grep wasi config.llvm.toml || true
 
