@@ -121,11 +121,13 @@ jobs:
 
           # Archive into a single file
           cd ${{ github.workspace }}/rust_wasm
-          tar -cf llvm-bins.tar -C llvm-artifacts .
+          tar -cf ${{ github.workspace }}/rust_wasm/llvm-bins.tar -C llvm-artifacts .
+          echo "=== Artifact status ==="
+          ls -lh ${{ github.workspace }}/rust_wasm/llvm-bins.tar
           rm -rf llvm-artifacts
 
       - name: upload llvm artifacts
         uses: actions/upload-artifact@v4
         with:
           name: llvm-bins
-          path: rust_wasm/llvm-bins.tar
+          path: ${{ github.workspace }}/rust_wasm/llvm-bins.tar

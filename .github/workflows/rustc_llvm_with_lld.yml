@@ -167,14 +167,16 @@ jobs:
 
           # Archive into a single file
           cd ${{ github.workspace }}/rust_wasm
-          tar -cf rustc-bins.tar -C bin-artifacts .
+          tar -cf ${{ github.workspace }}/rust_wasm/rustc-bins.tar -C bin-artifacts .
+          echo "=== Artifact status ==="
+          ls -lh ${{ github.workspace }}/rust_wasm/rustc-bins.tar
           rm -rf bin-artifacts
 
       - name: upload bin artifacts
         uses: actions/upload-artifact@v4
         with:
           name: rustc-bins
-          path: rust_wasm/rustc-bins.tar
+          path: ${{ github.workspace }}/rust_wasm/rustc-bins.tar
 
   dist-linux:
     # strategy:
@@ -427,14 +429,17 @@ jobs:
           mv ../rust/dist dist-artifacts/dist
           rm -rf dist-artifacts/dist/bin
           # Archive into a single file to avoid API limits (800k+ files is too many)
-          tar -cf dist-linux.tar -C dist-artifacts .
+          tar -cf ${{ github.workspace }}/rust_wasm/dist-linux.tar -C dist-artifacts .
+          echo "=== Artifact status ==="
+          ls -lh ${{ github.workspace }}/rust_wasm/dist-linux.tar
+          du -sh dist-artifacts
           rm -rf dist-artifacts
 
       - name: upload dist artifacts
         uses: actions/upload-artifact@v4
         with:
           name: dist-linux
-          path: rust_wasm/dist-linux.tar
+          path: ${{ github.workspace }}/rust_wasm/dist-linux.tar
 
   dist-macos:
     runs-on: macos-latest
@@ -551,14 +556,17 @@ jobs:
           mv ../rust/dist dist-artifacts/dist
           rm -rf dist-artifacts/dist/bin
           # Archive into a single file
-          tar -cf dist-macos.tar -C dist-artifacts .
+          tar -cf ${{ github.workspace }}/rust_wasm/dist-macos.tar -C dist-artifacts .
+          echo "=== Artifact status ==="
+          ls -lh ${{ github.workspace }}/rust_wasm/dist-macos.tar
+          du -sh dist-artifacts
           rm -rf dist-artifacts
 
       - name: upload dist artifacts
         uses: actions/upload-artifact@v4
         with:
           name: dist-macos
-          path: rust_wasm/dist-macos.tar
+          path: ${{ github.workspace }}/rust_wasm/dist-macos.tar
 
   dist-windows:
     runs-on: windows-latest
@@ -690,11 +698,13 @@ jobs:
           mv ../rust/dist dist-artifacts/dist
           rm -rf dist-artifacts/dist/bin
           # Archive into a single file (tar is available in Git Bash on Windows)
-          tar -cf dist-windows.tar -C dist-artifacts .
+          tar -cf ${{ github.workspace }}/rust_wasm/dist-windows.tar -C dist-artifacts .
+          echo "=== Artifact status ==="
+          ls -lh ${{ github.workspace }}/rust_wasm/dist-windows.tar
           rm -rf dist-artifacts
 
       - name: upload dist artifacts
         uses: actions/upload-artifact@v4
         with:
           name: dist-windows
-          path: rust_wasm/dist-windows.tar
+          path: ${{ github.workspace }}/rust_wasm/dist-windows.tar
