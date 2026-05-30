@@ -416,7 +416,7 @@ jobs:
 
           # copy files
           mkdir -p dist/lib/rustlib
-          rsync -av build/x86_64-unknown-linux-gnu/stage1/lib/rustlib/ dist/lib/rustlib/
+          rsync -av --exclude="rustc-src" build/x86_64-unknown-linux-gnu/stage1/lib/rustlib/ dist/lib/rustlib/
           rm -rf dist/lib/rustlib/x86_64-unknown-linux-gnu/bin
 
       - name: Configure git to trust the workspace despite the different owner
@@ -544,7 +544,7 @@ jobs:
         run: |
           ./x.py build library --config config.llvm.toml --stage 1
           mkdir -p dist/lib/rustlib
-          rsync -av build/aarch64-apple-darwin/stage1/lib/rustlib/ dist/lib/rustlib/
+          rsync -av --exclude="rustc-src" build/aarch64-apple-darwin/stage1/lib/rustlib/ dist/lib/rustlib/
           rm -rf dist/lib/rustlib/aarch64-apple-darwin/bin
 
       - name: Configure git to trust the workspace despite the different owner
@@ -686,7 +686,7 @@ jobs:
           
           $source = "${{ github.workspace }}\rust\build\x86_64-pc-windows-msvc\stage1\lib\rustlib"
           if (Test-Path -Path $source) {
-              Copy-Item -Path "$source\*" -Destination "dist\lib\rustlib" -Recurse -Force
+              Get-ChildItem -Path $source | Where-Object { $_.Name -ne 'rustc-src' } | Copy-Item -Destination "dist\lib\rustlib" -Recurse -Force
           } else {
               Write-Error "Source path $source does not exist!"
               exit 1
