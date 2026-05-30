@@ -570,13 +570,6 @@ jobs:
           name: dist-macos
           path: ${{ github.workspace }}/rust_wasm/dist-macos.tar
           if-no-files-found: error
-...
-      - name: upload dist artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: dist-windows
-          path: ${{ github.workspace }}/rust_wasm/dist-windows.tar
-          if-no-files-found: error
 
   dist-windows:
     runs-on: windows-latest
