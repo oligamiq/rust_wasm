@@ -684,7 +684,7 @@ jobs:
           }
           New-Item -ItemType Directory -Path "dist\lib\rustlib" -Force | Out-Null
           
-          $source = Join-Path -Path "${{ github.workspace }}\rust\build\x86_64-pc-windows-msvc\stage1\lib\rustlib"
+          $source = "${{ github.workspace }}\rust\build\x86_64-pc-windows-msvc\stage1\lib\rustlib"
           if (Test-Path -Path $source) {
               Copy-Item -Path "$source\*" -Destination "dist\lib\rustlib" -Recurse -Force
           } else {
