@@ -4,34 +4,44 @@ Storage of rust compiler made of wasm
 ## Overview
 This project builds and distributes the Rust compiler and LLVM tools compiled to WebAssembly.
 
-## Release Process
-The release process has been modernized to avoid repository bloat by using GitHub Actions Artifacts and GitHub Releases instead of Git branches for binary storage.
+---
 
-### 1. Build Artifacts
-Run the following workflows via `workflow_dispatch` (Actions tab) to generate the necessary build artifacts:
-- **Build LLVM**: Builds LLVM/Clang tools.
-- **rustc_llvm_with_lld**: Builds the Rust compiler (runs `install`, `dist-linux`, `dist-macos`, and `dist-windows` jobs).
+## 🚀 リリース手順 (New Release Process)
 
-Build outputs are temporarily stored as Actions Artifacts.
+Gitのリポジトリ肥大化を防ぐため、バイナリをGitにコミットせず、**GitHub Actions Artifacts** と **GitHub Releases** を活用する仕組みに移行しました。
 
-### 2. Create a Release
-Once the build workflows have completed successfully:
-1. Go to the **Actions** tab.
-2. Select the **create release** workflow.
-3. Click **Run workflow**, providing the version tag (e.g., `v0.2.0`).
-4. The workflow will:
-   - Download the latest artifacts from the build workflows.
-   - Package them into `.tar.gz` and `.br` archives.
-   - Upload them directly to a new GitHub Release.
+### ステップ 1: ビルドの実行 (Build Artifacts)
+GitHub Actionsの画面（または `gh` CLI）から以下のワークフローを実行して、バイナリを生成します。
 
-## Repository Cleanup (Legacy)
-The following branches were previously used to store binary artifacts and are now deprecated. Once the new release process is verified, they can be safely removed to reclaim space:
+1.  **Build LLVM**: LLVM/ClangツールのWASM版をビルドします。
+2.  **rustc_llvm_with_lld**: Rustコンパイラ本体をビルドします。
+    - `job` 入力で `install`, `dist-linux`, `dist-macos`, `dist-windows` をそれぞれ実行してください。
+
+**確認事項**: 各ジョブの完了後、実行詳細画面の下部「Artifacts」セクションに成果物がアップロードされていることを確認してください。
+
+### ステップ 2: リリースの作成 (Create Release)
+すべてのビルド（LLVMおよび各OSのRust）が成功したら、リリースを作成します。
+
+1.  **create release** ワークフローを実行します。
+2.  `version` 入力にタグ名（例: `v0.2.0`）を指定して実行します。
+3.  **自動処理内容**:
+    - 直近のビルドから最新のArtifactsを自動ダウンロード。
+    - 配布用パッケージ（`.tar.gz`, `.br`）の作成。
+    - **GitHub Releases** ページへの直接アップロード。
+
+---
+
+## 🧹 レポジトリのクリーンアップ (Legacy Cleanup)
+以前の仕組みで使用していた以下のバイナリ保存用ブランチは非推奨となりました。新しいリリース方式で正常に配布できることが確認でき次第、これらを削除してリポジトリを軽量化してください。
+
 - `rustc_llvm_with_lld-bins`
 - `rustc_llvm_with_lld-bins-tier2-host`
 - `rustc_llvm_with_lld-bins-tier2-host-windows`
 - `rustc_llvm_with_lld-bins-tier2-host-mac`
 - `llvm-tools`
-- `gh-pages` (if only used for binaries)
+- `gh-pages` (バイナリ配布のみに使用していた場合)
+
+---
 
 ## Dependencies
 - [toolchain-for-building-rustc](https://github.com/oligamiq/toolchain-for-building-rustc): Prebuilt toolchain for building rustc.
