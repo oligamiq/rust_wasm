@@ -572,31 +572,15 @@ jobs:
           if (Test-Path -Path "dist") {
             Remove-Item -Recurse -Force -Path dist
           }
-          if (Test-Path -Path "dist-cp") {
-            Remove-Item -Recurse -Force -Path dist-cp
-          }
-          mkdir -p dist
+          New-Item -ItemType Directory -Path "dist\lib\rustlib" -Force | Out-Null
+          
           $source = "build\x86_64-pc-windows-msvc\stage1\lib\rustlib"
-          $destination = "dist-cp"
-          # $excludeDirs = @("rustc-src", "src") # Removed exclusion
-
-          Get-ChildItem -Path $source -Recurse | ForEach-Object {
-              $destPath = Join-Path -Path $destination -ChildPath $_.FullName.Substring($source.Length + 1)
-              if ($_.PSIsContainer) {
-                  # ディレクトリを作成
-                  New-Item -ItemType Directory -Path $destPath -Force | Out-Null
-              } else {
-                  # ファイルをコピー
-                  Copy-Item -Path $_.FullName -Destination $destPath -Force
-              }
+          Copy-Item -Path "$source\*" -Destination "dist\lib\rustlib" -Recurse -Force
+          
+          # Cleanup target-specific bin (consistent with Linux/Mac)
+          if (Test-Path -Path "dist\lib\rustlib\x86_64-pc-windows-msvc\bin") {
+              Remove-Item -Recurse -Force -Path "dist\lib\rustlib\x86_64-pc-windows-msvc\bin"
           }
-          ls dist-cp
-          # only first directory
-          $child = Get-ChildItem -Path "dist-cp" -Recurse -Directory | Select-Object -First 1
-          mv dist-cp\$($child.Name)\stage1\* dist
-          Remove-Item -Recurse -Force -Path dist-cp
-          Remove-Item -Recurse -Force -Path dist\lib\rustlib\src
-          Remove-Item -Recurse -Force -Path dist\lib\rustlib\rustc-src
 
       - name: Configure git to trust the workspace despite the different owner
         run:
