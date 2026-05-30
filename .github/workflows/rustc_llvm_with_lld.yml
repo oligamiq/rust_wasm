@@ -673,17 +673,27 @@ jobs:
           RUSTFLAGS: "-W warnings"
         run: |
           python ./x.py build library --config config.llvm.toml --stage 1
+          
+          echo "=== Debug: Build directory structure ==="
+          Get-ChildItem -Path "build" -Recurse | Select-Object -First 50
+          
           if (Test-Path -Path "dist") {
             Remove-Item -Recurse -Force -Path dist
           }
           New-Item -ItemType Directory -Path "dist\lib\rustlib" -Force | Out-Null
           
-          $source = "build\x86_64-pc-windows-msvc\stage1\lib\rustlib"
-          Copy-Item -Path "$source\*" -Destination "dist\lib\rustlib" -Recurse -Force
+          $source = Join-Path -Path "${{ github.workspace }}\rust\build\x86_64-pc-windows-msvc\stage1\lib\rustlib"
+          if (Test-Path -Path $source) {
+              Copy-Item -Path "$source\*" -Destination "dist\lib\rustlib" -Recurse -Force
+          } else {
+              Write-Error "Source path $source does not exist!"
+              exit 1
+          }
           
           # Cleanup target-specific bin (consistent with Linux/Mac)
-          if (Test-Path -Path "dist\lib\rustlib\x86_64-pc-windows-msvc\bin") {
-              Remove-Item -Recurse -Force -Path "dist\lib\rustlib\x86_64-pc-windows-msvc\bin"
+          $targetBin = Join-Path -Path "dist\lib\rustlib\x86_64-pc-windows-msvc\bin"
+          if (Test-Path -Path $targetBin) {
+              Remove-Item -Recurse -Force -Path $targetBin
           }
 
       - name: Configure git to trust the workspace despite the different owner
