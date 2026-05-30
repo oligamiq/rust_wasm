@@ -83,29 +83,41 @@ jobs:
 
       - name: prepare llvm artifacts
         working-directory: '${{ github.workspace }}/rust_wasm'
-        env:
-          GZIP: -9
         run: |
           mkdir -p llvm-artifacts/dist
+          
+          # Diagnostic: list files to find the correct binary name
+          echo "=== Files in clang/dist/bin ==="
+          ls -R "${{ github.workspace }}/clang/dist/bin"
 
           # prepare files from clang build
           cd "${{ github.workspace }}/clang"
-          tar -cvzf ${{ github.workspace }}/rust_wasm/llvm-artifacts/dist/llvm.wasm.tar.gz dist/bin/llvm.wasm
-
-          # optimize wasm
-          cp -r ${{ github.workspace }}/rust_wasm/config_rewriter /tmp/config_rewriter
-          cd /tmp/config_rewriter
-          cargo run --bin wasm_optimizer -- ${{ github.workspace }}/clang/dist/bin/llvm.wasm
-          mv opt.wasm ${{ github.workspace }}/rust_wasm/llvm-artifacts/llvm_opt.wasm
           
-          cd ${{ github.workspace }}/rust_wasm/llvm-artifacts
-          tar -cvzf llvm_opt.wasm.tar.gz llvm_opt.wasm
-          rm llvm_opt.wasm
+          # Use a more flexible search for the wasm file (it might be clang.wasm or llvm.wasm)
+          WASM_FILE=$(find dist/bin -name "*.wasm" | head -n 1)
+          if [ -n "$WASM_FILE" ]; then
+            echo "Found WASM file: $WASM_FILE"
+            tar -I "gzip -9" -cvf ${{ github.workspace }}/rust_wasm/llvm-artifacts/dist/llvm_raw.wasm.tar.gz "$WASM_FILE"
+            
+            # optimize wasm
+            cp -r ${{ github.workspace }}/rust_wasm/config_rewriter /tmp/config_rewriter
+            cd /tmp/config_rewriter
+            cargo run --bin wasm_optimizer -- "${{ github.workspace }}/clang/$WASM_FILE"
+            mv opt.wasm ${{ github.workspace }}/rust_wasm/llvm-artifacts/llvm_opt.wasm
+            
+            cd ${{ github.workspace }}/rust_wasm/llvm-artifacts
+            tar -I "brotli -q 11" -cf llvm_opt.wasm.br llvm_opt.wasm
+            rm llvm_opt.wasm
+          else
+            echo "ERROR: No .wasm file found in dist/bin"
+            exit 1
+          fi
 
           # copy other files
           cd ${{ github.workspace }}/clang
           cp -r dist/* ${{ github.workspace }}/rust_wasm/llvm-artifacts/dist/
-          rm ${{ github.workspace }}/rust_wasm/llvm-artifacts/dist/bin/llvm.wasm
+          # remove the raw wasm from dist to avoid duplication (it's already in llvm_raw.wasm.tar.gz)
+          rm -f ${{ github.workspace }}/rust_wasm/llvm-artifacts/$WASM_FILE
 
       - name: upload llvm artifacts
         uses: actions/upload-artifact@v4
