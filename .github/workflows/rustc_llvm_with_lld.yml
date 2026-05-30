@@ -115,54 +115,40 @@ jobs:
           sudo cp binaryen-version_119/bin/wasm-opt /usr/local/bin/wasm-opt
           rm -rf binaryen-version_119-x86_64-linux.tar.gz binaryen-version_119
 
-      - name: upload bin
+      - name: prepare bin artifacts
         working-directory: '${{ github.workspace }}/rust_wasm'
         env:
           GZIP: -9
         run: |
-          # backup config_rewriter
-          cp -r ${{ github.workspace }}/rust_wasm/config_rewriter /tmp/config_rewriter
+          mkdir -p bin-artifacts/dist/bin
+          mkdir -p bin-artifacts/dist/lib
 
-          # change branch
-          git fetch origin rustc_llvm_with_lld-bins
-          git branch -a
-          git switch rustc_llvm_with_lld-bins
-          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          # reset files
-          rm -rf *
-          mkdir -p dist/bin
-
-          # prepare files
+          # prepare files from rust build
           cd ${{ github.workspace }}/rust
-          tar -cvzf dist/bin/rustc.wasm.tar.gz dist/bin/rustc.wasm
+          tar -cvzf bin-artifacts/dist/bin/rustc.wasm.tar.gz dist/bin/rustc.wasm
+          
           # optimize wasm
+          cp -r ${{ github.workspace }}/rust_wasm/config_rewriter /tmp/config_rewriter
           cd /tmp/config_rewriter
           cargo run --bin wasm_optimizer -- ${{ github.workspace }}/rust/dist/bin/rustc.wasm
-          mv opt.wasm ${{ github.workspace }}/rust_wasm/rustc_opt.wasm
-          rm ${{ github.workspace }}/rust/dist/bin/rustc.wasm
-          cd ${{ github.workspace }}/rust_wasm
-
-          # copy files
-
-          # rust-gdb, rust-gdbgui, rust-lldb, rustc.wasm.tar.gz and optimized wasm
-          mv ${{ github.workspace }}/rust/dist/bin/rustc.wasm.tar.gz dist/bin/rustc.wasm.tar.gz
-          mv ${{ github.workspace }}/rust/dist/bin/rust-gdb dist/bin/rust-gdb
-          mv ${{ github.workspace }}/rust/dist/bin/rust-gdbgui dist/bin/rust-gdbgui
-          mv ${{ github.workspace }}/rust/dist/bin/rust-lldb dist/bin/rust-lldb
-          ls -l ${{ github.workspace }}/rust
-          mv ${{ github.workspace }}/rust/dist/lib/* dist/lib/
+          mv opt.wasm ${{ github.workspace }}/rust_wasm/bin-artifacts/rustc_opt.wasm
+          
+          cd ${{ github.workspace }}/rust_wasm/bin-artifacts
           tar -cvzf rustc_opt.wasm.tar.gz rustc_opt.wasm
           rm rustc_opt.wasm
-          git add -A
-          git commit -m "reset files and add new files about rustc.wasm"
 
-      - name: Push changes
-        uses: ad-m/github-push-action@master
+          # copy other tools
+          cd ${{ github.workspace }}/rust
+          cp dist/bin/rust-gdb ${{ github.workspace }}/rust_wasm/bin-artifacts/dist/bin/
+          cp dist/bin/rust-gdbgui ${{ github.workspace }}/rust_wasm/bin-artifacts/dist/bin/
+          cp dist/bin/rust-lldb ${{ github.workspace }}/rust_wasm/bin-artifacts/dist/bin/
+          cp -r dist/lib/* ${{ github.workspace }}/rust_wasm/bin-artifacts/dist/lib/
+
+      - name: upload bin artifacts
+        uses: actions/upload-artifact@v4
         with:
-          github_token: ${{ github.token }}
-          directory: "${{ github.workspace }}/rust_wasm"
-          branch: rustc_llvm_with_lld-bins
+          name: rustc-bins
+          path: rust_wasm/bin-artifacts/
 
   dist-linux:
     # strategy:
@@ -194,13 +180,6 @@ jobs:
           path: 'rust_wasm'
           ref: 'main'
 
-      - name: switch branch
-        working-directory: '${{ github.workspace }}/rust_wasm'
-        run: |
-          git fetch origin all_features
-          git branch -a
-          git switch all_features
-          git switch -c rustc_llvm_with_lld-bins-tier2-host
 
       - name: rustbuild setup
         run: |
@@ -397,24 +376,18 @@ jobs:
         run:
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
-      - name: upload
+      - name: prepare dist artifacts
         working-directory: '${{ github.workspace }}/rust_wasm'
         run: |
-          rm -rf dist
-          mv ../rust/dist dist
-          rm -rf dist/bin
-          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git add *
-          git commit -m "update dist"
+          mkdir -p dist-artifacts
+          mv ../rust/dist dist-artifacts/dist
+          rm -rf dist-artifacts/dist/bin
 
-      - name: Push changes
-        uses: ad-m/github-push-action@master
+      - name: upload dist artifacts
+        uses: actions/upload-artifact@v4
         with:
-          github_token: ${{ github.token }}
-          directory: "${{ github.workspace }}/rust_wasm"
-          branch: rustc_llvm_with_lld-bins-tier2-host
-          force: true
+          name: dist-linux
+          path: rust_wasm/dist-artifacts/
 
   dist-macos:
     runs-on: macos-latest
@@ -501,26 +474,18 @@ jobs:
         run:
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
-      - name: upload
+      - name: prepare dist artifacts
         working-directory: '${{ github.workspace }}/rust_wasm'
         run: |
-          git fetch origin rustc_llvm_with_lld-bins-tier2-host-mac
-          git branch -a
-          git switch rustc_llvm_with_lld-bins-tier2-host-mac
-          rm -rf dist
-          mv ../rust/dist dist
-          rm -rf dist/bin
-          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git add *
-          git commit -m "update dist"
+          mkdir -p dist-artifacts
+          mv ../rust/dist dist-artifacts/dist
+          rm -rf dist-artifacts/dist/bin
 
-      - name: Push changes
-        uses: ad-m/github-push-action@master
+      - name: upload dist artifacts
+        uses: actions/upload-artifact@v4
         with:
-          github_token: ${{ github.token }}
-          directory: "${{ github.workspace }}/rust_wasm"
-          branch: rustc_llvm_with_lld-bins-tier2-host-mac
+          name: dist-macos
+          path: rust_wasm/dist-artifacts/
 
   dist-windows:
     runs-on: windows-latest
@@ -637,40 +602,25 @@ jobs:
         run:
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
-      - name: upload
+      - name: prepare dist artifacts
         shell: pwsh
         working-directory: '${{ github.workspace }}/rust_wasm'
         run: |
-          git fetch origin rustc_llvm_with_lld-bins-tier2-host-windows
-          git branch -a
-          git switch rustc_llvm_with_lld-bins-tier2-host-windows
-
-          # Remove 'dist' directory if it exists
-          if (Test-Path -Path "dist") {
-              Remove-Item -Recurse -Force -Path "dist"
+          if (Test-Path -Path "dist-artifacts") {
+              Remove-Item -Recurse -Force -Path "dist-artifacts"
           }
-
-          # Move directory using PowerShell's Move-Item
+          New-Item -ItemType Directory -Path "dist-artifacts" -Force | Out-Null
+          
           if (Test-Path -Path "..\rust\dist") {
-              Move-Item -Path "..\rust\dist" -Destination "dist"
+              Move-Item -Path "..\rust\dist" -Destination "dist-artifacts\dist"
           }
 
-          # Remove 'dist/bin' directory if it exists
-          if (Test-Path -Path "dist\bin") {
-              Remove-Item -Recurse -Force -Path "dist\bin"
+          if (Test-Path -Path "dist-artifacts\dist\bin") {
+              Remove-Item -Recurse -Force -Path "dist-artifacts\dist\bin"
           }
 
-          # Configure Git user
-          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-
-          # Add changes, commit, and push
-          git add *
-          git commit -m "update dist"
-
-      - name: Push changes
-        uses: ad-m/github-push-action@master
+      - name: upload dist artifacts
+        uses: actions/upload-artifact@v4
         with:
-          github_token: ${{ github.token }}
-          directory: "${{ github.workspace }}/rust_wasm"
-          branch: rustc_llvm_with_lld-bins-tier2-host-windows
+          name: dist-windows
+          path: rust_wasm/dist-artifacts/
