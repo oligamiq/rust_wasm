@@ -50,6 +50,8 @@ jobs:
         run: |
           curl -OL https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-24/wasi-sdk-24.0-x86_64-linux.tar.gz
           tar -xzf wasi-sdk-24.0-x86_64-linux.tar.gz
+          mv wasi-sdk-24.0-x86_64-linux wasi-sdk
+          chmod -R 755 wasi-sdk
 
       - name: free space
         uses: jlumbroso/free-disk-space@main
@@ -79,7 +81,7 @@ jobs:
           RUSTFLAGS: "-W warnings"
         run: |
           cargo install --git https://github.com/oligamiq/toolchain-for-building-rustc
-          toolchain-for-building-rustc --tier all --os linux --os windows --os mac -f config.llvm.toml --only-llvm
+          WASI_SDK_PATH=${{ github.workspace }}/rust/wasi-sdk toolchain-for-building-rustc --tier all --os linux --os windows --os mac -f config.llvm.toml --only-llvm
 
       # - name: rewrite
       #   run: |
@@ -91,8 +93,8 @@ jobs:
       - name: build install
         working-directory: '${{ github.workspace }}/rust'
         env:
-          WASI_SDK_PATH: ${{ github.workspace }}/rust/wasi-sdk-24.0-x86_64-linux
-          WASI_SYSROOT: ${{ github.workspace }}/rust/wasi-sdk-24.0-x86_64-linux/share/wasi-sysroot
+          WASI_SDK_PATH: ${{ github.workspace }}/rust/wasi-sdk
+          WASI_SYSROOT: ${{ github.workspace }}/rust/wasi-sdk/share/wasi-sysroot
           RUST_CONFIGURE_ARGS: "-W warnings"
           RUSTFLAGS: "-W warnings"
         run: |
@@ -197,16 +199,13 @@ jobs:
           sudo chmod 777 /etc
           echo '/usr/local/bin/' >> $GITHUB_PATH
 
-      - name: install clang
-        run: |
-          sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
-          echo '/usr/bin' >> $GITHUB_PATH
-
       - name: install-wasi-sdk
         working-directory: '${{ github.workspace }}/rust'
         run: |
           curl -OL https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-24/wasi-sdk-24.0-x86_64-linux.tar.gz
           tar -xzf wasi-sdk-24.0-x86_64-linux.tar.gz
+          mv wasi-sdk-24.0-x86_64-linux wasi-sdk
+          chmod -R 755 wasi-sdk
 
       - name: free space
         uses: jlumbroso/free-disk-space@main
@@ -352,14 +351,14 @@ jobs:
           RUSTFLAGS: "-W warnings"
         run: |
           cargo install --git https://github.com/oligamiq/toolchain-for-building-rustc
-          toolchain-for-building-rustc --tier 1 --tier 2-host --os linux -t sparcv9-sun-solaris --install --no-cache -f config.llvm.toml -t arm-unknown-linux-musleabi -t arm-unknown-linux-musleabihf -t i586-unknown-linux-gnu -t i686-unknown-linux-musl -t wasm32-wasip1 -t wasm32-wasip1-threads -t wasm32-wasip2 -t x86_64-pc-windows-gnu -t wasm32-unknown-unknown -t wasm32-unknown-emscripten
-          toolchain-for-building-rustc --tier all --os linux --os windows --os mac -f config.llvm.toml --only-llvm
+          WASI_SDK_PATH=${{ github.workspace }}/rust/wasi-sdk toolchain-for-building-rustc --tier 1 --tier 2-host --os linux -t sparcv9-sun-solaris --install --no-cache -f config.llvm.toml -t arm-unknown-linux-musleabi -t arm-unknown-linux-musleabihf -t i586-unknown-linux-gnu -t i686-unknown-linux-musl -t wasm32-wasip1 -t wasm32-wasip1-threads -t wasm32-wasip2 -t x86_64-pc-windows-gnu -t wasm32-unknown-unknown -t wasm32-unknown-emscripten
+          WASI_SDK_PATH=${{ github.workspace }}/rust/wasi-sdk toolchain-for-building-rustc --tier all --os linux --os windows --os mac -f config.llvm.toml --only-llvm
 
       - name: build dist
         working-directory: '${{ github.workspace }}/rust'
         env:
-          WASI_SDK_PATH: ${{ github.workspace }}/rust/wasi-sdk-24.0-x86_64-linux
-          WASI_SYSROOT: ${{ github.workspace }}/rust/wasi-sdk-24.0-x86_64-linux/share/wasi-sysroot
+          WASI_SDK_PATH: ${{ github.workspace }}/rust/wasi-sdk
+          WASI_SYSROOT: ${{ github.workspace }}/rust/wasi-sdk/share/wasi-sysroot
           RUST_CONFIGURE_ARGS: "-W warnings"
           RUSTFLAGS: "-W warnings"
         run: |
@@ -435,6 +434,14 @@ jobs:
         run: |
           echo "SDKROOT=$(xcrun --sdk macosx --show-sdk-path)" >> $GITHUB_ENV
 
+      - name: install-wasi-sdk
+        working-directory: '${{ github.workspace }}/rust'
+        run: |
+          curl -OL https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-24/wasi-sdk-24.0-arm64-macos.tar.gz
+          tar -xzf wasi-sdk-24.0-arm64-macos.tar.gz
+          mv wasi-sdk-24.0-arm64-macos wasi-sdk
+          chmod -R 755 wasi-sdk
+
       - name: install toolchain-for-building-rustc
         working-directory: '${{ github.workspace }}/rust'
         env:
@@ -442,14 +449,8 @@ jobs:
           RUSTFLAGS: "-W warnings"
         run: |
           cargo install --git https://github.com/oligamiq/toolchain-for-building-rustc
-          toolchain-for-building-rustc --tier 1 --tier 2-host --os mac --install --no-cache -f config.llvm.toml --overwrite -t wasm32-wasip1 -t wasm32-wasip1-threads
-          toolchain-for-building-rustc --tier all --os linux --os windows --os mac -f config.llvm.toml --only-llvm
-
-      - name: install-wasi-sdk
-        working-directory: '${{ github.workspace }}/rust'
-        run: |
-          curl -OL https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-24/wasi-sdk-24.0-arm64-macos.tar.gz
-          tar -xzf wasi-sdk-24.0-arm64-macos.tar.gz
+          WASI_SDK_PATH=${{ github.workspace }}/rust/wasi-sdk toolchain-for-building-rustc --tier 1 --tier 2-host --os mac --install --no-cache -f config.llvm.toml --overwrite -t wasm32-wasip1 -t wasm32-wasip1-threads
+          WASI_SDK_PATH=${{ github.workspace }}/rust/wasi-sdk toolchain-for-building-rustc --tier all --os linux --os windows --os mac -f config.llvm.toml --only-llvm
 
       - name: restore cache
         uses: actions/cache/restore@v4
@@ -460,8 +461,8 @@ jobs:
       - name: build dist
         working-directory: '${{ github.workspace }}/rust'
         env:
-          WASI_SDK_PATH: ${{ github.workspace }}/rust/wasi-sdk-24.0-arm64-macos
-          WASI_SYSROOT: ${{ github.workspace }}/rust/wasi-sdk-24.0-arm64-macos/share/wasi-sysroot
+          WASI_SDK_PATH: ${{ github.workspace }}/rust/wasi-sdk
+          WASI_SYSROOT: ${{ github.workspace }}/rust/wasi-sdk/share/wasi-sysroot
           RUST_CONFIGURE_ARGS: "-W warnings"
           RUSTFLAGS: "-W warnings"
         run: |
@@ -529,6 +530,13 @@ jobs:
       - name: install rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
 
+      - name: install-wasi-sdk
+        working-directory: '${{ github.workspace }}/rust'
+        run: |
+          curl -OL https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-24/wasi-sdk-24.0-x86_64-windows.tar.gz
+          tar -xzf wasi-sdk-24.0-x86_64-windows.tar.gz
+          mv wasi-sdk-24.0-x86_64-windows wasi-sdk
+
       - name: install toolchain-for-building-rustc
         working-directory: '${{ github.workspace }}/rust'
         env:
@@ -536,14 +544,8 @@ jobs:
           RUSTFLAGS: "-W warnings"
         run: |
           cargo install --git https://github.com/oligamiq/toolchain-for-building-rustc
-          toolchain-for-building-rustc --tier 1 --tier 2-host --os windows --install --no-cache -f config.llvm.toml --overwrite -t wasm32-wasip1 -t wasm32-wasip1-threads --exclude x86_64-pc-windows-gnu
-          toolchain-for-building-rustc --tier all --os linux --os windows --os mac -f config.llvm.toml --only-llvm
-
-      - name: install-wasi-sdk
-        working-directory: '${{ github.workspace }}/rust'
-        run: |
-          curl -OL https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-24/wasi-sdk-24.0-x86_64-windows.tar.gz
-          tar -xzf wasi-sdk-24.0-x86_64-windows.tar.gz
+          WASI_SDK_PATH=${{ github.workspace }}/rust/wasi-sdk toolchain-for-building-rustc --tier 1 --tier 2-host --os windows --install --no-cache -f config.llvm.toml --overwrite -t wasm32-wasip1 -t wasm32-wasip1-threads --exclude x86_64-pc-windows-gnu
+          WASI_SDK_PATH=${{ github.workspace }}/rust/wasi-sdk toolchain-for-building-rustc --tier all --os linux --os windows --os mac -f config.llvm.toml --only-llvm
 
       - name: Set up MinGW
         uses: egor-tensin/setup-mingw@v2.2.0
@@ -561,8 +563,8 @@ jobs:
         working-directory: '${{ github.workspace }}/rust'
         shell: pwsh
         env:
-          WASI_SDK_PATH: ${{ github.workspace }}/rust/wasi-sdk-24.0-x86_64-windows
-          WASI_SYSROOT: ${{ github.workspace }}/rust/wasi-sdk-24.0-x86_64-windows/share/wasi-sysroot
+          WASI_SDK_PATH: ${{ github.workspace }}/rust/wasi-sdk
+          WASI_SYSROOT: ${{ github.workspace }}/rust/wasi-sdk/share/wasi-sysroot
           RUST_CONFIGURE_ARGS: "-W warnings"
           RUSTFLAGS: "-W warnings"
         run: |
