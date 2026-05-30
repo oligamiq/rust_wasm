@@ -87,12 +87,16 @@ jobs:
         run: |
           cargo install --git https://github.com/oligamiq/toolchain-for-building-rustc
           toolchain-for-building-rustc --tier all --os linux --os windows --os mac -f config.llvm.toml --only-llvm
+          
+          # Convert workspace path to forward slashes for TOML compatibility
+          WS_FORWARD=$(echo "${{ github.workspace }}" | tr '\\' '/')
+          
           echo "=== config.llvm.toml before patching ==="
           grep wasi config.llvm.toml || true
           # Aggressively patch config to use absolute path and standardized folder name
-          sed -i.bak "s|wasi-root = .*|wasi-root = \"${{ github.workspace }}/rust/wasi-sdk/share/wasi-sysroot\"|g" config.llvm.toml
+          sed -i.bak "s|wasi-root = .*|wasi-root = \"${WS_FORWARD}/rust/wasi-sdk/share/wasi-sysroot\"|g" config.llvm.toml
           # Fallback for any other occurrences
-          sed -i.bak "s|wasi-sdk-24\.0-[^/\"]*|${{ github.workspace }}/rust/wasi-sdk|g" config.llvm.toml
+          sed -i.bak "s|wasi-sdk-24\.0-[^/\"]*|${WS_FORWARD}/rust/wasi-sdk|g" config.llvm.toml
           rm -f config.llvm.toml.bak
           echo "=== config.llvm.toml after patching ==="
           grep wasi config.llvm.toml || true
@@ -370,12 +374,16 @@ jobs:
           cargo install --git https://github.com/oligamiq/toolchain-for-building-rustc
           toolchain-for-building-rustc --tier 1 --tier 2-host --os linux -t sparcv9-sun-solaris --install --no-cache -f config.llvm.toml -t arm-unknown-linux-musleabi -t arm-unknown-linux-musleabihf -t i586-unknown-linux-gnu -t i686-unknown-linux-musl -t wasm32-wasip1 -t wasm32-wasip1-threads -t wasm32-wasip2 -t x86_64-pc-windows-gnu -t wasm32-unknown-unknown -t wasm32-unknown-emscripten
           toolchain-for-building-rustc --tier all --os linux --os windows --os mac -f config.llvm.toml --only-llvm
+          
+          # Convert workspace path to forward slashes for TOML compatibility
+          WS_FORWARD=$(echo "${{ github.workspace }}" | tr '\\' '/')
+          
           echo "=== config.llvm.toml before patching ==="
           grep wasi config.llvm.toml || true
           # Aggressively patch config to use absolute path and standardized folder name
-          sed -i.bak "s|wasi-root = .*|wasi-root = \"${{ github.workspace }}/rust/wasi-sdk/share/wasi-sysroot\"|g" config.llvm.toml
+          sed -i.bak "s|wasi-root = .*|wasi-root = \"${WS_FORWARD}/rust/wasi-sdk/share/wasi-sysroot\"|g" config.llvm.toml
           # Fallback for any other occurrences
-          sed -i.bak "s|wasi-sdk-24\.0-[^/\"]*|${{ github.workspace }}/rust/wasi-sdk|g" config.llvm.toml
+          sed -i.bak "s|wasi-sdk-24\.0-[^/\"]*|${WS_FORWARD}/rust/wasi-sdk|g" config.llvm.toml
           rm -f config.llvm.toml.bak
           echo "=== config.llvm.toml after patching ==="
           grep wasi config.llvm.toml || true
@@ -480,12 +488,16 @@ jobs:
           cargo install --git https://github.com/oligamiq/toolchain-for-building-rustc
           toolchain-for-building-rustc --tier 1 --tier 2-host --os mac --install --no-cache -f config.llvm.toml --overwrite -t wasm32-wasip1 -t wasm32-wasip1-threads
           toolchain-for-building-rustc --tier all --os linux --os windows --os mac -f config.llvm.toml --only-llvm
+          
+          # Convert workspace path to forward slashes for TOML compatibility
+          WS_FORWARD=$(echo "${{ github.workspace }}" | tr '\\' '/')
+          
           echo "=== config.llvm.toml before patching ==="
           grep wasi config.llvm.toml || true
           # Aggressively patch config to use absolute path and standardized folder name
-          sed -i.bak "s|wasi-root = .*|wasi-root = \"${{ github.workspace }}/rust/wasi-sdk/share/wasi-sysroot\"|g" config.llvm.toml
+          sed -i.bak "s|wasi-root = .*|wasi-root = \"${WS_FORWARD}/rust/wasi-sdk/share/wasi-sysroot\"|g" config.llvm.toml
           # Fallback for any other occurrences
-          sed -i.bak "s|wasi-sdk-24\.0-[^/\"]*|${{ github.workspace }}/rust/wasi-sdk|g" config.llvm.toml
+          sed -i.bak "s|wasi-sdk-24\.0-[^/\"]*|${WS_FORWARD}/rust/wasi-sdk|g" config.llvm.toml
           rm -f config.llvm.toml.bak
           echo "=== config.llvm.toml after patching ==="
           grep wasi config.llvm.toml || true
@@ -588,12 +600,16 @@ jobs:
           cargo install --git https://github.com/oligamiq/toolchain-for-building-rustc
           toolchain-for-building-rustc --tier 1 --tier 2-host --os windows --install --no-cache -f config.llvm.toml --overwrite -t wasm32-wasip1 -t wasm32-wasip1-threads --exclude x86_64-pc-windows-gnu
           toolchain-for-building-rustc --tier all --os linux --os windows --os mac -f config.llvm.toml --only-llvm
+          
+          # Convert workspace path to forward slashes for TOML compatibility
+          WS_FORWARD=$(echo "${{ github.workspace }}" | tr '\\' '/')
+          
           echo "=== config.llvm.toml before patching ==="
           grep wasi config.llvm.toml || true
           # Aggressively patch config to use absolute path and standardized folder name
-          sed -i.bak "s|wasi-root = .*|wasi-root = \"${{ github.workspace }}/rust/wasi-sdk/share/wasi-sysroot\"|g" config.llvm.toml
+          sed -i.bak "s|wasi-root = .*|wasi-root = \"${WS_FORWARD}/rust/wasi-sdk/share/wasi-sysroot\"|g" config.llvm.toml
           # Fallback for any other occurrences
-          sed -i.bak "s|wasi-sdk-24\.0-[^/\"]*|${{ github.workspace }}/rust/wasi-sdk|g" config.llvm.toml
+          sed -i.bak "s|wasi-sdk-24\.0-[^/\"]*|${WS_FORWARD}/rust/wasi-sdk|g" config.llvm.toml
           rm -f config.llvm.toml.bak
           echo "=== config.llvm.toml after patching ==="
           grep wasi config.llvm.toml || true
