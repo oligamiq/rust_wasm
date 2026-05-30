@@ -136,15 +136,13 @@ jobs:
 
       - name: prepare bin artifacts
         working-directory: '${{ github.workspace }}/rust_wasm'
-        env:
-          GZIP: -9
         run: |
           mkdir -p bin-artifacts/dist/bin
           mkdir -p bin-artifacts/dist/lib
 
           # prepare files from rust build
           cd ${{ github.workspace }}/rust
-          tar -cvzf bin-artifacts/dist/bin/rustc.wasm.tar.gz dist/bin/rustc.wasm
+          tar -I "gzip -9" -cvf ${{ github.workspace }}/rust_wasm/bin-artifacts/dist/bin/rustc.wasm.tar.gz dist/bin/rustc.wasm
           
           # optimize wasm
           cp -r ${{ github.workspace }}/rust_wasm/config_rewriter /tmp/config_rewriter
@@ -153,7 +151,7 @@ jobs:
           mv opt.wasm ${{ github.workspace }}/rust_wasm/bin-artifacts/rustc_opt.wasm
           
           cd ${{ github.workspace }}/rust_wasm/bin-artifacts
-          tar -cvzf rustc_opt.wasm.tar.gz rustc_opt.wasm
+          tar -I "gzip -9" -cvf rustc_opt.wasm.tar.gz rustc_opt.wasm
           rm rustc_opt.wasm
 
           # copy other tools
