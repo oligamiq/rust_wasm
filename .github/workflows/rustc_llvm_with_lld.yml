@@ -369,7 +369,7 @@ jobs:
 
           # copy files
           mkdir -p dist/lib/rustlib
-          rsync -av --exclude "rustc-src" --exclude "src" build/x86_64-unknown-linux-gnu/stage1/lib/rustlib/ dist/lib/rustlib/
+          rsync -av build/x86_64-unknown-linux-gnu/stage1/lib/rustlib/ dist/lib/rustlib/
           rm -rf dist/lib/rustlib/x86_64-unknown-linux-gnu/bin
 
       - name: Configure git to trust the workspace despite the different owner
@@ -467,7 +467,7 @@ jobs:
         run: |
           ./x.py build library --config config.llvm.toml --stage 1
           mkdir -p dist/lib/rustlib
-          rsync -av --exclude "rustc-src" --exclude "src" build/aarch64-apple-darwin/stage1/lib/rustlib/ dist/lib/rustlib/
+          rsync -av build/aarch64-apple-darwin/stage1/lib/rustlib/ dist/lib/rustlib/
           rm -rf dist/lib/rustlib/aarch64-apple-darwin/bin
 
       - name: Configure git to trust the workspace despite the different owner
@@ -576,11 +576,9 @@ jobs:
           mkdir -p dist
           $source = "build\x86_64-pc-windows-msvc\stage1\lib\rustlib"
           $destination = "dist-cp"
-          $excludeDirs = @("rustc-src", "src")
+          # $excludeDirs = @("rustc-src", "src") # Removed exclusion
 
-          Get-ChildItem -Path $source -Recurse | Where-Object {
-              $excludeDirs -notcontains $_.Name
-          } | ForEach-Object {
+          Get-ChildItem -Path $source -Recurse | ForEach-Object {
               $destPath = Join-Path -Path $destination -ChildPath $_.FullName.Substring($source.Length + 1)
               if ($_.PSIsContainer) {
                   # ディレクトリを作成

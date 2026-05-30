@@ -61,8 +61,24 @@ jobs:
           # Process Linux Dist
           if [ -d "${{ github.workspace }}/artifacts/dist-linux" ]; then
             cd "${{ github.workspace }}/artifacts/dist-linux/dist/lib/rustlib"
+            
+            # Package rust-src
+            if [ -d "src" ]; then
+              tar -czf "${{ github.workspace }}/x-tools/rust-src.tar.gz" src/*
+              tar -I "brotli -q 11" -cf "${{ github.workspace }}/x-tools/rust-src.tar.br" src/*
+              echo "rust-src done"
+            fi
+
+            # Package rustc-src
+            if [ -d "rustc-src" ]; then
+              tar -czf "${{ github.workspace }}/x-tools/rustc-src.tar.gz" rustc-src/*
+              tar -I "brotli -q 11" -cf "${{ github.workspace }}/x-tools/rustc-src.tar.br" rustc-src/*
+              echo "rustc-src done"
+            fi
+
+            # Package target-specific libs
             for target in *; do
-              if [ -d "$target" ]; then
+              if [ -d "$target" ] && [ "$target" != "src" ] && [ "$target" != "rustc-src" ]; then
                 cd "${target}/lib"
                 tar -czf "${{ github.workspace }}/x-tools/${target}.tar.gz" *
                 tar -I "brotli -q 11" -cf "${{ github.workspace }}/x-tools/${target}.tar.br" *
@@ -76,7 +92,7 @@ jobs:
           if [ -d "${{ github.workspace }}/artifacts/dist-windows" ]; then
             cd "${{ github.workspace }}/artifacts/dist-windows/dist/lib/rustlib"
             for target in *; do
-              if [ -d "$target" ]; then
+              if [ -d "$target" ] && [ "$target" != "src" ] && [ "$target" != "rustc-src" ]; then
                 cd "${target}/lib"
                 tar -czf "${{ github.workspace }}/x-tools/${target}.tar.gz" *
                 tar -I "brotli -q 11" -cf "${{ github.workspace }}/x-tools/${target}.tar.br" *
@@ -90,7 +106,7 @@ jobs:
           if [ -d "${{ github.workspace }}/artifacts/dist-macos" ]; then
             cd "${{ github.workspace }}/artifacts/dist-macos/dist/lib/rustlib"
             for target in *; do
-              if [ -d "$target" ]; then
+              if [ -d "$target" ] && [ "$target" != "src" ] && [ "$target" != "rustc-src" ]; then
                 cd "${target}/lib"
                 tar -czf "${{ github.workspace }}/x-tools/${target}.tar.gz" *
                 tar -I "brotli -q 11" -cf "${{ github.workspace }}/x-tools/${target}.tar.br" *
