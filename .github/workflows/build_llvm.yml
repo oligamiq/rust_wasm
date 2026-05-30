@@ -87,14 +87,14 @@ jobs:
           mkdir -p llvm-artifacts/dist
           
           # Diagnostic: list files to find the correct binary name
-          echo "=== Files in clang/dist/bin ==="
-          ls -R "${{ github.workspace }}/clang/dist/bin"
+          echo "=== Files in clang/dist ==="
+          ls -R "${{ github.workspace }}/clang/dist"
 
           # prepare files from clang build
           cd "${{ github.workspace }}/clang"
           
           # Use a more flexible search for the wasm file (it might be clang.wasm or llvm.wasm)
-          WASM_FILE=$(find dist/bin -name "*.wasm" | head -n 1)
+          WASM_FILE=$(find dist -name "*.wasm" | head -n 1)
           if [ -n "$WASM_FILE" ]; then
             echo "Found WASM file: $WASM_FILE"
             tar -I "gzip -9" -cvf ${{ github.workspace }}/rust_wasm/llvm-artifacts/dist/llvm_raw.wasm.tar.gz "$WASM_FILE"
