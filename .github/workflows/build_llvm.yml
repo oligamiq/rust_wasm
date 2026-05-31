@@ -87,19 +87,21 @@ jobs:
           mkdir -p llvm-artifacts/dist
           
           # Diagnostic: list files to find the correct binary name
-          echo "=== Files in clang/dist ==="
-          ls -R "${{ github.workspace }}/clang/dist" || true
+          echo "=== Files in clang/llvm-build/bin ==="
+          ls -R "${{ github.workspace }}/clang/llvm-build/bin" || true
           
           # prepare files from clang build
           cd "${{ github.workspace }}/clang"
           
-          echo "=== Searching for .wasm files ==="
-          find . -name "*.wasm"
+          echo "=== Searching for llvm-driver ==="
+          find . -name "llvm-driver"
           
-          # Use a flexible search for the wasm file across the entire checkout
-          WASM_FILE=$(find . -name "*.wasm" | grep -v "test" | head -n 1)
+          # Use a flexible search for the compiled binary across the entire checkout
+          WASM_FILE=$(find . -name "llvm-driver" -o -name "clang" | grep bin/ | head -n 1)
           if [ -n "$WASM_FILE" ]; then
-            echo "Found WASM file: $WASM_FILE"
+            echo "Found LLVM binary: $WASM_FILE"
+            
+            # The upstream build might not append .wasm, so we enforce it during archiving
             tar -I "gzip -9" -cvf ${{ github.workspace }}/rust_wasm/llvm-artifacts/dist/llvm_raw.wasm.tar.gz "$WASM_FILE"
             
             # optimize wasm
