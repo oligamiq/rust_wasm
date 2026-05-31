@@ -86,23 +86,31 @@ jobs:
         run: |
           mkdir -p llvm-artifacts/dist
           
-          # Diagnostic: list files to find the correct binary name
-          echo "=== Files in clang/llvm-build/bin ==="
-          ls -R "${{ github.workspace }}/clang/llvm-build/bin" || true
+          # Diagnostic: list files in clang directory to understand structure
+          echo "=== Full directory tree of clang/ (first 3 levels) ==="
+          ls -R "${{ github.workspace }}/clang" | grep ":$" | sed -e 's/:$//' -e 's/[^-][^\/]*\//--/g' -e 's/^/   /' | head -n 50 || true
           
           # prepare files from clang build
           cd "${{ github.workspace }}/clang"
           
-          echo "=== Searching for llvm-driver ==="
-          find . -name "llvm-driver"
+          echo "=== Searching for LLVM binaries ==="
+          # Look for llvm-driver or clang or any wasm files
+          find . -maxdepth 4 -name "llvm-driver" -o -name "clang" -o -name "*.wasm"
           
           # Use a flexible search for the compiled binary across the entire checkout
           WASM_FILE=$(find . -name "llvm-driver" -o -name "clang" | grep bin/ | head -n 1)
+          
+          if [ -z "$WASM_FILE" ]; then
+            echo "Searching for any .wasm files as fallback..."
+            WASM_FILE=$(find . -name "*.wasm" | grep -v "test" | head -n 1)
+          fi
+
           if [ -n "$WASM_FILE" ]; then
-            echo "Found LLVM binary: $WASM_FILE"
+            echo "Found binary at: $WASM_FILE"
+            file "$WASM_FILE" || true
             
-            # The upstream build might not append .wasm, so we enforce it during archiving
-            tar -I "gzip -9" -cvf ${{ github.workspace }}/rust_wasm/llvm-artifacts/dist/llvm_raw.wasm.tar.gz "$WASM_FILE"
+            # Use --force-local for safety (though this is Linux)
+            tar --force-local -I "gzip -9" -cvf ${{ github.workspace }}/rust_wasm/llvm-artifacts/dist/llvm_raw.wasm.tar.gz "$WASM_FILE"
             
             # optimize wasm
             cp -r ${{ github.workspace }}/rust_wasm/config_rewriter /tmp/config_rewriter
@@ -111,22 +119,22 @@ jobs:
             mv opt.wasm ${{ github.workspace }}/rust_wasm/llvm-artifacts/llvm_opt.wasm
             
             cd ${{ github.workspace }}/rust_wasm/llvm-artifacts
-            tar -I "brotli -q 11" -cf llvm_opt.wasm.br llvm_opt.wasm
+            tar --force-local -I "brotli -q 11" -cf llvm_opt.wasm.br llvm_opt.wasm
             rm llvm_opt.wasm
           else
-            echo "ERROR: No .wasm file found in dist/bin"
+            echo "ERROR: Could not locate LLVM binary (llvm-driver, clang, or any .wasm file)"
             exit 1
           fi
 
           # copy other files
           cd ${{ github.workspace }}/clang
-          cp -r dist/* ${{ github.workspace }}/rust_wasm/llvm-artifacts/dist/
-          # remove the raw wasm from dist to avoid duplication (it's already in llvm_raw.wasm.tar.gz)
-          rm -f ${{ github.workspace }}/rust_wasm/llvm-artifacts/$WASM_FILE
-
+          if [ -d "dist" ]; then
+            cp -r dist/* ${{ github.workspace }}/rust_wasm/llvm-artifacts/dist/
+          fi
+          
           # Archive into a single file
           cd ${{ github.workspace }}/rust_wasm
-          tar -cf ${{ github.workspace }}/rust_wasm/llvm-bins.tar -C llvm-artifacts .
+          tar --force-local -cf ${{ github.workspace }}/rust_wasm/llvm-bins.tar -C llvm-artifacts .
           echo "=== Artifact status ==="
           ls -lh ${{ github.workspace }}/rust_wasm/llvm-bins.tar
           rm -rf llvm-artifacts

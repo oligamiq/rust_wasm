@@ -167,7 +167,7 @@ jobs:
 
           # Archive into a single file
           cd ${{ github.workspace }}/rust_wasm
-          tar -cf ${{ github.workspace }}/rust_wasm/rustc-bins.tar -C bin-artifacts .
+          tar --force-local -cf ${{ github.workspace }}/rust_wasm/rustc-bins.tar -C bin-artifacts .
           echo "=== Artifact status ==="
           ls -lh ${{ github.workspace }}/rust_wasm/rustc-bins.tar
           rm -rf bin-artifacts
@@ -699,13 +699,17 @@ jobs:
         shell: bash
         working-directory: '${{ github.workspace }}/rust_wasm'
         run: |
+          # Convert workspace path to forward slashes for compatibility
+          WS_FORWARD=$(echo "${{ github.workspace }}" | tr '\\' '/')
+          
           mkdir -p dist-artifacts
           mv ../rust/dist dist-artifacts/dist
           rm -rf dist-artifacts/dist/bin
           # Archive into a single file (tar is available in Git Bash on Windows)
-          tar -cf ${{ github.workspace }}/rust_wasm/dist-windows.tar -C dist-artifacts .
+          # Use --force-local to avoid interpreting the drive colon as a remote host
+          tar --force-local -cf "${WS_FORWARD}/rust_wasm/dist-windows.tar" -C dist-artifacts .
           echo "=== Artifact status ==="
-          ls -lh ${{ github.workspace }}/rust_wasm/dist-windows.tar
+          ls -lh "${WS_FORWARD}/rust_wasm/dist-windows.tar"
           rm -rf dist-artifacts
 
       - name: upload dist artifacts
