@@ -40,16 +40,44 @@ jobs:
       - name: Split large files
         run: |
           echo "Splitting files larger than 20MB into 20MB chunks..."
+          MANIFEST_FILE="public/split_manifest.json"
+          echo "{}" > "$MANIFEST_FILE"
+          
           # Find files larger than 20MB and split them into 20MB chunks.
           # We use a 20MB limit because Cloudflare Pages has a 25MB per file limit.
           find public -type f -size +20M | while read -r file; do
+            if [[ "$file" == "$MANIFEST_FILE" ]]; then continue; fi
+            
             echo "Splitting large file: $file"
+            
+            BASE_NAME=$(basename "$file")
+            DIR_NAME=$(dirname "$file")
+            ORIGINAL_SIZE=$(stat -c%s "$file" 2>/dev/null || stat -f%z "$file")
+            
             # Split the file into 20MB chunks with suffix .part00, .part01, etc.
-            split -b 20M -d "$file" "${file}.part"
+            (
+              cd "$DIR_NAME"
+              split -b 20M -d "$BASE_NAME" "${BASE_NAME}.part"
+            )
+            
+            # Generate parts list as a JSON array
+            PARTS=$(cd "$DIR_NAME" && ls ${BASE_NAME}.part* | jq -R -s -c 'split("\n")[:-1]')
+            
+            # Add to manifest
+            REL_PATH=${file#public/}
+            jq --arg path "$REL_PATH" \
+               --arg size "$ORIGINAL_SIZE" \
+               --argjson parts "$PARTS" \
+               '.[$path] = {original_size: ($size|tonumber), parts: $parts}' \
+               "$MANIFEST_FILE" > "${MANIFEST_FILE}.tmp" && mv "${MANIFEST_FILE}.tmp" "$MANIFEST_FILE"
+               
             # Remove the original large file
             rm "$file"
           done
-          echo "File splitting complete. Here is the final file structure:"
+          
+          echo "File splitting complete. Split manifest:"
+          cat "$MANIFEST_FILE"
+          echo "Final file structure:"
           ls -lR public/
 
       - name: Deploy to Cloudflare Pages
