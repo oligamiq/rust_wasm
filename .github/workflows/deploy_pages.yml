@@ -1,0 +1,50 @@
+name: deploy pages
+
+on:
+  workflow_run:
+    workflows: ["create release"]
+    types:
+      - completed
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  download-and-deploy:
+    # Only run if triggered manually or if the upstream workflow succeeded
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download release assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p public
+          # Get the latest release tag
+          LATEST_TAG=$(gh release view --json tagName -q .tagName)
+          echo "Downloading assets from release: $LATEST_TAG"
+          # Download all assets from the latest release to the public directory
+          gh release download "$LATEST_TAG" --dir public/ --pattern "*"
+          ls -l public/
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './public'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
