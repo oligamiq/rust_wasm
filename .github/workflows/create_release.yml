@@ -52,14 +52,22 @@ jobs:
             gh run download "$RUN_ID_LLVM" --name llvm-bins --dir artifacts/llvm-bins || echo "llvm-bins not found"
           fi
           
-          # Get latest successful run for rustc_llvm_with_lld.yml
-          RUN_ID_RUSTC=$(gh run list --workflow rustc_llvm_with_lld.yml --status success --limit 1 --json databaseId --jq '.[0].databaseId')
-          if [ "$RUN_ID_RUSTC" != "null" ] && [ -n "$RUN_ID_RUSTC" ]; then
-            gh run download "$RUN_ID_RUSTC" --name rustc-bins --dir artifacts/rustc-bins || echo "rustc-bins not found"
-            gh run download "$RUN_ID_RUSTC" --name dist-linux --dir artifacts/dist-linux || echo "dist-linux not found"
-            gh run download "$RUN_ID_RUSTC" --name dist-macos --dir artifacts/dist-macos || echo "dist-macos not found"
-            gh run download "$RUN_ID_RUSTC" --name dist-windows --dir artifacts/dist-windows || echo "dist-windows not found"
-          fi
+          # Get latest successful run for rustc_llvm_with_lld.yml and download each artifact
+          # Since jobs are run separately, artifacts are spread across different recent runs.
+          for run_id in $(gh run list --workflow rustc_llvm_with_lld.yml --status success --limit 10 --json databaseId --jq '.[].databaseId'); do
+            if [ ! -d "artifacts/rustc-bins" ]; then
+              gh run download "$run_id" --name rustc-bins --dir artifacts/rustc-bins 2>/dev/null && echo "rustc-bins found in $run_id"
+            fi
+            if [ ! -d "artifacts/dist-linux" ]; then
+              gh run download "$run_id" --name dist-linux --dir artifacts/dist-linux 2>/dev/null && echo "dist-linux found in $run_id"
+            fi
+            if [ ! -d "artifacts/dist-macos" ]; then
+              gh run download "$run_id" --name dist-macos --dir artifacts/dist-macos 2>/dev/null && echo "dist-macos found in $run_id"
+            fi
+            if [ ! -d "artifacts/dist-windows" ]; then
+              gh run download "$run_id" --name dist-windows --dir artifacts/dist-windows 2>/dev/null && echo "dist-windows found in $run_id"
+            fi
+          done
           
           # Extract tar artifacts
           for f in artifacts/*/llvm-bins.tar artifacts/*/rustc-bins.tar artifacts/dist-*/dist-*.tar; do
