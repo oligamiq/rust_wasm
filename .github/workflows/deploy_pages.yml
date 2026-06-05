@@ -25,17 +25,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Download release assets
+      - name: Download all release assets
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p public
-          # Get the latest release tag (including pre-releases)
-          LATEST_TAG=$(gh release list --limit 1 --json tagName -q ".[0].tagName")
-          echo "Downloading assets from release: $LATEST_TAG"
-          # Download all assets from the latest release to the public directory
-          gh release download "$LATEST_TAG" --dir public/ --pattern "*"
-          ls -l public/
+          # Get all release tags
+          gh release list --json tagName -q ".[].tagName" > tags.txt
+          while read -r TAG; do
+            # Extract version from tag (e.g., v0.2.0-release -> v0.2.0)
+            DIR_NAME=${TAG%-release}
+            echo "Processing release: $TAG into directory: public/$DIR_NAME"
+            mkdir -p "public/$DIR_NAME"
+            gh release download "$TAG" --dir "public/$DIR_NAME/" --pattern "*" || echo "Failed to download $TAG"
+          done < tags.txt
+          rm tags.txt
+          ls -lR public/
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
