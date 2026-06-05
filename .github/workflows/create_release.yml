@@ -44,11 +44,21 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           mkdir -p artifacts
-          gh run download --name llvm-bins --workflow build_llvm.yml --limit 1 --dir artifacts/llvm-bins || echo "llvm-bins not found"
-          gh run download --name rustc-bins --workflow rustc_llvm_with_lld.yml --limit 1 --dir artifacts/rustc-bins || echo "rustc-bins not found"
-          gh run download --name dist-linux --workflow rustc_llvm_with_lld.yml --limit 1 --dir artifacts/dist-linux || echo "dist-linux not found"
-          gh run download --name dist-macos --workflow rustc_llvm_with_lld.yml --limit 1 --dir artifacts/dist-macos || echo "dist-macos not found"
-          gh run download --name dist-windows --workflow rustc_llvm_with_lld.yml --limit 1 --dir artifacts/dist-windows || echo "dist-windows not found"
+          
+          # Get latest successful run for build_llvm.yml
+          RUN_ID_LLVM=$(gh run list --workflow build_llvm.yml --status success --limit 1 --json databaseId --jq '.[0].databaseId')
+          if [ "$RUN_ID_LLVM" != "null" ] && [ -n "$RUN_ID_LLVM" ]; then
+            gh run download "$RUN_ID_LLVM" --name llvm-bins --dir artifacts/llvm-bins || echo "llvm-bins not found"
+          fi
+          
+          # Get latest successful run for rustc_llvm_with_lld.yml
+          RUN_ID_RUSTC=$(gh run list --workflow rustc_llvm_with_lld.yml --status success --limit 1 --json databaseId --jq '.[0].databaseId')
+          if [ "$RUN_ID_RUSTC" != "null" ] && [ -n "$RUN_ID_RUSTC" ]; then
+            gh run download "$RUN_ID_RUSTC" --name rustc-bins --dir artifacts/rustc-bins || echo "rustc-bins not found"
+            gh run download "$RUN_ID_RUSTC" --name dist-linux --dir artifacts/dist-linux || echo "dist-linux not found"
+            gh run download "$RUN_ID_RUSTC" --name dist-macos --dir artifacts/dist-macos || echo "dist-macos not found"
+            gh run download "$RUN_ID_RUSTC" --name dist-windows --dir artifacts/dist-windows || echo "dist-windows not found"
+          fi
           
           # Extract tar artifacts
           for f in artifacts/*/llvm-bins.tar artifacts/*/rustc-bins.tar artifacts/dist-*/dist-*.tar; do
