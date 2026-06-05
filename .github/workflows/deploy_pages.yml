@@ -30,8 +30,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p public
-          # Get the latest release tag
-          LATEST_TAG=$(gh release view --json tagName -q .tagName)
+          # Get the latest release tag (including pre-releases)
+          LATEST_TAG=$(gh release list --limit 1 --json tagName -q ".[0].tagName")
           echo "Downloading assets from release: $LATEST_TAG"
           # Download all assets from the latest release to the public directory
           gh release download "$LATEST_TAG" --dir public/ --pattern "*"
