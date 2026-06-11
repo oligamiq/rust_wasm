@@ -271,7 +271,7 @@ jobs:
 
               return src[:m.start(2)] + body + src[m.end(2):]
 
-          s = set_in_table(s, "rust", "std-features", '["panic_unwind"]')
+
           
           # Only apply to wasm targets
           wasm_targets = [
