@@ -273,20 +273,7 @@ jobs:
 
 
           
-          # Only apply to wasm targets
-          wasm_targets = [
-              "wasm32-wasip1",
-              "wasm32-wasip1-threads",
-              "wasm32-unknown-emscripten",
-              "wasm32-unknown-unknown"
-          ]
-          for t in wasm_targets:
-              s = set_in_table(
-                  s,
-                  f"target.{t}",
-                  "rustflags",
-                  '["-Cpanic=unwind", "-Cllvm-args=-wasm-use-legacy-eh=false"]'
-              )
+          s = set_in_table(s, "rust", "rustflags", '["-Cpanic=unwind"]')
 
           path.write_text(s)
           PY
