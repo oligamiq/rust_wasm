@@ -58,3 +58,19 @@ GitHub Actionsの画面（または `gh` CLI）から以下のワークフロー
 
 ## Platform Support
 This project targets Tier 1 and Tier 2 host platforms. See [Rust Platform Support](https://doc.rust-lang.org/nightly/rustc/platform-support.html) for details.
+
+## About `rustc_unwind.wasm`
+
+`rustc_unwind.wasm` means that the compiler itself was built with
+`panic=unwind`. It does not automatically make generated programs use
+unwinding. The panic strategy of generated programs is still controlled by
+the selected sysroot and `-C panic`.
+
+For normal target programs, use:
+
+- `rustc.wasm` or `rustc_unwind.wasm`
+- `sysroot-abort`
+- `-C panic=abort`
+
+Using `-C panic=unwind` requires a separate unwind-enabled sysroot and
+runtime support for WebAssembly exception handling.

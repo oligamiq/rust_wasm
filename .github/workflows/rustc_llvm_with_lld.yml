@@ -120,6 +120,66 @@ jobs:
           RUSTFLAGS: "-W warnings"
         run: |
           ./x.py install --config config.llvm.toml
+          
+          rm -rf dist-abort
+          cp -a dist dist-abort
+
+      - name: create unwind config
+        working-directory: '${{ github.workspace }}/rust'
+        shell: bash
+        run: |
+          cp config.llvm.toml config.llvm.unwind.toml
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          path = Path("config.llvm.unwind.toml")
+          s = path.read_text()
+
+          def set_in_table(src: str, table: str, key: str, value: str) -> str:
+              pat = rf"(?ms)^(\[{re.escape(table)}\]\n)(.*?)(?=^\[|\Z)"
+              m = re.search(pat, src)
+              line = f"{key} = {value}\n"
+
+              if not m:
+                  return src.rstrip() + f"\n\n[{table}]\n{line}"
+
+              body = m.group(2)
+              key_pat = rf"(?m)^{re.escape(key)}\s*=.*$"
+
+              if re.search(key_pat, body):
+                  body = re.sub(key_pat, line.rstrip(), body)
+              else:
+                  body += line
+
+              return src[:m.start(2)] + body + src[m.end(2):]
+
+          s = set_in_table(s, "build", "build-dir", '"build-unwind"')
+          s = set_in_table(s, "rust", "std-features", '["panic_unwind"]')
+          s = set_in_table(
+              s,
+              "rust",
+              "rustflags",
+              '["-Cpanic=unwind", "-Cllvm-args=-wasm-use-legacy-eh=false"]',
+          )
+
+          path.write_text(s)
+          PY
+
+          echo "=== unwind config diff ==="
+          diff -u config.llvm.toml config.llvm.unwind.toml || true
+
+      - name: build install unwind
+        working-directory: '${{ github.workspace }}/rust'
+        env:
+          RUST_CONFIGURE_ARGS: "-W warnings"
+          RUSTFLAGS: "-W warnings -Cpanic=unwind -Cllvm-args=-wasm-use-legacy-eh=false"
+        run: |
+          ./x.py install --config config.llvm.unwind.toml
+
+          rm -rf dist-unwind
+          cp -a dist dist-unwind
 
       - name: cache build directory
         uses: actions/cache/save@v4
@@ -144,26 +204,42 @@ jobs:
           mkdir -p bin-artifacts/dist/bin
           mkdir -p bin-artifacts/dist/lib
 
-          # prepare files from rust build
+          # === abort/default rustc.wasm ===
           cd ${{ github.workspace }}/rust
-          tar -I "gzip -9" -cvf ${{ github.workspace }}/rust_wasm/bin-artifacts/dist/bin/rustc.wasm.tar.gz dist/bin/rustc.wasm
+          mv dist-abort/bin/rustc.wasm dist-abort/bin/rustc.wasm.tmp
+          mkdir -p dist/bin
+          mv dist-abort/bin/rustc.wasm.tmp dist/bin/rustc.wasm
+          tar -I "gzip -9" -cvf \
+            ${{ github.workspace }}/rust_wasm/bin-artifacts/dist/bin/rustc.wasm.tar.gz \
+            dist/bin/rustc.wasm
+          mv dist/bin/rustc.wasm dist-abort/bin/rustc.wasm
           
-          # optimize wasm
           cp -r ${{ github.workspace }}/rust_wasm/config_rewriter /tmp/config_rewriter
           cd /tmp/config_rewriter
-          cargo run --bin wasm_optimizer -- ${{ github.workspace }}/rust/dist/bin/rustc.wasm
+          cargo run --bin wasm_optimizer -- ${{ github.workspace }}/rust/dist-abort/bin/rustc.wasm
           mv opt.wasm ${{ github.workspace }}/rust_wasm/bin-artifacts/rustc_opt.wasm
           
           cd ${{ github.workspace }}/rust_wasm/bin-artifacts
           tar -I "gzip -9" -cvf rustc_opt.wasm.tar.gz rustc_opt.wasm
           rm rustc_opt.wasm
 
-          # copy other tools
+          # === unwind rustc_unwind.wasm ===
+          cd /tmp/config_rewriter
+          cargo run --bin wasm_optimizer -- ${{ github.workspace }}/rust/dist-unwind/bin/rustc.wasm
+          mv opt.wasm ${{ github.workspace }}/rust_wasm/bin-artifacts/rustc_unwind_opt.wasm
+
+          cd ${{ github.workspace }}/rust_wasm/bin-artifacts
+          cp ${{ github.workspace }}/rust/dist-unwind/bin/rustc.wasm rustc_unwind.wasm
+          tar -I "gzip -9" -cvf rustc_unwind.wasm.tar.gz rustc_unwind.wasm
+          tar -I "gzip -9" -cvf rustc_unwind_opt.wasm.tar.gz rustc_unwind_opt.wasm
+          rm rustc_unwind.wasm rustc_unwind_opt.wasm
+
+          # copy other tools/libs from abort/default dist
           cd ${{ github.workspace }}/rust
-          cp dist/bin/rust-gdb ${{ github.workspace }}/rust_wasm/bin-artifacts/dist/bin/
-          cp dist/bin/rust-gdbgui ${{ github.workspace }}/rust_wasm/bin-artifacts/dist/bin/
-          cp dist/bin/rust-lldb ${{ github.workspace }}/rust_wasm/bin-artifacts/dist/bin/
-          cp -r dist/lib/* ${{ github.workspace }}/rust_wasm/bin-artifacts/dist/lib/
+          cp dist-abort/bin/rust-gdb ${{ github.workspace }}/rust_wasm/bin-artifacts/dist/bin/
+          cp dist-abort/bin/rust-gdbgui ${{ github.workspace }}/rust_wasm/bin-artifacts/dist/bin/
+          cp dist-abort/bin/rust-lldb ${{ github.workspace }}/rust_wasm/bin-artifacts/dist/bin/
+          cp -r dist-abort/lib/* ${{ github.workspace }}/rust_wasm/bin-artifacts/dist/lib/
 
           # Archive into a single file
           cd ${{ github.workspace }}/rust_wasm

@@ -6,7 +6,7 @@ on:
       version:
         description: 'version of the toolchain to build'
         required: true
-        default: 'v0.2.0'
+        default: 'v0.2.1'
 
 permissions:
   contents: write
@@ -155,6 +155,19 @@ jobs:
             brotli -q 11 -o "${{ github.workspace }}/x-tools/rustc_opt.wasm.br" rustc_opt.wasm
             cd ..
             rm -rf unpack
+
+            cp rustc_unwind.wasm.tar.gz "${{ github.workspace }}/x-tools/rustc_unwind.wasm.tar.gz" || true
+            cp rustc_unwind_opt.wasm.tar.gz "${{ github.workspace }}/x-tools/rustc_unwind_opt.wasm.tar.gz" || true
+            
+            if [ -f "rustc_unwind_opt.wasm.tar.gz" ]; then
+              mkdir unpack-unwind
+              cd unpack-unwind
+              tar -xzf ../rustc_unwind_opt.wasm.tar.gz
+              brotli -q 11 -o "${{ github.workspace }}/x-tools/rustc_unwind_opt.wasm.br" rustc_unwind_opt.wasm
+              cd ..
+              rm -rf unpack-unwind
+            fi
+
             echo "rustc bins done"
           fi
 
