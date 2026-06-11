@@ -21,7 +21,11 @@ permissions:
   contents: write
 
 jobs:
-  install:
+  # ============================================================
+  # install-abort: Build the default (panic=abort) rustc.wasm
+  # Runs in parallel with install-unwind (~3.5h each)
+  # ============================================================
+  install-abort:
     runs-on: ubuntu-latest
     if: ${{ github.event.inputs.job == 'install' || github.event.inputs.job == '' }}
     steps:
@@ -120,9 +124,115 @@ jobs:
           RUSTFLAGS: "-W warnings"
         run: |
           ./x.py install --config config.llvm.toml
+
+      - name: cache build directory
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ github.workspace }}/rust/build
+          key: build-dir-${{ runner.os }}-compile_rustc_for_wasm17
+
+      - name: prepare abort artifacts
+        working-directory: '${{ github.workspace }}/rust'
+        run: |
+          # Archive the full dist/ directory (rustc.wasm, rust-gdb, rust-lldb, libs, etc.)
+          tar -cf ${{ github.workspace }}/dist-abort.tar -C dist .
+          echo "=== dist-abort artifact ==="
+          ls -lh ${{ github.workspace }}/dist-abort.tar
+
+      - name: upload abort artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-abort
+          path: ${{ github.workspace }}/dist-abort.tar
+          if-no-files-found: error
+
+  # ============================================================
+  # install-unwind: Build the unwind (panic=unwind) rustc.wasm
+  # Runs in parallel with install-abort (~3.5h each)
+  # ============================================================
+  install-unwind:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.job == 'install' || github.event.inputs.job == '' }}
+    steps:
+      - name: copy source
+        uses: actions/checkout@v4
+        with:
+          repository: 'oligamiq/rust' # patch
+          submodules: 'true'
+          ref: 'compile_rustc_for_wasm17'
+          path: 'rust'
+
+      - name: checkout
+        run: |
+          cd rust
+          git fetch origin compile_rustc_for_wasm16_cargo --depth 40
+          git checkout cf327c2068549194a29160499c2ecafa9061e46e
+
+      - uses: actions/checkout@v4
+        with:
+          path: 'rust_wasm'
+          ref: 'gh-actions'
+
+      - name: install-wasi-sdk
+        working-directory: '${{ github.workspace }}/rust'
+        shell: bash
+        run: |
+          curl -OL https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-24/wasi-sdk-24.0-x86_64-linux.tar.gz
+          tar -xzf wasi-sdk-24.0-x86_64-linux.tar.gz
+          rm wasi-sdk-24.0-x86_64-linux.tar.gz
+          mv wasi-sdk-24.0-* wasi-sdk
+          chmod -R 755 wasi-sdk
+          echo "WASI_SDK_PATH=${{ github.workspace }}/rust/wasi-sdk" >> $GITHUB_ENV
+          echo "WASI_SYSROOT=${{ github.workspace }}/rust/wasi-sdk/share/wasi-sysroot" >> $GITHUB_ENV
+
+      - name: free space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: true
+
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: false
+
+      - name: install rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - name: update
+        run: |
+          sudo apt-get update
+          sudo apt upgrade -y
+          sudo apt install -y build-essential cmake pkg-config libclang-dev
+
+      - name: install toolchain-for-building-rustc
+        working-directory: '${{ github.workspace }}/rust'
+        shell: bash
+        env:
+          RUST_CONFIGURE_ARGS: "-W warnings"
+          RUSTFLAGS: "-W warnings"
+        run: |
+          cargo install --git https://github.com/oligamiq/toolchain-for-building-rustc
+          toolchain-for-building-rustc --tier all --os linux --os windows --os mac -f config.llvm.toml --only-llvm
           
-          rm -rf dist-abort
-          cp -a dist dist-abort
+          # Convert workspace path to forward slashes for TOML compatibility
+          WS_FORWARD=$(echo "${{ github.workspace }}" | tr '\\' '/')
+          
+          # Global fix: replace ALL backslashes with forward slashes in the config file to avoid TOML escape character errors
+          sed 's|\\|/|g' config.llvm.toml > config.llvm.toml.tmp
+          mv config.llvm.toml.tmp config.llvm.toml
+
+          echo "=== config.llvm.toml before patching ==="
+          grep wasi config.llvm.toml || true
+          # Aggressively patch config to use absolute path and standardized folder name
+          sed "s|wasi-root = .*|wasi-root = \"${WS_FORWARD}/rust/wasi-sdk/share/wasi-sysroot\"|g" config.llvm.toml > config.llvm.toml.tmp
+          mv config.llvm.toml.tmp config.llvm.toml
+          # Fallback for any other occurrences
+          sed "s|wasi-sdk-24\.0-[^/\"]*|${WS_FORWARD}/rust/wasi-sdk|g" config.llvm.toml > config.llvm.toml.tmp
+          mv config.llvm.toml.tmp config.llvm.toml
+          echo "=== config.llvm.toml after patching ==="
+          grep wasi config.llvm.toml || true
 
       - name: create unwind config
         working-directory: '${{ github.workspace }}/rust'
@@ -155,7 +265,6 @@ jobs:
 
               return src[:m.start(2)] + body + src[m.end(2):]
 
-          s = set_in_table(s, "build", "build-dir", '"build-unwind"')
           s = set_in_table(s, "rust", "std-features", '["panic_unwind"]')
           
           # Only apply to wasm targets
@@ -187,18 +296,61 @@ jobs:
         run: |
           ./x.py install --config config.llvm.unwind.toml
 
-          rm -rf dist-unwind
-          cp -a dist dist-unwind
+      - name: prepare unwind artifacts
+        working-directory: '${{ github.workspace }}/rust'
+        run: |
+          # Archive only what we need from the unwind dist (just rustc.wasm)
+          tar -cf ${{ github.workspace }}/dist-unwind.tar -C dist .
+          echo "=== dist-unwind artifact ==="
+          ls -lh ${{ github.workspace }}/dist-unwind.tar
 
-      - name: cache build directory
-        uses: actions/cache/save@v4
+      - name: upload unwind artifacts
+        uses: actions/upload-artifact@v4
         with:
-          path: ${{ github.workspace }}/rust/build
-          key: build-dir-${{ runner.os }}-compile_rustc_for_wasm17
+          name: dist-unwind
+          path: ${{ github.workspace }}/dist-unwind.tar
+          if-no-files-found: error
 
-      - name: Configure git to trust the workspace despite the different owner
-        run:
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+  # ============================================================
+  # merge-bins: Combine abort + unwind artifacts, run wasm-opt,
+  # and produce the final rustc-bins artifact.
+  # Runs after both install jobs complete (~15min)
+  # ============================================================
+  merge-bins:
+    runs-on: ubuntu-latest
+    needs: [install-abort, install-unwind]
+    if: ${{ github.event.inputs.job == 'install' || github.event.inputs.job == '' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: 'rust_wasm'
+          ref: 'gh-actions'
+
+      - name: install rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - name: download abort artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-abort
+          path: ${{ github.workspace }}
+
+      - name: download unwind artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-unwind
+          path: ${{ github.workspace }}
+
+      - name: extract artifacts
+        run: |
+          mkdir -p ${{ github.workspace }}/dist-abort
+          tar -xf ${{ github.workspace }}/dist-abort.tar -C ${{ github.workspace }}/dist-abort
+          mkdir -p ${{ github.workspace }}/dist-unwind
+          tar -xf ${{ github.workspace }}/dist-unwind.tar -C ${{ github.workspace }}/dist-unwind
+          echo "=== abort dist contents ==="
+          ls -lh ${{ github.workspace }}/dist-abort/bin/ || true
+          echo "=== unwind dist contents ==="
+          ls -lh ${{ github.workspace }}/dist-unwind/bin/ || true
 
       - name: install wasm-opt
         run: |
@@ -210,22 +362,23 @@ jobs:
       - name: prepare bin artifacts
         working-directory: '${{ github.workspace }}/rust_wasm'
         run: |
+          DIST_ABORT=${{ github.workspace }}/dist-abort
+          DIST_UNWIND=${{ github.workspace }}/dist-unwind
+
           mkdir -p bin-artifacts/dist/bin
           mkdir -p bin-artifacts/dist/lib
 
           # === abort/default rustc.wasm ===
-          cd ${{ github.workspace }}/rust
-          mv dist-abort/bin/rustc.wasm dist-abort/bin/rustc.wasm.tmp
           mkdir -p dist/bin
-          mv dist-abort/bin/rustc.wasm.tmp dist/bin/rustc.wasm
+          cp $DIST_ABORT/bin/rustc.wasm dist/bin/rustc.wasm
           tar -I "gzip -9" -cvf \
-            ${{ github.workspace }}/rust_wasm/bin-artifacts/dist/bin/rustc.wasm.tar.gz \
+            bin-artifacts/dist/bin/rustc.wasm.tar.gz \
             dist/bin/rustc.wasm
-          mv dist/bin/rustc.wasm dist-abort/bin/rustc.wasm
-          
-          cp -r ${{ github.workspace }}/rust_wasm/config_rewriter /tmp/config_rewriter
+          rm -rf dist
+
+          cp -r config_rewriter /tmp/config_rewriter
           cd /tmp/config_rewriter
-          cargo run --bin wasm_optimizer -- ${{ github.workspace }}/rust/dist-abort/bin/rustc.wasm
+          cargo run --bin wasm_optimizer -- $DIST_ABORT/bin/rustc.wasm
           mv opt.wasm ${{ github.workspace }}/rust_wasm/bin-artifacts/rustc_opt.wasm
           
           cd ${{ github.workspace }}/rust_wasm/bin-artifacts
@@ -234,21 +387,20 @@ jobs:
 
           # === unwind rustc_unwind.wasm ===
           cd /tmp/config_rewriter
-          cargo run --bin wasm_optimizer -- ${{ github.workspace }}/rust/dist-unwind/bin/rustc.wasm
+          cargo run --bin wasm_optimizer -- $DIST_UNWIND/bin/rustc.wasm
           mv opt.wasm ${{ github.workspace }}/rust_wasm/bin-artifacts/rustc_unwind_opt.wasm
 
           cd ${{ github.workspace }}/rust_wasm/bin-artifacts
-          cp ${{ github.workspace }}/rust/dist-unwind/bin/rustc.wasm rustc_unwind.wasm
+          cp $DIST_UNWIND/bin/rustc.wasm rustc_unwind.wasm
           tar -I "gzip -9" -cvf rustc_unwind.wasm.tar.gz rustc_unwind.wasm
           tar -I "gzip -9" -cvf rustc_unwind_opt.wasm.tar.gz rustc_unwind_opt.wasm
           rm rustc_unwind.wasm rustc_unwind_opt.wasm
 
           # copy other tools/libs from abort/default dist
-          cd ${{ github.workspace }}/rust
-          cp dist-abort/bin/rust-gdb ${{ github.workspace }}/rust_wasm/bin-artifacts/dist/bin/
-          cp dist-abort/bin/rust-gdbgui ${{ github.workspace }}/rust_wasm/bin-artifacts/dist/bin/
-          cp dist-abort/bin/rust-lldb ${{ github.workspace }}/rust_wasm/bin-artifacts/dist/bin/
-          cp -r dist-abort/lib/* ${{ github.workspace }}/rust_wasm/bin-artifacts/dist/lib/
+          cp $DIST_ABORT/bin/rust-gdb bin-artifacts/dist/bin/
+          cp $DIST_ABORT/bin/rust-gdbgui bin-artifacts/dist/bin/
+          cp $DIST_ABORT/bin/rust-lldb bin-artifacts/dist/bin/
+          cp -r $DIST_ABORT/lib/* bin-artifacts/dist/lib/
 
           # Archive into a single file
           cd ${{ github.workspace }}/rust_wasm
