@@ -157,12 +157,21 @@ jobs:
 
           s = set_in_table(s, "build", "build-dir", '"build-unwind"')
           s = set_in_table(s, "rust", "std-features", '["panic_unwind"]')
-          s = set_in_table(
-              s,
-              "rust",
-              "rustflags",
-              '["-Cpanic=unwind", "-Cllvm-args=-wasm-use-legacy-eh=false"]',
-          )
+          
+          # Only apply to wasm targets
+          wasm_targets = [
+              "wasm32-wasip1",
+              "wasm32-wasip1-threads",
+              "wasm32-unknown-emscripten",
+              "wasm32-unknown-unknown"
+          ]
+          for t in wasm_targets:
+              s = set_in_table(
+                  s,
+                  f"target.{t}",
+                  "rustflags",
+                  '["-Cpanic=unwind", "-Cllvm-args=-wasm-use-legacy-eh=false"]'
+              )
 
           path.write_text(s)
           PY
@@ -174,7 +183,7 @@ jobs:
         working-directory: '${{ github.workspace }}/rust'
         env:
           RUST_CONFIGURE_ARGS: "-W warnings"
-          RUSTFLAGS: "-W warnings -Cpanic=unwind -Cllvm-args=-wasm-use-legacy-eh=false"
+          RUSTFLAGS: "-W warnings"
         run: |
           ./x.py install --config config.llvm.unwind.toml
 
