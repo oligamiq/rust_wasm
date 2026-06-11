@@ -131,41 +131,41 @@ jobs:
           cp config.llvm.toml config.llvm.unwind.toml
 
           python3 - <<'PY'
-          from pathlib import Path
-          import re
+from pathlib import Path
+import re
 
-          path = Path("config.llvm.unwind.toml")
-          s = path.read_text()
+path = Path("config.llvm.unwind.toml")
+s = path.read_text()
 
-          def set_in_table(src: str, table: str, key: str, value: str) -> str:
-              pat = rf"(?ms)^(\[{re.escape(table)}\]\n)(.*?)(?=^\[|\Z)"
-              m = re.search(pat, src)
-              line = f"{key} = {value}\n"
+def set_in_table(src: str, table: str, key: str, value: str) -> str:
+    pat = rf"(?ms)^(\[{re.escape(table)}\]\n)(.*?)(?=^\[|\Z)"
+    m = re.search(pat, src)
+    line = f"{key} = {value}\n"
 
-              if not m:
-                  return src.rstrip() + f"\n\n[{table}]\n{line}"
+    if not m:
+        return src.rstrip() + f"\n\n[{table}]\n{line}"
 
-              body = m.group(2)
-              key_pat = rf"(?m)^{re.escape(key)}\s*=.*$"
+    body = m.group(2)
+    key_pat = rf"(?m)^{re.escape(key)}\s*=.*$"
 
-              if re.search(key_pat, body):
-                  body = re.sub(key_pat, line.rstrip(), body)
-              else:
-                  body += line
+    if re.search(key_pat, body):
+        body = re.sub(key_pat, line.rstrip(), body)
+    else:
+        body += line
 
-              return src[:m.start(2)] + body + src[m.end(2):]
+    return src[:m.start(2)] + body + src[m.end(2):]
 
-          s = set_in_table(s, "build", "build-dir", '"build-unwind"')
-          s = set_in_table(s, "rust", "std-features", '["panic_unwind"]')
-          s = set_in_table(
-              s,
-              "rust",
-              "rustflags",
-              '["-Cpanic=unwind", "-Cllvm-args=-wasm-use-legacy-eh=false"]',
-          )
+s = set_in_table(s, "build", "build-dir", '"build-unwind"')
+s = set_in_table(s, "rust", "std-features", '["panic_unwind"]')
+s = set_in_table(
+    s,
+    "rust",
+    "rustflags",
+    '["-Cpanic=unwind", "-Cllvm-args=-wasm-use-legacy-eh=false"]',
+)
 
-          path.write_text(s)
-          PY
+path.write_text(s)
+PY
 
           echo "=== unwind config diff ==="
           diff -u config.llvm.toml config.llvm.unwind.toml || true
