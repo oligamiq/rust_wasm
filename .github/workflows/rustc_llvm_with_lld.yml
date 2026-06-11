@@ -248,7 +248,13 @@ jobs:
           s = path.read_text()
 
           def set_in_table(src: str, table: str, key: str, value: str) -> str:
-              pat = rf"(?ms)^(\[{re.escape(table)}\]\n)(.*?)(?=^\[|\Z)"
+              if "." in table:
+                  p1, p2 = table.split(".", 1)
+                  table_pat = rf"{re.escape(p1)}\.['\"]?{re.escape(p2)}['\"]?"
+              else:
+                  table_pat = re.escape(table)
+
+              pat = rf"(?ms)^(\[{table_pat}\]\n)(.*?)(?=^\[|\Z)"
               m = re.search(pat, src)
               line = f"{key} = {value}\n"
 
