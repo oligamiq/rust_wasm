@@ -313,7 +313,7 @@ jobs:
 
           # === abort/default rustc_minimal.wasm ===
           mkdir -p dist/bin
-          cp $DIST_ABORT/bin/rustc_minimal.wasm dist/bin/rustc_minimal.wasm
+          cp $DIST_ABORT/bin/rustc.wasm dist/bin/rustc_minimal.wasm
           tar -I "gzip -9" -cvf \
             bin-artifacts/dist/bin/rustc_minimal.wasm.tar.gz \
             dist/bin/rustc_minimal.wasm
@@ -321,7 +321,7 @@ jobs:
 
           cp -r config_rewriter /tmp/config_rewriter
           cd /tmp/config_rewriter
-          cargo run --bin wasm_optimizer -- $DIST_ABORT/bin/rustc_minimal.wasm
+          cargo run --bin wasm_optimizer -- $DIST_ABORT/bin/rustc.wasm
           mv opt.wasm ${{ github.workspace }}/rust_wasm/bin-artifacts/rustc_minimal_opt.wasm
           
           cd ${{ github.workspace }}/rust_wasm/bin-artifacts
@@ -330,11 +330,11 @@ jobs:
 
           # === unwind rustc_minimal_unwind.wasm ===
           cd /tmp/config_rewriter
-          cargo run --bin wasm_optimizer -- $DIST_UNWIND/bin/rustc_minimal.wasm
+          cargo run --bin wasm_optimizer -- $DIST_UNWIND/bin/rustc.wasm
           mv opt.wasm ${{ github.workspace }}/rust_wasm/bin-artifacts/rustc_minimal_unwind_opt.wasm
 
           cd ${{ github.workspace }}/rust_wasm/bin-artifacts
-          cp $DIST_UNWIND/bin/rustc_minimal.wasm rustc_minimal_unwind.wasm
+          cp $DIST_UNWIND/bin/rustc.wasm rustc_minimal_unwind.wasm
           tar -I "gzip -9" -cvf rustc_minimal_unwind.wasm.tar.gz rustc_minimal_unwind.wasm
           tar -I "gzip -9" -cvf rustc_minimal_unwind_opt.wasm.tar.gz rustc_minimal_unwind_opt.wasm
           rm rustc_minimal_unwind.wasm rustc_minimal_unwind_opt.wasm
