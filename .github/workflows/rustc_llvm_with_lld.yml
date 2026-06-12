@@ -342,6 +342,8 @@ jobs:
           tar -I "gzip -9" -cvf rustc_unwind_opt.wasm.tar.gz rustc_unwind_opt.wasm
           rm rustc_unwind.wasm rustc_unwind_opt.wasm
 
+          cd ${{ github.workspace }}/rust_wasm
+
           # copy other tools/libs from abort/default dist
           cp $DIST_ABORT/bin/rust-gdb bin-artifacts/dist/bin/
           cp $DIST_ABORT/bin/rust-gdbgui bin-artifacts/dist/bin/
