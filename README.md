@@ -39,16 +39,23 @@ Once all builds (LLVM and Rust for each OS) are successful, create a release.
    - Uploads them directly to the **GitHub Releases** page.
 
 ### 🌐 Hosting & Download URLs
-- Assets from GitHub Releases are automatically deployed and hosted on Cloudflare Pages.
-- **Base URL**: `https://rustwasm0.pages.dev/`
+- Assets from GitHub Releases are automatically deployed and hosted on both **Cloudflare Pages** and **GitHub Pages**.
+- **Cloudflare Pages Base URL**: `https://rustwasm0.pages.dev/`
+- **GitHub Pages Base URL**: `https://oligamiq.github.io/rust_wasm/`
 - **Path Format**: `/<version>/<filename>` (where `<version>` is the tag name without the `-release` suffix).
 
 **Download Examples (for `v3.0.0`)**:
-- Linux dist: `https://rustwasm0.pages.dev/v3.0.0/x86_64-unknown-linux-gnu.tar.gz`
-- Rust source: `https://rustwasm0.pages.dev/v3.0.0/rust-src.tar.gz`
-- Brotli compressed LLVM binaries: `https://rustwasm0.pages.dev/v3.0.0/llvm_opt.wasm.br`
+- Linux dist: 
+  - Cloudflare: `https://rustwasm0.pages.dev/v3.0.0/x86_64-unknown-linux-gnu.tar.gz`
+  - GitHub Pages: `https://oligamiq.github.io/rust_wasm/v3.0.0/x86_64-unknown-linux-gnu.tar.gz`
+- Rust source: 
+  - Cloudflare: `https://rustwasm0.pages.dev/v3.0.0/rust-src.tar.gz`
+  - GitHub Pages: `https://oligamiq.github.io/rust_wasm/v3.0.0/rust-src.tar.gz`
+- Brotli compressed LLVM binaries: 
+  - Cloudflare: `https://rustwasm0.pages.dev/v3.0.0/llvm_opt.wasm.br`
+  - GitHub Pages: `https://oligamiq.github.io/rust_wasm/v3.0.0/llvm_opt.wasm.br`
 
-*Note: To bypass file size limits, files larger than 20MB are automatically split (`.part00`, `.part01`...). Use the included `split_manifest.json` (e.g., `https://rustwasm0.pages.dev/v3.0.0/split_manifest.json`) to restore the original files.*
+*Note: On Cloudflare Pages, files larger than 20MB are automatically split (`.part00`, `.part01`...) to bypass file size limits. Use the included `split_manifest.json` (e.g., `https://rustwasm0.pages.dev/v3.0.0/split_manifest.json`) to restore the original files. GitHub Pages hosts the complete, undivided files.*
 
 ## About `rustc_unwind.wasm`
 
