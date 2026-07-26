@@ -93,8 +93,19 @@ jobs:
             
             # Package rust-src
             if [ -d "src" ]; then
-              tar --ignore-failed-read -czf "${{ github.workspace }}/x-tools/rust-src.tar.gz" src
-              tar --ignore-failed-read -I "brotli -q 11" -cf "${{ github.workspace }}/x-tools/rust-src.tar.br" src
+              echo "Replacing broken symlink with actual source code..."
+              rm -rf src
+              mkdir -p src/rust
+              git clone --depth 1 -b compile_rustc_for_wasm17 https://github.com/oligamiq/rust /tmp/rust-clone
+              cp -r /tmp/rust-clone/library src/rust/
+              cp -r /tmp/rust-clone/src src/rust/
+              cp -r /tmp/rust-clone/compiler src/rust/
+              cp /tmp/rust-clone/Cargo.lock src/rust/ || true
+              cp /tmp/rust-clone/Cargo.toml src/rust/ || true
+              rm -rf /tmp/rust-clone
+
+              tar -czf "${{ github.workspace }}/x-tools/rust-src.tar.gz" src
+              tar -I "brotli -q 11" -cf "${{ github.workspace }}/x-tools/rust-src.tar.br" src
               echo "rust-src done"
             fi
 
