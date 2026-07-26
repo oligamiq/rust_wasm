@@ -119,45 +119,54 @@ jobs:
               fi
 
               # Package target-specific libs
+              export WORKSPACE="${{ github.workspace }}"
               for target in *; do
                 if [ -d "$target" ] && [ "$target" != "src" ] && [ "$target" != "rustc-src" ]; then
-                  cd "${target}/lib"
-                  tar --ignore-failed-read -chzf "${{ github.workspace }}/x-tools/${target}.tar.gz" *
-                  tar --ignore-failed-read -h -I "brotli -q 11" -cf "${{ github.workspace }}/x-tools/${target}.tar.br" *
-                  echo "${target} done"
-                  cd ../..
+                  echo "$target"
                 fi
-              done
+              done | xargs -I {} -P 4 bash -c '
+                target="{}"
+                cd "${target}/lib" || exit 1
+                tar --ignore-failed-read -chzf "${WORKSPACE}/x-tools/${target}.tar.gz" *
+                tar --ignore-failed-read -h -I "brotli -q 11" -cf "${WORKSPACE}/x-tools/${target}.tar.br" *
+                echo "${target} done"
+              '
             fi
           fi
 
           if [ "${{ matrix.task }}" = "windows" ]; then
             if [ -d "${{ github.workspace }}/artifacts/dist-windows" ]; then
               cd "${{ github.workspace }}/artifacts/dist-windows/dist/lib/rustlib"
+              export WORKSPACE="${{ github.workspace }}"
               for target in *; do
                 if [ -d "$target" ] && [ "$target" != "src" ] && [ "$target" != "rustc-src" ]; then
-                  cd "${target}/lib"
-                  tar --ignore-failed-read -chzf "${{ github.workspace }}/x-tools/${target}.tar.gz" *
-                  tar --ignore-failed-read -h -I "brotli -q 11" -cf "${{ github.workspace }}/x-tools/${target}.tar.br" *
-                  echo "${target} done"
-                  cd ../..
+                  echo "$target"
                 fi
-              done
+              done | xargs -I {} -P 4 bash -c '
+                target="{}"
+                cd "${target}/lib" || exit 1
+                tar --ignore-failed-read -chzf "${WORKSPACE}/x-tools/${target}.tar.gz" *
+                tar --ignore-failed-read -h -I "brotli -q 11" -cf "${WORKSPACE}/x-tools/${target}.tar.br" *
+                echo "${target} done"
+              '
             fi
           fi
 
           if [ "${{ matrix.task }}" = "macos" ]; then
             if [ -d "${{ github.workspace }}/artifacts/dist-macos" ]; then
               cd "${{ github.workspace }}/artifacts/dist-macos/dist/lib/rustlib"
+              export WORKSPACE="${{ github.workspace }}"
               for target in *; do
                 if [ -d "$target" ] && [ "$target" != "src" ] && [ "$target" != "rustc-src" ]; then
-                  cd "${target}/lib"
-                  tar --ignore-failed-read -chzf "${{ github.workspace }}/x-tools/${target}.tar.gz" *
-                  tar --ignore-failed-read -h -I "brotli -q 11" -cf "${{ github.workspace }}/x-tools/${target}.tar.br" *
-                  echo "${target} done"
-                  cd ../..
+                  echo "$target"
                 fi
-              done
+              done | xargs -I {} -P 4 bash -c '
+                target="{}"
+                cd "${target}/lib" || exit 1
+                tar --ignore-failed-read -chzf "${WORKSPACE}/x-tools/${target}.tar.gz" *
+                tar --ignore-failed-read -h -I "brotli -q 11" -cf "${WORKSPACE}/x-tools/${target}.tar.br" *
+                echo "${target} done"
+              '
             fi
           fi
 
