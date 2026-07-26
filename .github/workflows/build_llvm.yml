@@ -110,7 +110,7 @@ jobs:
             file "$WASM_FILE" || true
             
             # Use --force-local for safety (though this is Linux)
-            tar --force-local -I "gzip -9" -cvf ${{ github.workspace }}/rust_wasm/llvm-artifacts/dist/llvm_raw.wasm.tar.gz "$WASM_FILE"
+            tar --force-local -h -I "gzip -9" -cvf ${{ github.workspace }}/rust_wasm/llvm-artifacts/dist/llvm_raw.wasm.tar.gz "$WASM_FILE"
             
             # optimize wasm
             cp -r ${{ github.workspace }}/rust_wasm/config_rewriter /tmp/config_rewriter
@@ -119,7 +119,7 @@ jobs:
             mv opt.wasm ${{ github.workspace }}/rust_wasm/llvm-artifacts/llvm_opt.wasm
             
             cd ${{ github.workspace }}/rust_wasm/llvm-artifacts
-            tar --force-local -I "brotli -q 11" -cf llvm_opt.wasm.br llvm_opt.wasm
+            tar --force-local -h -I "brotli -q 11" -cf llvm_opt.wasm.br llvm_opt.wasm
             rm llvm_opt.wasm
           else
             echo "ERROR: Could not locate LLVM binary (llvm-driver, clang, or any .wasm file)"
@@ -134,7 +134,7 @@ jobs:
           
           # Archive into a single file
           cd ${{ github.workspace }}/rust_wasm
-          tar --force-local -cf ${{ github.workspace }}/rust_wasm/llvm-bins.tar -C llvm-artifacts .
+          tar --force-local -chf ${{ github.workspace }}/rust_wasm/llvm-bins.tar -C llvm-artifacts .
           echo "=== Artifact status ==="
           ls -lh ${{ github.workspace }}/rust_wasm/llvm-bins.tar
           rm -rf llvm-artifacts

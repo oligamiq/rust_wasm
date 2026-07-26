@@ -132,7 +132,7 @@ jobs:
         working-directory: '${{ github.workspace }}/rust'
         run: |
           # Archive the full dist/ directory (rustc_minimal.wasm, rust-gdb, rust-lldb, libs, etc.)
-          tar -cf ${{ github.workspace }}/minimal-dist-abort.tar -C dist .
+          tar -chf ${{ github.workspace }}/minimal-dist-abort.tar -C dist .
           echo "=== minimal-dist-abort artifact ==="
           ls -lh ${{ github.workspace }}/minimal-dist-abort.tar
 
@@ -243,7 +243,7 @@ jobs:
         working-directory: '${{ github.workspace }}/rust'
         run: |
           # Archive only what we need from the unwind dist (just rustc_minimal.wasm)
-          tar -cf ${{ github.workspace }}/minimal-dist-unwind.tar -C dist .
+          tar -chf ${{ github.workspace }}/minimal-dist-unwind.tar -C dist .
           echo "=== minimal-dist-unwind artifact ==="
           ls -lh ${{ github.workspace }}/minimal-dist-unwind.tar
 
@@ -314,7 +314,7 @@ jobs:
           # === abort/default rustc_minimal.wasm ===
           mkdir -p dist/bin
           cp $DIST_ABORT/bin/rustc.wasm dist/bin/rustc_minimal.wasm
-          tar -I "gzip -9" -cvf \
+          tar -h -I "gzip -9" -cvf \
             bin-artifacts/dist/bin/rustc_minimal.wasm.tar.gz \
             dist/bin/rustc_minimal.wasm
           rm -rf dist
@@ -325,7 +325,7 @@ jobs:
           mv opt.wasm ${{ github.workspace }}/rust_wasm/bin-artifacts/rustc_minimal_opt.wasm
           
           cd ${{ github.workspace }}/rust_wasm/bin-artifacts
-          tar -I "gzip -9" -cvf rustc_minimal_opt.wasm.tar.gz rustc_minimal_opt.wasm
+          tar -h -I "gzip -9" -cvf rustc_minimal_opt.wasm.tar.gz rustc_minimal_opt.wasm
           rm rustc_minimal_opt.wasm
 
           # === unwind rustc_minimal_unwind.wasm ===
@@ -335,8 +335,8 @@ jobs:
 
           cd ${{ github.workspace }}/rust_wasm/bin-artifacts
           cp $DIST_UNWIND/bin/rustc.wasm rustc_minimal_unwind.wasm
-          tar -I "gzip -9" -cvf rustc_minimal_unwind.wasm.tar.gz rustc_minimal_unwind.wasm
-          tar -I "gzip -9" -cvf rustc_minimal_unwind_opt.wasm.tar.gz rustc_minimal_unwind_opt.wasm
+          tar -h -I "gzip -9" -cvf rustc_minimal_unwind.wasm.tar.gz rustc_minimal_unwind.wasm
+          tar -h -I "gzip -9" -cvf rustc_minimal_unwind_opt.wasm.tar.gz rustc_minimal_unwind_opt.wasm
           rm rustc_minimal_unwind.wasm rustc_minimal_unwind_opt.wasm
 
           cd ${{ github.workspace }}/rust_wasm
@@ -349,7 +349,7 @@ jobs:
 
           # Archive into a single file
           cd ${{ github.workspace }}/rust_wasm
-          tar --force-local -cf ${{ github.workspace }}/rust_wasm/rustc-minimal-bins.tar -C bin-artifacts .
+          tar --force-local -chf ${{ github.workspace }}/rust_wasm/rustc-minimal-bins.tar -C bin-artifacts .
           echo "=== Artifact status ==="
           ls -lh ${{ github.workspace }}/rust_wasm/rustc-minimal-bins.tar
           rm -rf bin-artifacts

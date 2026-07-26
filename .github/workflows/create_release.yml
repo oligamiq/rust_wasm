@@ -93,15 +93,15 @@ jobs:
             
             # Package rust-src
             if [ -d "src" ]; then
-              tar -czf "${{ github.workspace }}/x-tools/rust-src.tar.gz" src
-              tar -I "brotli -q 11" -cf "${{ github.workspace }}/x-tools/rust-src.tar.br" src
+              tar -chzf "${{ github.workspace }}/x-tools/rust-src.tar.gz" src
+              tar -h -I "brotli -q 11" -cf "${{ github.workspace }}/x-tools/rust-src.tar.br" src
               echo "rust-src done"
             fi
 
             # Package rustc-src
             if [ -d "rustc-src" ]; then
-              tar -czf "${{ github.workspace }}/x-tools/rustc-src.tar.gz" rustc-src
-              tar -I "brotli -q 11" -cf "${{ github.workspace }}/x-tools/rustc-src.tar.br" rustc-src
+              tar -chzf "${{ github.workspace }}/x-tools/rustc-src.tar.gz" rustc-src
+              tar -h -I "brotli -q 11" -cf "${{ github.workspace }}/x-tools/rustc-src.tar.br" rustc-src
               echo "rustc-src done"
             fi
 
@@ -109,8 +109,8 @@ jobs:
             for target in *; do
               if [ -d "$target" ] && [ "$target" != "src" ] && [ "$target" != "rustc-src" ]; then
                 cd "${target}/lib"
-                tar -czf "${{ github.workspace }}/x-tools/${target}.tar.gz" *
-                tar -I "brotli -q 11" -cf "${{ github.workspace }}/x-tools/${target}.tar.br" *
+                tar -chzf "${{ github.workspace }}/x-tools/${target}.tar.gz" *
+                tar -h -I "brotli -q 11" -cf "${{ github.workspace }}/x-tools/${target}.tar.br" *
                 echo "${target} done"
                 cd ../..
               fi
@@ -123,8 +123,8 @@ jobs:
             for target in *; do
               if [ -d "$target" ] && [ "$target" != "src" ] && [ "$target" != "rustc-src" ]; then
                 cd "${target}/lib"
-                tar -czf "${{ github.workspace }}/x-tools/${target}.tar.gz" *
-                tar -I "brotli -q 11" -cf "${{ github.workspace }}/x-tools/${target}.tar.br" *
+                tar -chzf "${{ github.workspace }}/x-tools/${target}.tar.gz" *
+                tar -h -I "brotli -q 11" -cf "${{ github.workspace }}/x-tools/${target}.tar.br" *
                 echo "${target} done"
                 cd ../..
               fi
@@ -137,8 +137,8 @@ jobs:
             for target in *; do
               if [ -d "$target" ] && [ "$target" != "src" ] && [ "$target" != "rustc-src" ]; then
                 cd "${target}/lib"
-                tar -czf "${{ github.workspace }}/x-tools/${target}.tar.gz" *
-                tar -I "brotli -q 11" -cf "${{ github.workspace }}/x-tools/${target}.tar.br" *
+                tar -chzf "${{ github.workspace }}/x-tools/${target}.tar.gz" *
+                tar -h -I "brotli -q 11" -cf "${{ github.workspace }}/x-tools/${target}.tar.br" *
                 echo "${target} done"
                 cd ../..
               fi

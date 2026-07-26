@@ -135,7 +135,7 @@ jobs:
         working-directory: '${{ github.workspace }}/rust'
         run: |
           # Archive the full dist/ directory (rustc.wasm, rust-gdb, rust-lldb, libs, etc.)
-          tar -cf ${{ github.workspace }}/dist-abort.tar -C dist .
+          tar -chf ${{ github.workspace }}/dist-abort.tar -C dist .
           echo "=== dist-abort artifact ==="
           ls -lh ${{ github.workspace }}/dist-abort.tar
 
@@ -246,7 +246,7 @@ jobs:
         working-directory: '${{ github.workspace }}/rust'
         run: |
           # Archive only what we need from the unwind dist (just rustc.wasm)
-          tar -cf ${{ github.workspace }}/dist-unwind.tar -C dist .
+          tar -chf ${{ github.workspace }}/dist-unwind.tar -C dist .
           echo "=== dist-unwind artifact ==="
           ls -lh ${{ github.workspace }}/dist-unwind.tar
 
@@ -317,7 +317,7 @@ jobs:
           # === abort/default rustc.wasm ===
           mkdir -p dist/bin
           cp $DIST_ABORT/bin/rustc.wasm dist/bin/rustc.wasm
-          tar -I "gzip -9" -cvf \
+          tar -h -I "gzip -9" -cvf \
             bin-artifacts/dist/bin/rustc.wasm.tar.gz \
             dist/bin/rustc.wasm
           rm -rf dist
@@ -328,7 +328,7 @@ jobs:
           mv opt.wasm ${{ github.workspace }}/rust_wasm/bin-artifacts/rustc_opt.wasm
           
           cd ${{ github.workspace }}/rust_wasm/bin-artifacts
-          tar -I "gzip -9" -cvf rustc_opt.wasm.tar.gz rustc_opt.wasm
+          tar -h -I "gzip -9" -cvf rustc_opt.wasm.tar.gz rustc_opt.wasm
           rm rustc_opt.wasm
 
           # === unwind rustc_unwind.wasm ===
@@ -338,8 +338,8 @@ jobs:
 
           cd ${{ github.workspace }}/rust_wasm/bin-artifacts
           cp $DIST_UNWIND/bin/rustc.wasm rustc_unwind.wasm
-          tar -I "gzip -9" -cvf rustc_unwind.wasm.tar.gz rustc_unwind.wasm
-          tar -I "gzip -9" -cvf rustc_unwind_opt.wasm.tar.gz rustc_unwind_opt.wasm
+          tar -h -I "gzip -9" -cvf rustc_unwind.wasm.tar.gz rustc_unwind.wasm
+          tar -h -I "gzip -9" -cvf rustc_unwind_opt.wasm.tar.gz rustc_unwind_opt.wasm
           rm rustc_unwind.wasm rustc_unwind_opt.wasm
 
           cd ${{ github.workspace }}/rust_wasm
@@ -352,7 +352,7 @@ jobs:
 
           # Archive into a single file
           cd ${{ github.workspace }}/rust_wasm
-          tar --force-local -cf ${{ github.workspace }}/rust_wasm/rustc-bins.tar -C bin-artifacts .
+          tar --force-local -chf ${{ github.workspace }}/rust_wasm/rustc-bins.tar -C bin-artifacts .
           echo "=== Artifact status ==="
           ls -lh ${{ github.workspace }}/rust_wasm/rustc-bins.tar
           rm -rf bin-artifacts
@@ -615,7 +615,7 @@ jobs:
           mv ../rust/dist dist-artifacts/dist
           rm -rf dist-artifacts/dist/bin
           # Archive into a single file to avoid API limits (800k+ files is too many)
-          tar -cf ${{ github.workspace }}/rust_wasm/dist-linux.tar -C dist-artifacts .
+          tar -chf ${{ github.workspace }}/rust_wasm/dist-linux.tar -C dist-artifacts .
           echo "=== Artifact status ==="
           ls -lh ${{ github.workspace }}/rust_wasm/dist-linux.tar
           du -sh dist-artifacts
@@ -743,7 +743,7 @@ jobs:
           mv ../rust/dist dist-artifacts/dist
           rm -rf dist-artifacts/dist/bin
           # Archive into a single file
-          tar -cf ${{ github.workspace }}/rust_wasm/dist-macos.tar -C dist-artifacts .
+          tar -chf ${{ github.workspace }}/rust_wasm/dist-macos.tar -C dist-artifacts .
           echo "=== Artifact status ==="
           ls -lh ${{ github.workspace }}/rust_wasm/dist-macos.tar
           du -sh dist-artifacts
@@ -892,7 +892,7 @@ jobs:
           rm -rf dist-artifacts/dist/bin
           # Archive into a single file (tar is available in Git Bash on Windows)
           # Use --force-local to avoid interpreting the drive colon as a remote host
-          tar --force-local -cf "${WS_FORWARD}/rust_wasm/dist-windows.tar" -C dist-artifacts .
+          tar --force-local -chf "${WS_FORWARD}/rust_wasm/dist-windows.tar" -C dist-artifacts .
           echo "=== Artifact status ==="
           ls -lh "${WS_FORWARD}/rust_wasm/dist-windows.tar"
           rm -rf dist-artifacts
