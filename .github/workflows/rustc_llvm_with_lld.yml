@@ -11,10 +11,10 @@ on:
         required: true
         type: choice
         options:
-          - install
-          - dist-linux
-          - dist-macos
-          - dist-windows
+        - install
+        - dist-linux
+        - dist-macos
+        - dist-windows
 
 permissions:
   packages: write
@@ -27,88 +27,90 @@ jobs:
   # ============================================================
   install-abort:
     runs-on: ubuntu-latest
-    if: ${{ github.event.inputs.job == 'install' || github.event.inputs.job == '' }}
+    if: ${{ github.event.inputs.job == 'install' || github.event.inputs.job == 
+      '' }}
     steps:
-      - name: copy source
-        uses: actions/checkout@v4
-        with:
+    - name: copy source
+      uses: actions/checkout@v4
+      with:
           # repository: 'bjorn3/rust'
-          repository: 'oligamiq/rust' # patch
-          submodules: 'true'
-          ref: 'compile_rustc_for_wasm17'
-          path: 'rust'
+        repository: 'oligamiq/rust'   # patch
+        submodules: 'true'
+        ref: 'cf327c2068549194a29160499c2ecafa9061e46e'
+        path: 'rust'
 
-      - name: checkout
-        run: |
-          cd rust
-          git fetch origin compile_rustc_for_wasm16_cargo --depth 40
-          git checkout cf327c2068549194a29160499c2ecafa9061e46e
+        fetch-depth: 0
+    - uses: actions/checkout@v4
+      with:
+        path: 'rust_wasm'
+        ref: 'gh-actions'
 
-      - uses: actions/checkout@v4
-        with:
-          path: 'rust_wasm'
-          ref: 'gh-actions'
+        fetch-depth: 0
+    - name: setup sccache
+      uses: mozilla-actions/sccache-action@v0.0.7
+    - name: install-wasi-sdk
+      working-directory: '${{ github.workspace }}/rust'
+      shell: bash
+      run: |
+        curl -OL https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-24/wasi-sdk-24.0-x86_64-linux.tar.gz
+        tar -xzf wasi-sdk-24.0-x86_64-linux.tar.gz
+        rm wasi-sdk-24.0-x86_64-linux.tar.gz
+        mv wasi-sdk-24.0-* wasi-sdk
+        chmod -R 755 wasi-sdk
+        echo "WASI_SDK_PATH=${{ github.workspace }}/rust/wasi-sdk" >> $GITHUB_ENV
+        echo "WASI_SYSROOT=${{ github.workspace }}/rust/wasi-sdk/share/wasi-sysroot" >> $GITHUB_ENV
 
-      - name: install-wasi-sdk
-        working-directory: '${{ github.workspace }}/rust'
-        shell: bash
-        run: |
-          curl -OL https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-24/wasi-sdk-24.0-x86_64-linux.tar.gz
-          tar -xzf wasi-sdk-24.0-x86_64-linux.tar.gz
-          rm wasi-sdk-24.0-x86_64-linux.tar.gz
-          mv wasi-sdk-24.0-* wasi-sdk
-          chmod -R 755 wasi-sdk
-          echo "WASI_SDK_PATH=${{ github.workspace }}/rust/wasi-sdk" >> $GITHUB_ENV
-          echo "WASI_SYSROOT=${{ github.workspace }}/rust/wasi-sdk/share/wasi-sysroot" >> $GITHUB_ENV
+    - name: free space
+      uses: jlumbroso/free-disk-space@main
+      with:
+        tool-cache: true
 
-      - name: free space
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: true
+        android: true
+        dotnet: true
+        haskell: true
+        large-packages: true
+        docker-images: true
+        swap-storage: false
 
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: false
+    - name: install rust
+      uses: actions-rust-lang/setup-rust-toolchain@v1
 
-      - name: install rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
+    - name: update
+      run: |
+        sudo apt-get update
+        sudo apt upgrade -y
+        sudo apt install -y build-essential cmake pkg-config libclang-dev
 
-      - name: update
-        run: |
-          sudo apt-get update
-          sudo apt upgrade -y
-          sudo apt install -y build-essential cmake pkg-config libclang-dev
+    - name: install toolchain-for-building-rustc
+      working-directory: '${{ github.workspace }}/rust'
+      shell: bash
+      env:
+        RUST_CONFIGURE_ARGS: "-W warnings"
+        RUSTFLAGS: "-W warnings"
+      run: |
+        cargo install --git https://github.com/oligamiq/toolchain-for-building-rustc
+        toolchain-for-building-rustc --tier all --os linux --os windows --os mac -f config.llvm.toml --only-llvm
 
-      - name: install toolchain-for-building-rustc
-        working-directory: '${{ github.workspace }}/rust'
-        shell: bash
-        env:
-          RUST_CONFIGURE_ARGS: "-W warnings"
-          RUSTFLAGS: "-W warnings"
-        run: |
-          cargo install --git https://github.com/oligamiq/toolchain-for-building-rustc
-          toolchain-for-building-rustc --tier all --os linux --os windows --os mac -f config.llvm.toml --only-llvm
-          
-          # Convert workspace path to forward slashes for TOML compatibility
-          WS_FORWARD=$(echo "${{ github.workspace }}" | tr '\\' '/')
-          
-          # Global fix: replace ALL backslashes with forward slashes in the config file to avoid TOML escape character errors
-          sed 's|\\|/|g' config.llvm.toml > config.llvm.toml.tmp
-          mv config.llvm.toml.tmp config.llvm.toml
+        # Convert workspace path to forward slashes for TOML compatibility
+        WS_FORWARD=$(echo "${{ github.workspace }}" | tr '\\' '/')
 
-          echo "=== config.llvm.toml before patching ==="
-          grep wasi config.llvm.toml || true
-          # Aggressively patch config to use absolute path and standardized folder name
-          sed "s|wasi-root = .*|wasi-root = \"${WS_FORWARD}/rust/wasi-sdk/share/wasi-sysroot\"|g" config.llvm.toml > config.llvm.toml.tmp
-          mv config.llvm.toml.tmp config.llvm.toml
-          # Fallback for any other occurrences
-          sed "s|wasi-sdk-24\.0-[^/\"]*|${WS_FORWARD}/rust/wasi-sdk|g" config.llvm.toml > config.llvm.toml.tmp
-          mv config.llvm.toml.tmp config.llvm.toml
-          echo "=== config.llvm.toml after patching ==="
-          grep wasi config.llvm.toml || true
+        # Global fix: replace ALL backslashes with forward slashes in the config file to avoid TOML escape character errors
+        sed 's|\\|/|g' config.llvm.toml > config.llvm.toml.tmp
+        mv config.llvm.toml.tmp config.llvm.toml
+
+        echo "=== config.llvm.toml before patching ==="
+        grep wasi config.llvm.toml || true
+        # Aggressively patch config to use absolute path and standardized folder name
+        sed "s|wasi-root = .*|wasi-root = \"${WS_FORWARD}/rust/wasi-sdk/share/wasi-sysroot\"|g" config.llvm.toml > config.llvm.toml.tmp
+        mv config.llvm.toml.tmp config.llvm.toml
+        # Fallback for any other occurrences
+        sed "s|wasi-sdk-24\.0-[^/\"]*|${WS_FORWARD}/rust/wasi-sdk|g" config.llvm.toml > config.llvm.toml.tmp
+        mv config.llvm.toml.tmp config.llvm.toml
+        echo "=== config.llvm.toml after patching ==="
+        grep wasi config.llvm.toml || true
+                  echo "" >> config.llvm.toml
+                  echo "[rust]" >> config.llvm.toml
+                  echo "ccache = \"sccache\"" >> config.llvm.toml
 
       # - name: rewrite
       #   run: |
@@ -117,34 +119,31 @@ jobs:
       #     cargo clean
       #     echo "rewrite done"
 
-      - name: build install
-        working-directory: '${{ github.workspace }}/rust'
-        env:
-          RUST_CONFIGURE_ARGS: "-W warnings"
-          RUSTFLAGS: "-W warnings"
-        run: |
-          ./x.py install --config config.llvm.toml
+    - name: build install
+      working-directory: '${{ github.workspace }}/rust'
+      env:
+        RUST_CONFIGURE_ARGS: "-W warnings"
+        RUSTFLAGS: "-W warnings"
+        SCCACHE_GHA_ENABLED: 'true'
+        RUSTC_WRAPPER: sccache
+      run: |
+        ./x.py install --config config.llvm.toml
+                  sccache --show-stats
 
-      - name: cache build directory
-        uses: actions/cache/save@v4
-        with:
-          path: ${{ github.workspace }}/rust/build
-          key: build-dir-${{ runner.os }}-compile_rustc_for_wasm17
+    - name: prepare abort artifacts
+      working-directory: '${{ github.workspace }}/rust'
+      run: |
+        # Archive the full dist/ directory (rustc.wasm, rust-gdb, rust-lldb, libs, etc.)
+        tar -chf ${{ github.workspace }}/dist-abort.tar -C dist .
+        echo "=== dist-abort artifact ==="
+        ls -lh ${{ github.workspace }}/dist-abort.tar
 
-      - name: prepare abort artifacts
-        working-directory: '${{ github.workspace }}/rust'
-        run: |
-          # Archive the full dist/ directory (rustc.wasm, rust-gdb, rust-lldb, libs, etc.)
-          tar -chf ${{ github.workspace }}/dist-abort.tar -C dist .
-          echo "=== dist-abort artifact ==="
-          ls -lh ${{ github.workspace }}/dist-abort.tar
-
-      - name: upload abort artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: dist-abort
-          path: ${{ github.workspace }}/dist-abort.tar
-          if-no-files-found: error
+    - name: upload abort artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: dist-abort
+        path: ${{ github.workspace }}/dist-abort.tar
+        if-no-files-found: error
 
   # ============================================================
   # install-unwind: Build the unwind (panic=unwind) rustc.wasm
@@ -152,357 +151,259 @@ jobs:
   # ============================================================
   install-unwind:
     runs-on: ubuntu-latest
-    if: ${{ github.event.inputs.job == 'install' || github.event.inputs.job == '' }}
+    if: ${{ github.event.inputs.job == 'install' || github.event.inputs.job == 
+      '' }}
     steps:
-      - name: copy source
-        uses: actions/checkout@v4
-        with:
-          repository: 'oligamiq/rust' # patch
-          submodules: 'true'
-          ref: 'compile_rustc_for_wasm17'
-          path: 'rust'
+    - name: copy source
+      uses: actions/checkout@v4
+      with:
+        repository: 'oligamiq/rust'   # patch
+        submodules: 'true'
+        ref: 'cf327c2068549194a29160499c2ecafa9061e46e'
+        path: 'rust'
 
-      - name: checkout
-        run: |
-          cd rust
-          git fetch origin compile_rustc_for_wasm16_cargo --depth 40
-          git checkout cf327c2068549194a29160499c2ecafa9061e46e
+        fetch-depth: 0
+    - uses: actions/checkout@v4
+      with:
+        path: 'rust_wasm'
+        ref: 'gh-actions'
 
-      - uses: actions/checkout@v4
-        with:
-          path: 'rust_wasm'
-          ref: 'gh-actions'
+        fetch-depth: 0
+    - name: setup sccache
+      uses: mozilla-actions/sccache-action@v0.0.7
+    - name: install-wasi-sdk
+      working-directory: '${{ github.workspace }}/rust'
+      shell: bash
+      run: |
+        curl -OL https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-24/wasi-sdk-24.0-x86_64-linux.tar.gz
+        tar -xzf wasi-sdk-24.0-x86_64-linux.tar.gz
+        rm wasi-sdk-24.0-x86_64-linux.tar.gz
+        mv wasi-sdk-24.0-* wasi-sdk
+        chmod -R 755 wasi-sdk
+        echo "WASI_SDK_PATH=${{ github.workspace }}/rust/wasi-sdk" >> $GITHUB_ENV
+        echo "WASI_SYSROOT=${{ github.workspace }}/rust/wasi-sdk/share/wasi-sysroot" >> $GITHUB_ENV
 
-      - name: install-wasi-sdk
-        working-directory: '${{ github.workspace }}/rust'
-        shell: bash
-        run: |
-          curl -OL https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-24/wasi-sdk-24.0-x86_64-linux.tar.gz
-          tar -xzf wasi-sdk-24.0-x86_64-linux.tar.gz
-          rm wasi-sdk-24.0-x86_64-linux.tar.gz
-          mv wasi-sdk-24.0-* wasi-sdk
-          chmod -R 755 wasi-sdk
-          echo "WASI_SDK_PATH=${{ github.workspace }}/rust/wasi-sdk" >> $GITHUB_ENV
-          echo "WASI_SYSROOT=${{ github.workspace }}/rust/wasi-sdk/share/wasi-sysroot" >> $GITHUB_ENV
+    - name: free space
+      uses: jlumbroso/free-disk-space@main
+      with:
+        tool-cache: true
 
-      - name: free space
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: true
+        android: true
+        dotnet: true
+        haskell: true
+        large-packages: true
+        docker-images: true
+        swap-storage: false
 
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: false
+    - name: install rust
+      uses: actions-rust-lang/setup-rust-toolchain@v1
 
-      - name: install rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
+    - name: update
+      run: |
+        sudo apt-get update
+        sudo apt upgrade -y
+        sudo apt install -y build-essential cmake pkg-config libclang-dev
 
-      - name: update
-        run: |
-          sudo apt-get update
-          sudo apt upgrade -y
-          sudo apt install -y build-essential cmake pkg-config libclang-dev
+    - name: install toolchain-for-building-rustc
+      working-directory: '${{ github.workspace }}/rust'
+      shell: bash
+      env:
+        RUST_CONFIGURE_ARGS: "-W warnings"
+        RUSTFLAGS: "-W warnings"
+      run: |
+        cargo install --git https://github.com/oligamiq/toolchain-for-building-rustc
+        toolchain-for-building-rustc --tier all --os linux --os windows --os mac -f config.llvm.toml --only-llvm
 
-      - name: install toolchain-for-building-rustc
-        working-directory: '${{ github.workspace }}/rust'
-        shell: bash
-        env:
-          RUST_CONFIGURE_ARGS: "-W warnings"
-          RUSTFLAGS: "-W warnings"
-        run: |
-          cargo install --git https://github.com/oligamiq/toolchain-for-building-rustc
-          toolchain-for-building-rustc --tier all --os linux --os windows --os mac -f config.llvm.toml --only-llvm
-          
-          # Convert workspace path to forward slashes for TOML compatibility
-          WS_FORWARD=$(echo "${{ github.workspace }}" | tr '\\' '/')
-          
-          # Global fix: replace ALL backslashes with forward slashes in the config file to avoid TOML escape character errors
-          sed 's|\\|/|g' config.llvm.toml > config.llvm.toml.tmp
-          mv config.llvm.toml.tmp config.llvm.toml
+        # Convert workspace path to forward slashes for TOML compatibility
+        WS_FORWARD=$(echo "${{ github.workspace }}" | tr '\\' '/')
 
-          echo "=== config.llvm.toml before patching ==="
-          grep wasi config.llvm.toml || true
-          # Aggressively patch config to use absolute path and standardized folder name
-          sed "s|wasi-root = .*|wasi-root = \"${WS_FORWARD}/rust/wasi-sdk/share/wasi-sysroot\"|g" config.llvm.toml > config.llvm.toml.tmp
-          mv config.llvm.toml.tmp config.llvm.toml
-          # Fallback for any other occurrences
-          sed "s|wasi-sdk-24\.0-[^/\"]*|${WS_FORWARD}/rust/wasi-sdk|g" config.llvm.toml > config.llvm.toml.tmp
-          mv config.llvm.toml.tmp config.llvm.toml
-          echo "=== config.llvm.toml after patching ==="
-          grep wasi config.llvm.toml || true
+        # Global fix: replace ALL backslashes with forward slashes in the config file to avoid TOML escape character errors
+        sed 's|\\|/|g' config.llvm.toml > config.llvm.toml.tmp
+        mv config.llvm.toml.tmp config.llvm.toml
 
-      - name: build install unwind
-        working-directory: '${{ github.workspace }}/rust'
-        env:
-          RUST_CONFIGURE_ARGS: "-W warnings"
-          RUSTFLAGS: "-Cpanic=unwind -W warnings"
-        run: |
-          ./x.py install --config config.llvm.toml
+        echo "=== config.llvm.toml before patching ==="
+        grep wasi config.llvm.toml || true
+        # Aggressively patch config to use absolute path and standardized folder name
+        sed "s|wasi-root = .*|wasi-root = \"${WS_FORWARD}/rust/wasi-sdk/share/wasi-sysroot\"|g" config.llvm.toml > config.llvm.toml.tmp
+        mv config.llvm.toml.tmp config.llvm.toml
+        # Fallback for any other occurrences
+        sed "s|wasi-sdk-24\.0-[^/\"]*|${WS_FORWARD}/rust/wasi-sdk|g" config.llvm.toml > config.llvm.toml.tmp
+        mv config.llvm.toml.tmp config.llvm.toml
+        echo "=== config.llvm.toml after patching ==="
+        grep wasi config.llvm.toml || true
+                  echo "" >> config.llvm.toml
+                  echo "[rust]" >> config.llvm.toml
+                  echo "ccache = \"sccache\"" >> config.llvm.toml
 
-      - name: prepare unwind artifacts
-        working-directory: '${{ github.workspace }}/rust'
-        run: |
-          # Archive only what we need from the unwind dist (just rustc.wasm)
-          tar -chf ${{ github.workspace }}/dist-unwind.tar -C dist .
-          echo "=== dist-unwind artifact ==="
-          ls -lh ${{ github.workspace }}/dist-unwind.tar
+    - name: build install unwind
+      working-directory: '${{ github.workspace }}/rust'
+      env:
+        RUST_CONFIGURE_ARGS: "-W warnings"
+        RUSTFLAGS: "-Cpanic=unwind -W warnings"
+        SCCACHE_GHA_ENABLED: 'true'
+        RUSTC_WRAPPER: sccache
+      run: |
+        ./x.py install --config config.llvm.toml
+                  sccache --show-stats
 
-      - name: upload unwind artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: dist-unwind
-          path: ${{ github.workspace }}/dist-unwind.tar
-          if-no-files-found: error
+    - name: prepare unwind artifacts
+      working-directory: '${{ github.workspace }}/rust'
+      run: |
+        # Archive only what we need from the unwind dist (just rustc.wasm)
+        tar -chf ${{ github.workspace }}/dist-unwind.tar -C dist .
+        echo "=== dist-unwind artifact ==="
+        ls -lh ${{ github.workspace }}/dist-unwind.tar
+
+    - name: upload unwind artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: dist-unwind
+        path: ${{ github.workspace }}/dist-unwind.tar
+        if-no-files-found: error
 
   # ============================================================
   # merge-bins: Combine abort + unwind artifacts, run wasm-opt,
   # and produce the final rustc-bins artifact.
   # Runs after both install jobs complete (~15min)
   # ============================================================
-  merge-bins:
-    runs-on: ubuntu-latest
-    needs: [install-abort, install-unwind]
-    if: ${{ github.event.inputs.job == 'install' || github.event.inputs.job == '' }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          path: 'rust_wasm'
-          ref: 'gh-actions'
-
-      - name: install rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
-
-      - name: download abort artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: dist-abort
-          path: ${{ github.workspace }}
-
-      - name: download unwind artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: dist-unwind
-          path: ${{ github.workspace }}
-
-      - name: extract artifacts
-        run: |
-          mkdir -p ${{ github.workspace }}/dist-abort
-          tar -xf ${{ github.workspace }}/dist-abort.tar -C ${{ github.workspace }}/dist-abort
-          mkdir -p ${{ github.workspace }}/dist-unwind
-          tar -xf ${{ github.workspace }}/dist-unwind.tar -C ${{ github.workspace }}/dist-unwind
-          echo "=== abort dist contents ==="
-          ls -lh ${{ github.workspace }}/dist-abort/bin/ || true
-          echo "=== unwind dist contents ==="
-          ls -lh ${{ github.workspace }}/dist-unwind/bin/ || true
-
-      - name: install wasm-opt
-        run: |
-          curl -OL https://github.com/WebAssembly/binaryen/releases/download/version_119/binaryen-version_119-x86_64-linux.tar.gz
-          tar -xzf binaryen-version_119-x86_64-linux.tar.gz
-          sudo cp binaryen-version_119/bin/wasm-opt /usr/local/bin/wasm-opt
-          rm -rf binaryen-version_119-x86_64-linux.tar.gz binaryen-version_119
-
-      - name: prepare bin artifacts
-        working-directory: '${{ github.workspace }}/rust_wasm'
-        run: |
-          DIST_ABORT=${{ github.workspace }}/dist-abort
-          DIST_UNWIND=${{ github.workspace }}/dist-unwind
-
-          mkdir -p bin-artifacts/dist/bin
-          mkdir -p bin-artifacts/dist/lib
-
-          # === abort/default rustc.wasm ===
-          mkdir -p dist/bin
-          cp $DIST_ABORT/bin/rustc.wasm dist/bin/rustc.wasm
-          tar -h -I "gzip -9" -cvf \
-            bin-artifacts/dist/bin/rustc.wasm.tar.gz \
-            dist/bin/rustc.wasm
-          rm -rf dist
-
-          cp -r config_rewriter /tmp/config_rewriter
-          cd /tmp/config_rewriter
-          cargo run --bin wasm_optimizer -- $DIST_ABORT/bin/rustc.wasm
-          mv opt.wasm ${{ github.workspace }}/rust_wasm/bin-artifacts/rustc_opt.wasm
-          
-          cd ${{ github.workspace }}/rust_wasm/bin-artifacts
-          tar -h -I "gzip -9" -cvf rustc_opt.wasm.tar.gz rustc_opt.wasm
-          rm rustc_opt.wasm
-
-          # === unwind rustc_unwind.wasm ===
-          cd /tmp/config_rewriter
-          cargo run --bin wasm_optimizer -- $DIST_UNWIND/bin/rustc.wasm
-          mv opt.wasm ${{ github.workspace }}/rust_wasm/bin-artifacts/rustc_unwind_opt.wasm
-
-          cd ${{ github.workspace }}/rust_wasm/bin-artifacts
-          cp $DIST_UNWIND/bin/rustc.wasm rustc_unwind.wasm
-          tar -h -I "gzip -9" -cvf rustc_unwind.wasm.tar.gz rustc_unwind.wasm
-          tar -h -I "gzip -9" -cvf rustc_unwind_opt.wasm.tar.gz rustc_unwind_opt.wasm
-          rm rustc_unwind.wasm rustc_unwind_opt.wasm
-
-          cd ${{ github.workspace }}/rust_wasm
-
-          # copy other tools/libs from abort/default dist
-          cp $DIST_ABORT/bin/rust-gdb bin-artifacts/dist/bin/
-          cp $DIST_ABORT/bin/rust-gdbgui bin-artifacts/dist/bin/
-          cp $DIST_ABORT/bin/rust-lldb bin-artifacts/dist/bin/
-          cp -r $DIST_ABORT/lib/* bin-artifacts/dist/lib/
-
-          # Archive into a single file
-          cd ${{ github.workspace }}/rust_wasm
-          tar --force-local -chf ${{ github.workspace }}/rust_wasm/rustc-bins.tar -C bin-artifacts .
-          echo "=== Artifact status ==="
-          ls -lh ${{ github.workspace }}/rust_wasm/rustc-bins.tar
-          rm -rf bin-artifacts
-
-      - name: upload bin artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: rustc-bins
-          path: ${{ github.workspace }}/rust_wasm/rustc-bins.tar
-          if-no-files-found: error
-
   dist-linux:
     # strategy:
     #   matrix:
     #     WebAssembly: [true, false]
 
     runs-on: ubuntu-latest
-    if: ${{ github.event.inputs.job == 'dist-linux' || github.event.inputs.job == '' }}
+    if: ${{ github.event.inputs.job == 'dist-linux' || github.event.inputs.job 
+      == '' }}
     env:
       CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
     steps:
-      - name: copy source
-        uses: actions/checkout@v4
-        with:
+    - name: copy source
+      uses: actions/checkout@v4
+      with:
           # repository: 'bjorn3/rust'
-          repository: 'oligamiq/rust' # patch
-          submodules: 'true'
-          ref: 'compile_rustc_for_wasm17'
-          path: 'rust'
+        repository: 'oligamiq/rust'   # patch
+        submodules: 'true'
+        ref: 'cf327c2068549194a29160499c2ecafa9061e46e'
+        path: 'rust'
 
-      - name: checkout
-        run: |
-          cd rust
-          git fetch origin compile_rustc_for_wasm16_cargo --depth 40
-          git checkout cf327c2068549194a29160499c2ecafa9061e46e
-
-      - uses: actions/checkout@v4
-        with:
-          path: 'rust_wasm'
-          ref: 'main'
+        fetch-depth: 0
+    - uses: actions/checkout@v4
+      with:
+        path: 'rust_wasm'
+        ref: 'main'
 
 
-      - name: rustbuild setup
-        run: |
-          sudo groupadd -r rustbuild && sudo useradd -m -r -g rustbuild rustbuild
-          sudo mkdir -p /x-tools && sudo chown rustbuild:rustbuild /x-tools
-          sudo chmod 777 /x-tools
-          sudo mkdir -p /tmp && sudo chown rustbuild:rustbuild /tmp
-          sudo chmod 777 /tmp
-          sudo chmod 777 /usr/local/lib/
-          sudo chmod 777 /usr/local/bin/
-          sudo chmod 777 /usr/local/
-          sudo chmod 777 /usr/bin/
-          sudo chmod 777 /
-          sudo chmod 777 /lib
-          sudo chmod 777 /etc
-          echo '/usr/local/bin/' >> $GITHUB_PATH
+        fetch-depth: 0
+    - name: setup sccache
+      uses: mozilla-actions/sccache-action@v0.0.7
+    - name: rustbuild setup
+      run: |
+        sudo groupadd -r rustbuild && sudo useradd -m -r -g rustbuild rustbuild
+        sudo mkdir -p /x-tools && sudo chown rustbuild:rustbuild /x-tools
+        sudo chmod 777 /x-tools
+        sudo mkdir -p /tmp && sudo chown rustbuild:rustbuild /tmp
+        sudo chmod 777 /tmp
+        sudo chmod 777 /usr/local/lib/
+        sudo chmod 777 /usr/local/bin/
+        sudo chmod 777 /usr/local/
+        sudo chmod 777 /usr/bin/
+        sudo chmod 777 /
+        sudo chmod 777 /lib
+        sudo chmod 777 /etc
+        echo '/usr/local/bin/' >> $GITHUB_PATH
 
-      - name: install-wasi-sdk
-        working-directory: '${{ github.workspace }}/rust'
-        shell: bash
-        run: |
-          curl -OL https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-24/wasi-sdk-24.0-x86_64-linux.tar.gz
-          tar -xzf wasi-sdk-24.0-x86_64-linux.tar.gz
-          rm wasi-sdk-24.0-x86_64-linux.tar.gz
-          mv wasi-sdk-24.0-* wasi-sdk
-          chmod -R 755 wasi-sdk
-          echo "WASI_SDK_PATH=${{ github.workspace }}/rust/wasi-sdk" >> $GITHUB_ENV
-          echo "WASI_SYSROOT=${{ github.workspace }}/rust/wasi-sdk/share/wasi-sysroot" >> $GITHUB_ENV
+    - name: install-wasi-sdk
+      working-directory: '${{ github.workspace }}/rust'
+      shell: bash
+      run: |
+        curl -OL https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-24/wasi-sdk-24.0-x86_64-linux.tar.gz
+        tar -xzf wasi-sdk-24.0-x86_64-linux.tar.gz
+        rm wasi-sdk-24.0-x86_64-linux.tar.gz
+        mv wasi-sdk-24.0-* wasi-sdk
+        chmod -R 755 wasi-sdk
+        echo "WASI_SDK_PATH=${{ github.workspace }}/rust/wasi-sdk" >> $GITHUB_ENV
+        echo "WASI_SYSROOT=${{ github.workspace }}/rust/wasi-sdk/share/wasi-sysroot" >> $GITHUB_ENV
 
-      - name: free space
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: true
+    - name: free space
+      uses: jlumbroso/free-disk-space@main
+      with:
+        tool-cache: true
 
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: false
+        android: true
+        dotnet: true
+        haskell: true
+        large-packages: true
+        docker-images: true
+        swap-storage: false
 
-      - name: install rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
+    - name: install rust
+      uses: actions-rust-lang/setup-rust-toolchain@v1
 
-      - name: update
-        run: |
-          sudo apt-get update
-          sudo apt upgrade -y
-          sudo apt install -y build-essential cmake pkg-config libclang-dev
-          # install mingw for windows
-          sudo apt install -y mingw-w64
+    - name: update
+      run: |
+        sudo apt-get update
+        sudo apt upgrade -y
+        sudo apt install -y build-essential cmake pkg-config libclang-dev
+        # install mingw for windows
+        sudo apt install -y mingw-w64
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
+    - name: Set up JDK 17
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
 
-      - name: install ndk
-        uses: nttld/setup-ndk@v1
-        id: setup-ndk
-        with:
-          ndk-version: r27c
-          link-to-sdk: true
-          local-cache: false
+    - name: install ndk
+      uses: nttld/setup-ndk@v1
+      id: setup-ndk
+      with:
+        ndk-version: r27c
+        link-to-sdk: true
+        local-cache: false
 
-      - name: install ndk path
-        run: |
-          ls -l ${{ steps.setup-ndk.outputs.ndk-path }}
-          mkdir -p ${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins
-          sudo ln -sf '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android35-clang' '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/aarch64-linux-android-clang'
-          sudo ln -sf '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/i686-linux-android35-clang' '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/i686-linux-android-clang'
-          sudo ln -sf '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi35-clang' '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/arm-linux-androideabi-clang'
-          sudo ln -sf '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/riscv64-linux-android35-clang' '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/riscv64-linux-android-clang'
-          sudo ln -sf '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android35-clang' '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/x86_64-linux-android-clang'
-          sudo ln -sf '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/clang' '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/clang'
-          sudo ln -sf '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android35-clang' '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/aarch64-linux-android-clang++'
-          sudo ln -sf '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/i686-linux-android35-clang++' '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/i686-linux-android-clang++'
-          sudo ln -sf '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi35-clang++' '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/arm-linux-androideabi-clang++'
-          sudo ln -sf '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/riscv64-linux-android35-clang++' '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/riscv64-linux-android-clang++'
-          sudo ln -sf '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android35-clang++' '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/x86_64-linux-android-clang++'
-          sudo ln -sf '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/clang++' '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/clang++'
-          sudo ln -sf '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar' '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/llvm-ar'
+    - name: install ndk path
+      run: |
+        ls -l ${{ steps.setup-ndk.outputs.ndk-path }}
+        mkdir -p ${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins
+        sudo ln -sf '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android35-clang' '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/aarch64-linux-android-clang'
+        sudo ln -sf '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/i686-linux-android35-clang' '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/i686-linux-android-clang'
+        sudo ln -sf '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi35-clang' '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/arm-linux-androideabi-clang'
+        sudo ln -sf '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/riscv64-linux-android35-clang' '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/riscv64-linux-android-clang'
+        sudo ln -sf '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android35-clang' '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/x86_64-linux-android-clang'
+        sudo ln -sf '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/clang' '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/clang'
+        sudo ln -sf '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android35-clang' '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/aarch64-linux-android-clang++'
+        sudo ln -sf '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/i686-linux-android35-clang++' '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/i686-linux-android-clang++'
+        sudo ln -sf '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi35-clang++' '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/arm-linux-androideabi-clang++'
+        sudo ln -sf '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/riscv64-linux-android35-clang++' '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/riscv64-linux-android-clang++'
+        sudo ln -sf '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android35-clang++' '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/x86_64-linux-android-clang++'
+        sudo ln -sf '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/clang++' '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/clang++'
+        sudo ln -sf '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar' '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/llvm-ar'
 
-          sudo chmod +x '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/aarch64-linux-android-clang'
-          sudo chmod +x '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/i686-linux-android-clang'
-          sudo chmod +x '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/arm-linux-androideabi-clang'
-          sudo chmod +x '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/riscv64-linux-android-clang'
-          sudo chmod +x '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/x86_64-linux-android-clang'
-          sudo chmod +x '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/aarch64-linux-android-clang++'
-          sudo chmod +x '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/i686-linux-android-clang++'
-          sudo chmod +x '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/arm-linux-androideabi-clang++'
-          sudo chmod +x '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/riscv64-linux-android-clang++'
-          sudo chmod +x '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/x86_64-linux-android-clang++'
-          sudo chmod +x '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/clang'
-          sudo chmod +x '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/clang++'
-          sudo chmod +x '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/llvm-ar'
+        sudo chmod +x '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/aarch64-linux-android-clang'
+        sudo chmod +x '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/i686-linux-android-clang'
+        sudo chmod +x '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/arm-linux-androideabi-clang'
+        sudo chmod +x '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/riscv64-linux-android-clang'
+        sudo chmod +x '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/x86_64-linux-android-clang'
+        sudo chmod +x '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/aarch64-linux-android-clang++'
+        sudo chmod +x '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/i686-linux-android-clang++'
+        sudo chmod +x '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/arm-linux-androideabi-clang++'
+        sudo chmod +x '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/riscv64-linux-android-clang++'
+        sudo chmod +x '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/x86_64-linux-android-clang++'
+        sudo chmod +x '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/clang'
+        sudo chmod +x '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/clang++'
+        sudo chmod +x '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins/llvm-ar'
 
-          echo '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins' >> $GITHUB_PATH
+        echo '${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bins' >> $GITHUB_PATH
 
-          echo 'ANDROID_NDK_HOME=${{ steps.setup-ndk.outputs.ndk-path }}' >> $GITHUB_ENV
+        echo 'ANDROID_NDK_HOME=${{ steps.setup-ndk.outputs.ndk-path }}' >> $GITHUB_ENV
 
-      - name: check clang
-        run: |
-          clang --version
-          x86_64-linux-android-clang --version
+    - name: check clang
+      run: |
+        clang --version
+        x86_64-linux-android-clang --version
 
       # - name: install musl dependencies x86_64
       #   run: |
@@ -527,25 +428,25 @@ jobs:
       #     fi
 
       # https://github.com/rust-lang/rust/blob/65b3877488ccfef3b1a903bfdd269559c59b957c/src/doc/rustc/src/platform-support/wasm32-unknown-emscripten.md
-      - name: install emscripten
-        run: |
-          FLAG_FILE="/tmp/emscripten-installed"
-          rm -f "$FLAG_FILE"
-          if [ ! -f "$FLAG_FILE" ]; then
-            rm -rf /emsdk
-            sudo mkdir -p /emsdk
-            sudo chmod 777 /emsdk
-            cd /emsdk
-            git clone https://github.com/emscripten-core/emsdk.git --depth 1
-            ./emsdk/emsdk install 3.1.68
-            ./emsdk/emsdk activate 3.1.68
-            source ./emsdk/emsdk_env.sh
-            echo '/emsdk/emsdk' >> $GITHUB_PATH
-            echo '/emsdk/emsdk/upstream/emscripten' >> $GITHUB_PATH
-            touch "$FLAG_FILE"
-          else
-            echo "emscripten is already installed, skipping installation."
-          fi
+    - name: install emscripten
+      run: |
+        FLAG_FILE="/tmp/emscripten-installed"
+        rm -f "$FLAG_FILE"
+        if [ ! -f "$FLAG_FILE" ]; then
+          rm -rf /emsdk
+          sudo mkdir -p /emsdk
+          sudo chmod 777 /emsdk
+          cd /emsdk
+          git clone https://github.com/emscripten-core/emsdk.git --depth 1
+          ./emsdk/emsdk install 3.1.68
+          ./emsdk/emsdk activate 3.1.68
+          source ./emsdk/emsdk_env.sh
+          echo '/emsdk/emsdk' >> $GITHUB_PATH
+          echo '/emsdk/emsdk/upstream/emscripten' >> $GITHUB_PATH
+          touch "$FLAG_FILE"
+        else
+          echo "emscripten is already installed, skipping installation."
+        fi
 
       # - name: rewrite
       #   run: |
@@ -554,352 +455,518 @@ jobs:
       #     cargo clean
       #     echo "rewrite done"
 
-      - name: restore cache
-        uses: actions/cache/restore@v4
-        with:
-          path: ${{ github.workspace }}/rust/build
-          key: build-dir-${{ runner.os }}-compile_rustc_for_wasm17
+    - name: install toolchain-for-building-rustc
+      working-directory: '${{ github.workspace }}/rust'
+      shell: bash
+      env:
+        RUST_CONFIGURE_ARGS: "-W warnings"
+        RUSTFLAGS: "-W warnings"
+      run: |
+        cargo install --git https://github.com/oligamiq/toolchain-for-building-rustc
+        toolchain-for-building-rustc --tier 1 --tier 2-host --os linux -t sparcv9-sun-solaris --install --no-cache -f config.llvm.toml -t arm-unknown-linux-musleabi -t arm-unknown-linux-musleabihf -t i586-unknown-linux-gnu -t i686-unknown-linux-musl -t wasm32-wasip1 -t wasm32-wasip1-threads -t wasm32-wasip2 -t x86_64-pc-windows-gnu -t wasm32-unknown-unknown -t wasm32-unknown-emscripten
+        toolchain-for-building-rustc --tier all --os linux --os windows --os mac -f config.llvm.toml --only-llvm
 
-      - name: install toolchain-for-building-rustc
-        working-directory: '${{ github.workspace }}/rust'
-        shell: bash
-        env:
-          RUST_CONFIGURE_ARGS: "-W warnings"
-          RUSTFLAGS: "-W warnings"
-        run: |
-          cargo install --git https://github.com/oligamiq/toolchain-for-building-rustc
-          toolchain-for-building-rustc --tier 1 --tier 2-host --os linux -t sparcv9-sun-solaris --install --no-cache -f config.llvm.toml -t arm-unknown-linux-musleabi -t arm-unknown-linux-musleabihf -t i586-unknown-linux-gnu -t i686-unknown-linux-musl -t wasm32-wasip1 -t wasm32-wasip1-threads -t wasm32-wasip2 -t x86_64-pc-windows-gnu -t wasm32-unknown-unknown -t wasm32-unknown-emscripten
-          toolchain-for-building-rustc --tier all --os linux --os windows --os mac -f config.llvm.toml --only-llvm
-          
-          # Convert workspace path to forward slashes for TOML compatibility
-          WS_FORWARD=$(echo "${{ github.workspace }}" | tr '\\' '/')
-          
-          # Global fix: replace ALL backslashes with forward slashes in the config file to avoid TOML escape character errors
-          sed 's|\\|/|g' config.llvm.toml > config.llvm.toml.tmp
-          mv config.llvm.toml.tmp config.llvm.toml
+        # Convert workspace path to forward slashes for TOML compatibility
+        WS_FORWARD=$(echo "${{ github.workspace }}" | tr '\\' '/')
 
-          echo "=== config.llvm.toml before patching ==="
-          grep wasi config.llvm.toml || true
-          # Aggressively patch config to use absolute path and standardized folder name
-          sed "s|wasi-root = .*|wasi-root = \"${WS_FORWARD}/rust/wasi-sdk/share/wasi-sysroot\"|g" config.llvm.toml > config.llvm.toml.tmp
-          mv config.llvm.toml.tmp config.llvm.toml
-          # Fallback for any other occurrences
-          sed "s|wasi-sdk-24\.0-[^/\"]*|${WS_FORWARD}/rust/wasi-sdk|g" config.llvm.toml > config.llvm.toml.tmp
-          mv config.llvm.toml.tmp config.llvm.toml
-          echo "=== config.llvm.toml after patching ==="
-          grep wasi config.llvm.toml || true
+        # Global fix: replace ALL backslashes with forward slashes in the config file to avoid TOML escape character errors
+        sed 's|\\|/|g' config.llvm.toml > config.llvm.toml.tmp
+        mv config.llvm.toml.tmp config.llvm.toml
 
-      - name: build dist
-        working-directory: '${{ github.workspace }}/rust'
-        env:
-          RUST_CONFIGURE_ARGS: "-W warnings"
-          RUSTFLAGS: "-W warnings"
-        run: |
-          export RUST_CONFIGURE_ARGS='${{ env.RUST_CONFIGURE_ARGS }}'
-          # ./x.py install --config config.llvm.toml
-          ./x.py build library --config config.llvm.toml --stage 1
+        echo "=== config.llvm.toml before patching ==="
+        grep wasi config.llvm.toml || true
+        # Aggressively patch config to use absolute path and standardized folder name
+        sed "s|wasi-root = .*|wasi-root = \"${WS_FORWARD}/rust/wasi-sdk/share/wasi-sysroot\"|g" config.llvm.toml > config.llvm.toml.tmp
+        mv config.llvm.toml.tmp config.llvm.toml
+        # Fallback for any other occurrences
+        sed "s|wasi-sdk-24\.0-[^/\"]*|${WS_FORWARD}/rust/wasi-sdk|g" config.llvm.toml > config.llvm.toml.tmp
+        mv config.llvm.toml.tmp config.llvm.toml
+        echo "=== config.llvm.toml after patching ==="
+        grep wasi config.llvm.toml || true
+                  echo "" >> config.llvm.toml
+                  echo "[rust]" >> config.llvm.toml
+                  echo "ccache = \"sccache\"" >> config.llvm.toml
+                  # SHARD THE TARGETS using jq
+                  TARGETS_JSON=$(grep '^target = \[' config.llvm.toml | sed 's/target = //')
+                  SHARDED_JSON=$(echo "$TARGETS_JSON" | jq -c "to_entries | map(select(.key % 4 == ${{ matrix.shard }}) | .value)")
+                  sed -i.bak "s|^target = \[.*\]|target = $SHARDED_JSON|" config.llvm.toml
+                  echo "Sharded targets to: $SHARDED_JSON"
 
-          # copy files
-          mkdir -p dist/lib/rustlib
-          rsync -av --exclude="rustc-src" build/x86_64-unknown-linux-gnu/stage1/lib/rustlib/ dist/lib/rustlib/
-          rm -rf dist/lib/rustlib/x86_64-unknown-linux-gnu/bin
+    - name: build dist
+      working-directory: '${{ github.workspace }}/rust'
+      env:
+        RUST_CONFIGURE_ARGS: "-W warnings"
+        RUSTFLAGS: "-W warnings"
+        SCCACHE_GHA_ENABLED: 'true'
+        RUSTC_WRAPPER: sccache
+      run: |
+        export RUST_CONFIGURE_ARGS='${{ env.RUST_CONFIGURE_ARGS }}'
+        # ./x.py install --config config.llvm.toml
+        ./x.py build library --config config.llvm.toml --stage 1
 
-      - name: Configure git to trust the workspace despite the different owner
-        run:
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+        # copy files
+        mkdir -p dist/lib/rustlib
+        rsync -av --exclude="rustc-src" build/x86_64-unknown-linux-gnu/stage1/lib/rustlib/ dist/lib/rustlib/
+        rm -rf dist/lib/rustlib/x86_64-unknown-linux-gnu/bin
+                  sccache --show-stats
 
-      - name: prepare dist artifacts
-        working-directory: '${{ github.workspace }}/rust_wasm'
-        run: |
-          mkdir -p dist-artifacts
-          mv ../rust/dist dist-artifacts/dist
-          rm -rf dist-artifacts/dist/bin
-          # Archive into a single file to avoid API limits (800k+ files is too many)
-          tar -chf ${{ github.workspace }}/rust_wasm/dist-linux.tar -C dist-artifacts .
-          echo "=== Artifact status ==="
-          ls -lh ${{ github.workspace }}/rust_wasm/dist-linux.tar
-          du -sh dist-artifacts
-          rm -rf dist-artifacts
+    - name: Configure git to trust the workspace despite the different owner
+      run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
-      - name: upload dist artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: dist-linux
-          path: ${{ github.workspace }}/rust_wasm/dist-linux.tar
-          if-no-files-found: error
+    - name: prepare dist artifacts
+      working-directory: '${{ github.workspace }}/rust_wasm'
+      run: |
+        mkdir -p dist-artifacts
+        mv ../rust/dist dist-artifacts/dist
+        rm -rf dist-artifacts/dist/bin
+        # Archive into a single file to avoid API limits (800k+ files is too many)
+        tar -chf ${{ github.workspace }}/rust_wasm/dist-linux-${{ matrix.shard }}.tar -C dist-artifacts .
+        echo "=== Artifact status ==="
+        ls -lh ${{ github.workspace }}/rust_wasm/dist-linux-${{ matrix.shard }}.tar
+        du -sh dist-artifacts
+        rm -rf dist-artifacts
 
+    - name: upload dist artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: dist-linux-${{ matrix.shard }}
+        path: ${{ github.workspace }}/rust_wasm/dist-linux-${{ matrix.shard 
+          }}.tar
+        if-no-files-found: error
+
+    strategy:
+      matrix:
+        shard:
+        - 0
+        - 1
+        - 2
+        - 3
   dist-macos:
     runs-on: macos-latest
-    if: ${{ github.event.inputs.job == 'dist-macos' || github.event.inputs.job == '' }}
+    if: ${{ github.event.inputs.job == 'dist-macos' || github.event.inputs.job 
+      == '' }}
     env:
       CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
     steps:
-      - name: copy source
-        uses: actions/checkout@v4
-        with:
+    - name: copy source
+      uses: actions/checkout@v4
+      with:
           # repository: 'bjorn3/rust'
-          repository: 'oligamiq/rust' # patch
-          submodules: 'true'
-          ref: 'compile_rustc_for_wasm17'
-          path: 'rust'
+        repository: 'oligamiq/rust'   # patch
+        submodules: 'true'
+        ref: 'cf327c2068549194a29160499c2ecafa9061e46e'
+        path: 'rust'
 
-      - name: checkout
-        run: |
-          cd rust
-          git fetch origin compile_rustc_for_wasm16_cargo --depth 40
-          git checkout cf327c2068549194a29160499c2ecafa9061e46e
+        fetch-depth: 0
+    - uses: actions/checkout@v4
+      with:
+        path: 'rust_wasm'
+        ref: 'gh-actions'
+        fetch-depth: 0
 
-      - uses: actions/checkout@v4
-        with:
-          path: 'rust_wasm'
-          ref: 'gh-actions'
-          fetch-depth: 0
+    - name: setup sccache
+      uses: mozilla-actions/sccache-action@v0.0.7
+    - name: free space
+      uses: jlumbroso/free-disk-space@main
+      with:
+        tool-cache: true
 
-      - name: free space
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: true
+        android: true
+        dotnet: true
+        haskell: true
+        large-packages: true
+        docker-images: true
+        swap-storage: false
 
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: false
+    - name: install rust
+      uses: actions-rust-lang/setup-rust-toolchain@v1
 
-      - name: install rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
+    - name: set SDKROOT
+      run: |
+        echo "SDKROOT=$(xcrun --sdk macosx --show-sdk-path)" >> $GITHUB_ENV
 
-      - name: set SDKROOT
-        run: |
-          echo "SDKROOT=$(xcrun --sdk macosx --show-sdk-path)" >> $GITHUB_ENV
+    - name: install-wasi-sdk
+      working-directory: '${{ github.workspace }}/rust'
+      shell: bash
+      run: |
+        curl -OL https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-24/wasi-sdk-24.0-arm64-macos.tar.gz
+        tar -xzf wasi-sdk-24.0-arm64-macos.tar.gz
+        rm wasi-sdk-24.0-arm64-macos.tar.gz
+        mv wasi-sdk-24.0-* wasi-sdk
+        chmod -R 755 wasi-sdk
+        echo "WASI_SDK_PATH=${{ github.workspace }}/rust/wasi-sdk" >> $GITHUB_ENV
+        echo "WASI_SYSROOT=${{ github.workspace }}/rust/wasi-sdk/share/wasi-sysroot" >> $GITHUB_ENV
 
-      - name: install-wasi-sdk
-        working-directory: '${{ github.workspace }}/rust'
-        shell: bash
-        run: |
-          curl -OL https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-24/wasi-sdk-24.0-arm64-macos.tar.gz
-          tar -xzf wasi-sdk-24.0-arm64-macos.tar.gz
-          rm wasi-sdk-24.0-arm64-macos.tar.gz
-          mv wasi-sdk-24.0-* wasi-sdk
-          chmod -R 755 wasi-sdk
-          echo "WASI_SDK_PATH=${{ github.workspace }}/rust/wasi-sdk" >> $GITHUB_ENV
-          echo "WASI_SYSROOT=${{ github.workspace }}/rust/wasi-sdk/share/wasi-sysroot" >> $GITHUB_ENV
+    - name: install toolchain-for-building-rustc
+      working-directory: '${{ github.workspace }}/rust'
+      shell: bash
+      env:
+        RUST_CONFIGURE_ARGS: "-W warnings"
+        RUSTFLAGS: "-W warnings"
+      run: |
+        cargo install --git https://github.com/oligamiq/toolchain-for-building-rustc
+        toolchain-for-building-rustc --tier 1 --tier 2-host --os mac --install --no-cache -f config.llvm.toml --overwrite -t wasm32-wasip1 -t wasm32-wasip1-threads
+        toolchain-for-building-rustc --tier all --os linux --os windows --os mac -f config.llvm.toml --only-llvm
 
-      - name: install toolchain-for-building-rustc
-        working-directory: '${{ github.workspace }}/rust'
-        shell: bash
-        env:
-          RUST_CONFIGURE_ARGS: "-W warnings"
-          RUSTFLAGS: "-W warnings"
-        run: |
-          cargo install --git https://github.com/oligamiq/toolchain-for-building-rustc
-          toolchain-for-building-rustc --tier 1 --tier 2-host --os mac --install --no-cache -f config.llvm.toml --overwrite -t wasm32-wasip1 -t wasm32-wasip1-threads
-          toolchain-for-building-rustc --tier all --os linux --os windows --os mac -f config.llvm.toml --only-llvm
-          
-          # Convert workspace path to forward slashes for TOML compatibility
-          WS_FORWARD=$(echo "${{ github.workspace }}" | tr '\\' '/')
-          
-          # Global fix: replace ALL backslashes with forward slashes in the config file to avoid TOML escape character errors
-          sed 's|\\|/|g' config.llvm.toml > config.llvm.toml.tmp
-          mv config.llvm.toml.tmp config.llvm.toml
+        # Convert workspace path to forward slashes for TOML compatibility
+        WS_FORWARD=$(echo "${{ github.workspace }}" | tr '\\' '/')
 
-          echo "=== config.llvm.toml before patching ==="
-          grep wasi config.llvm.toml || true
-          # Aggressively patch config to use absolute path and standardized folder name
-          sed "s|wasi-root = .*|wasi-root = \"${WS_FORWARD}/rust/wasi-sdk/share/wasi-sysroot\"|g" config.llvm.toml > config.llvm.toml.tmp
-          mv config.llvm.toml.tmp config.llvm.toml
-          # Fallback for any other occurrences
-          sed "s|wasi-sdk-24\.0-[^/\"]*|${WS_FORWARD}/rust/wasi-sdk|g" config.llvm.toml > config.llvm.toml.tmp
-          mv config.llvm.toml.tmp config.llvm.toml
-          echo "=== config.llvm.toml after patching ==="
-          grep wasi config.llvm.toml || true
+        # Global fix: replace ALL backslashes with forward slashes in the config file to avoid TOML escape character errors
+        sed 's|\\|/|g' config.llvm.toml > config.llvm.toml.tmp
+        mv config.llvm.toml.tmp config.llvm.toml
 
-      - name: restore cache
-        uses: actions/cache/restore@v4
-        with:
-          path: ${{ github.workspace }}/rust/build
-          key: build-dir-Linux-compile_rustc_for_wasm17
+        echo "=== config.llvm.toml before patching ==="
+        grep wasi config.llvm.toml || true
+        # Aggressively patch config to use absolute path and standardized folder name
+        sed "s|wasi-root = .*|wasi-root = \"${WS_FORWARD}/rust/wasi-sdk/share/wasi-sysroot\"|g" config.llvm.toml > config.llvm.toml.tmp
+        mv config.llvm.toml.tmp config.llvm.toml
+        # Fallback for any other occurrences
+        sed "s|wasi-sdk-24\.0-[^/\"]*|${WS_FORWARD}/rust/wasi-sdk|g" config.llvm.toml > config.llvm.toml.tmp
+        mv config.llvm.toml.tmp config.llvm.toml
+        echo "=== config.llvm.toml after patching ==="
+        grep wasi config.llvm.toml || true
+                  echo "" >> config.llvm.toml
+                  echo "[rust]" >> config.llvm.toml
+                  echo "ccache = \"sccache\"" >> config.llvm.toml
+                  # SHARD THE TARGETS using jq
+                  TARGETS_JSON=$(grep '^target = \[' config.llvm.toml | sed 's/target = //')
+                  SHARDED_JSON=$(echo "$TARGETS_JSON" | jq -c "to_entries | map(select(.key % 4 == ${{ matrix.shard }}) | .value)")
+                  sed -i.bak "s|^target = \[.*\]|target = $SHARDED_JSON|" config.llvm.toml
+                  echo "Sharded targets to: $SHARDED_JSON"
 
-      - name: build dist
-        working-directory: '${{ github.workspace }}/rust'
-        env:
-          RUST_CONFIGURE_ARGS: "-W warnings"
-          RUSTFLAGS: "-W warnings"
-        run: |
-          ./x.py build library --config config.llvm.toml --stage 1
-          mkdir -p dist/lib/rustlib
-          rsync -av --exclude="rustc-src" build/aarch64-apple-darwin/stage1/lib/rustlib/ dist/lib/rustlib/
-          rm -rf dist/lib/rustlib/aarch64-apple-darwin/bin
+    - name: build dist
+      working-directory: '${{ github.workspace }}/rust'
+      env:
+        RUST_CONFIGURE_ARGS: "-W warnings"
+        RUSTFLAGS: "-W warnings"
+        SCCACHE_GHA_ENABLED: 'true'
+        RUSTC_WRAPPER: sccache
+      run: |
+        ./x.py build library --config config.llvm.toml --stage 1
+        mkdir -p dist/lib/rustlib
+        rsync -av --exclude="rustc-src" build/aarch64-apple-darwin/stage1/lib/rustlib/ dist/lib/rustlib/
+        rm -rf dist/lib/rustlib/aarch64-apple-darwin/bin
+                  sccache --show-stats
 
-      - name: Configure git to trust the workspace despite the different owner
-        run:
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+    - name: Configure git to trust the workspace despite the different owner
+      run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
-      - name: prepare dist artifacts
-        working-directory: '${{ github.workspace }}/rust_wasm'
-        run: |
-          mkdir -p dist-artifacts
-          mv ../rust/dist dist-artifacts/dist
-          rm -rf dist-artifacts/dist/bin
-          # Archive into a single file
-          tar -chf ${{ github.workspace }}/rust_wasm/dist-macos.tar -C dist-artifacts .
-          echo "=== Artifact status ==="
-          ls -lh ${{ github.workspace }}/rust_wasm/dist-macos.tar
-          du -sh dist-artifacts
-          rm -rf dist-artifacts
+    - name: prepare dist artifacts
+      working-directory: '${{ github.workspace }}/rust_wasm'
+      run: |
+        mkdir -p dist-artifacts
+        mv ../rust/dist dist-artifacts/dist
+        rm -rf dist-artifacts/dist/bin
+        # Archive into a single file
+        tar -chf ${{ github.workspace }}/rust_wasm/dist-macos-${{ matrix.shard }}.tar -C dist-artifacts .
+        echo "=== Artifact status ==="
+        ls -lh ${{ github.workspace }}/rust_wasm/dist-macos-${{ matrix.shard }}.tar
+        du -sh dist-artifacts
+        rm -rf dist-artifacts
 
-      - name: upload dist artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: dist-macos
-          path: ${{ github.workspace }}/rust_wasm/dist-macos.tar
-          if-no-files-found: error
+    - name: upload dist artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: dist-macos-${{ matrix.shard }}
+        path: ${{ github.workspace }}/rust_wasm/dist-macos-${{ matrix.shard 
+          }}.tar
+        if-no-files-found: error
 
+    strategy:
+      matrix:
+        shard:
+        - 0
+        - 1
+        - 2
+        - 3
   dist-windows:
     runs-on: windows-latest
-    if: ${{ github.event.inputs.job == 'dist-windows' || github.event.inputs.job == '' }}
+    if: ${{ github.event.inputs.job == 'dist-windows' || github.event.inputs.job
+      == '' }}
     env:
       CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
     steps:
-      - name: copy source
-        uses: actions/checkout@v4
-        with:
-          repository: 'oligamiq/rust' # patch
-          submodules: 'true'
-          ref: 'compile_rustc_for_wasm17'
-          path: 'rust'
+    - name: copy source
+      uses: actions/checkout@v4
+      with:
+        repository: 'oligamiq/rust'   # patch
+        submodules: 'true'
+        ref: 'cf327c2068549194a29160499c2ecafa9061e46e'
+        path: 'rust'
 
-      - name: checkout
-        run: |
-          cd rust
-          git fetch origin compile_rustc_for_wasm16_cargo --depth 40
-          git checkout cf327c2068549194a29160499c2ecafa9061e46e
+        fetch-depth: 0
+    - uses: actions/checkout@v4
+      with:
+        path: 'rust_wasm'
+        ref: 'gh-actions'
+        fetch-depth: 0
 
-      - uses: actions/checkout@v4
-        with:
-          path: 'rust_wasm'
-          ref: 'gh-actions'
-          fetch-depth: 0
+    - name: setup sccache
+      uses: mozilla-actions/sccache-action@v0.0.7
+    - name: free space
+      uses: jlumbroso/free-disk-space@main
+      with:
+        tool-cache: true
 
-      - name: free space
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: true
+        android: true
+        dotnet: true
+        haskell: true
+        large-packages: true
+        docker-images: true
+        swap-storage: false
 
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: false
+    - name: install rust
+      uses: actions-rust-lang/setup-rust-toolchain@v1
 
-      - name: install rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
-
-      - name: install-wasi-sdk
-        working-directory: '${{ github.workspace }}/rust'
-        shell: bash
-        run: |
-          curl -OL https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-24/wasi-sdk-24.0-x86_64-windows.tar.gz
-          tar -xzf wasi-sdk-24.0-x86_64-windows.tar.gz
-          rm wasi-sdk-24.0-x86_64-windows.tar.gz
-          mv wasi-sdk-24.0-* wasi-sdk
-          echo "WASI_SDK_PATH=${{ github.workspace }}/rust/wasi-sdk" >> $GITHUB_ENV
-          echo "WASI_SYSROOT=${{ github.workspace }}/rust/wasi-sdk/share/wasi-sysroot" >> $GITHUB_ENV
+    - name: install-wasi-sdk
+      working-directory: '${{ github.workspace }}/rust'
+      shell: bash
+      run: |
+        curl -OL https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-24/wasi-sdk-24.0-x86_64-windows.tar.gz
+        tar -xzf wasi-sdk-24.0-x86_64-windows.tar.gz
+        rm wasi-sdk-24.0-x86_64-windows.tar.gz
+        mv wasi-sdk-24.0-* wasi-sdk
+        echo "WASI_SDK_PATH=${{ github.workspace }}/rust/wasi-sdk" >> $GITHUB_ENV
+        echo "WASI_SYSROOT=${{ github.workspace }}/rust/wasi-sdk/share/wasi-sysroot" >> $GITHUB_ENV
 
 
-      - name: install toolchain-for-building-rustc
-        working-directory: '${{ github.workspace }}/rust'
-        shell: bash
-        env:
-          RUST_CONFIGURE_ARGS: "-W warnings"
-          RUSTFLAGS: "-W warnings"
-        run: |
-          cargo install --git https://github.com/oligamiq/toolchain-for-building-rustc
-          toolchain-for-building-rustc --tier 1 --tier 2-host --os windows --install --no-cache -f config.llvm.toml --overwrite -t wasm32-wasip1 -t wasm32-wasip1-threads --exclude x86_64-pc-windows-gnu
-          toolchain-for-building-rustc --tier all --os linux --os windows --os mac -f config.llvm.toml --only-llvm
-          
-          # Convert workspace path to forward slashes for TOML compatibility
-          WS_FORWARD=$(echo "${{ github.workspace }}" | tr '\\' '/')
-          
-          # Global fix: replace ALL backslashes with forward slashes in the config file to avoid TOML escape character errors
-          sed 's|\\|/|g' config.llvm.toml > config.llvm.toml.tmp
-          mv config.llvm.toml.tmp config.llvm.toml
+    - name: install toolchain-for-building-rustc
+      working-directory: '${{ github.workspace }}/rust'
+      shell: bash
+      env:
+        RUST_CONFIGURE_ARGS: "-W warnings"
+        RUSTFLAGS: "-W warnings"
+      run: |
+        cargo install --git https://github.com/oligamiq/toolchain-for-building-rustc
+        toolchain-for-building-rustc --tier 1 --tier 2-host --os windows --install --no-cache -f config.llvm.toml --overwrite -t wasm32-wasip1 -t wasm32-wasip1-threads --exclude x86_64-pc-windows-gnu
+        toolchain-for-building-rustc --tier all --os linux --os windows --os mac -f config.llvm.toml --only-llvm
 
-          echo "=== config.llvm.toml before patching ==="
-          grep wasi config.llvm.toml || true
-          # Aggressively patch config to use absolute path and standardized folder name
-          sed "s|wasi-root = .*|wasi-root = \"${WS_FORWARD}/rust/wasi-sdk/share/wasi-sysroot\"|g" config.llvm.toml > config.llvm.toml.tmp
-          mv config.llvm.toml.tmp config.llvm.toml
-          # Fallback for any other occurrences
-          sed "s|wasi-sdk-24\.0-[^/\"]*|${WS_FORWARD}/rust/wasi-sdk|g" config.llvm.toml > config.llvm.toml.tmp
-          mv config.llvm.toml.tmp config.llvm.toml
-          echo "=== config.llvm.toml after patching ==="
-          grep wasi config.llvm.toml || true
+        # Convert workspace path to forward slashes for TOML compatibility
+        WS_FORWARD=$(echo "${{ github.workspace }}" | tr '\\' '/')
 
-      - name: Set up MinGW
-        uses: egor-tensin/setup-mingw@v2.2.0
-        with:
-          version: 12.2.0
-          platform: any
+        # Global fix: replace ALL backslashes with forward slashes in the config file to avoid TOML escape character errors
+        sed 's|\\|/|g' config.llvm.toml > config.llvm.toml.tmp
+        mv config.llvm.toml.tmp config.llvm.toml
 
-      - name: restore cache
-        uses: actions/cache/restore@v4
-        with:
-          path: ${{ github.workspace }}/rust/build
-          key: build-dir-Linux-compile_rustc_for_wasm17
+        echo "=== config.llvm.toml before patching ==="
+        grep wasi config.llvm.toml || true
+        # Aggressively patch config to use absolute path and standardized folder name
+        sed "s|wasi-root = .*|wasi-root = \"${WS_FORWARD}/rust/wasi-sdk/share/wasi-sysroot\"|g" config.llvm.toml > config.llvm.toml.tmp
+        mv config.llvm.toml.tmp config.llvm.toml
+        # Fallback for any other occurrences
+        sed "s|wasi-sdk-24\.0-[^/\"]*|${WS_FORWARD}/rust/wasi-sdk|g" config.llvm.toml > config.llvm.toml.tmp
+        mv config.llvm.toml.tmp config.llvm.toml
+        echo "=== config.llvm.toml after patching ==="
+        grep wasi config.llvm.toml || true
+                  echo "" >> config.llvm.toml
+                  echo "[rust]" >> config.llvm.toml
+                  echo "ccache = \"sccache\"" >> config.llvm.toml
+                  # SHARD THE TARGETS using python
+                  python3 -c "import json; t=json.loads(open('config.llvm.toml').read().split('target = ')[1].split('\n')[0]); print('target = ' + json.dumps([x for i,x in enumerate(t) if i % 4 == ${{ matrix.shard }}]))" > shard_tmp.txt
+                  NEW_TARGET=$(cat shard_tmp.txt)
+                  sed -i.bak "s|^target = \[.*\]|$NEW_TARGET|" config.llvm.toml
+                  echo "Sharded targets to: $NEW_TARGET"
 
-      - name: build dist
-        working-directory: '${{ github.workspace }}/rust'
-        shell: bash
-        env:
-          WASI_SDK_PATH: ${{ github.workspace }}/rust/wasi-sdk
-          WASI_SYSROOT: ${{ github.workspace }}/rust/wasi-sdk/share/wasi-sysroot
-          RUST_CONFIGURE_ARGS: "-W warnings"
-          RUSTFLAGS: "-W warnings"
-        run: |
-          python ./x.py build library --config config.llvm.toml --stage 1
-          
-          rm -rf dist
-          mkdir -p dist/lib/rustlib
-          
-          source_dir="build/x86_64-pc-windows-msvc/stage1/lib/rustlib"
-          if [ -d "$source_dir" ]; then
-              # Copy everything EXCEPT rustc-src safely using bash
-              find "$source_dir" -mindepth 1 -maxdepth 1 ! -name "rustc-src" -exec cp -R {} dist/lib/rustlib/ \;
-          else
-              echo "Source path $source_dir does not exist!"
-              exit 1
-          fi
-          
-          # Cleanup target-specific bin (consistent with Linux/Mac)
-          rm -rf dist/lib/rustlib/x86_64-pc-windows-msvc/bin
+    - name: Set up MinGW
+      uses: egor-tensin/setup-mingw@v2.2.0
+      with:
+        version: 12.2.0
+        platform: any
 
-      - name: Configure git to trust the workspace despite the different owner
-        run:
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+    - name: build dist
+      working-directory: '${{ github.workspace }}/rust'
+      shell: bash
+      env:
+        WASI_SDK_PATH: ${{ github.workspace }}/rust/wasi-sdk
+        WASI_SYSROOT: ${{ github.workspace }}/rust/wasi-sdk/share/wasi-sysroot
+        RUST_CONFIGURE_ARGS: "-W warnings"
+        RUSTFLAGS: "-W warnings"
+        SCCACHE_GHA_ENABLED: 'true'
+        RUSTC_WRAPPER: sccache
+      run: |
+        python ./x.py build library --config config.llvm.toml --stage 1
 
-      - name: prepare dist artifacts
-        shell: bash
-        working-directory: '${{ github.workspace }}/rust_wasm'
-        run: |
-          # Convert workspace path to forward slashes for compatibility
-          WS_FORWARD=$(echo "${{ github.workspace }}" | tr '\\' '/')
-          
-          mkdir -p dist-artifacts
-          mv ../rust/dist dist-artifacts/dist
-          rm -rf dist-artifacts/dist/bin
-          # Archive into a single file (tar is available in Git Bash on Windows)
-          # Use --force-local to avoid interpreting the drive colon as a remote host
-          tar --force-local -chf "${WS_FORWARD}/rust_wasm/dist-windows.tar" -C dist-artifacts .
-          echo "=== Artifact status ==="
-          ls -lh "${WS_FORWARD}/rust_wasm/dist-windows.tar"
-          rm -rf dist-artifacts
+        rm -rf dist
+        mkdir -p dist/lib/rustlib
 
-      - name: upload dist artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: dist-windows
-          path: ${{ github.workspace }}/rust_wasm/dist-windows.tar
-          if-no-files-found: error
+        source_dir="build/x86_64-pc-windows-msvc/stage1/lib/rustlib"
+        if [ -d "$source_dir" ]; then
+            # Copy everything EXCEPT rustc-src safely using bash
+            find "$source_dir" -mindepth 1 -maxdepth 1 ! -name "rustc-src" -exec cp -R {} dist/lib/rustlib/ \;
+        else
+            echo "Source path $source_dir does not exist!"
+            exit 1
+        fi
+
+        # Cleanup target-specific bin (consistent with Linux/Mac)
+        rm -rf dist/lib/rustlib/x86_64-pc-windows-msvc/bin
+                  sccache --show-stats
+
+    - name: Configure git to trust the workspace despite the different owner
+      run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+    - name: prepare dist artifacts
+      shell: bash
+      working-directory: '${{ github.workspace }}/rust_wasm'
+      run: |
+        # Convert workspace path to forward slashes for compatibility
+        WS_FORWARD=$(echo "${{ github.workspace }}" | tr '\\' '/')
+
+        mkdir -p dist-artifacts
+        mv ../rust/dist dist-artifacts/dist
+        rm -rf dist-artifacts/dist/bin
+        # Archive into a single file (tar is available in Git Bash on Windows)
+        # Use --force-local to avoid interpreting the drive colon as a remote host
+        tar --force-local -chf "${WS_FORWARD}/rust_wasm/dist-windows-${{ matrix.shard }}.tar" -C dist-artifacts .
+        echo "=== Artifact status ==="
+        ls -lh "${WS_FORWARD}/rust_wasm/dist-windows-${{ matrix.shard }}.tar"
+        rm -rf dist-artifacts
+
+    - name: upload dist artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: dist-windows-${{ matrix.shard }}
+        path: ${{ github.workspace }}/rust_wasm/dist-windows-${{ matrix.shard 
+          }}.tar
+        if-no-files-found: error
+    strategy:
+      matrix:
+        shard:
+        - 0
+        - 1
+        - 2
+        - 3
+  merge-abort:
+    runs-on: ubuntu-latest
+    needs:
+    - install-abort
+    if: ${{ github.event.inputs.job == 'install' || github.event.inputs.job == 
+      '' }}
+    steps:
+    - &id001
+      uses: actions/checkout@v4
+      with:
+        path: 'rust_wasm'
+        ref: 'gh-actions'
+
+        fetch-depth: 0
+    - &id002
+      name: setup sccache
+      uses: mozilla-actions/sccache-action@v0.0.7
+    - &id003
+      name: install rust
+      uses: actions-rust-lang/setup-rust-toolchain@v1
+
+    - name: download abort artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: dist-abort
+        path: ${{ github.workspace }}
+
+    - &id004
+      name: extract artifacts
+      run: |2
+
+                  mkdir -p ${{ github.workspace }}/dist-unwind
+                  tar -xf ${{ github.workspace }}/dist-unwind.tar -C ${{ github.workspace }}/dist-unwind
+                  echo "=== unwind dist contents ==="
+                  ls -lh ${{ github.workspace }}/dist-unwind/bin/ || true
+
+    - &id005
+      name: install wasm-opt
+      run: |
+        curl -OL https://github.com/WebAssembly/binaryen/releases/download/version_119/binaryen-version_119-x86_64-linux.tar.gz
+        tar -xzf binaryen-version_119-x86_64-linux.tar.gz
+        sudo cp binaryen-version_119/bin/wasm-opt /usr/local/bin/wasm-opt
+        rm -rf binaryen-version_119-x86_64-linux.tar.gz binaryen-version_119
+
+    - &id006
+      name: prepare bin artifacts
+      working-directory: '${{ github.workspace }}/rust_wasm'
+      run: |2
+
+                  DIST_UNWIND=${{ github.workspace }}/dist-unwind
+
+                  mkdir -p bin-artifacts/dist/bin
+                  mkdir -p bin-artifacts/dist/lib
+
+                  # === unwind rustc_unwind.wasm ===
+                  cp -r config_rewriter /tmp/config_rewriter
+                  cd /tmp/config_rewriter
+                  cargo run --bin wasm_optimizer -- $DIST_UNWIND/bin/rustc.wasm
+                  mv opt.wasm ${{ github.workspace }}/rust_wasm/bin-artifacts/rustc_unwind_opt.wasm
+
+                  cd ${{ github.workspace }}/rust_wasm/bin-artifacts
+                  cp $DIST_UNWIND/bin/rustc.wasm rustc_unwind.wasm
+                  tar -h -I "gzip -9" -cvf rustc_unwind.wasm.tar.gz rustc_unwind.wasm
+                  tar -h -I "gzip -9" -cvf rustc_unwind_opt.wasm.tar.gz rustc_unwind_opt.wasm
+                  rm rustc_unwind.wasm rustc_unwind_opt.wasm
+
+                  cd ${{ github.workspace }}/rust_wasm
+
+                  # Archive into a single file
+                  cd ${{ github.workspace }}/rust_wasm
+                  tar --force-local -chf ${{ github.workspace }}/rust_wasm/rustc-bins-unwind.tar -C bin-artifacts .
+                  echo "=== Artifact status ==="
+                  ls -lh ${{ github.workspace }}/rust_wasm/rustc-bins-unwind.tar
+                  rm -rf bin-artifacts
+
+    - &id007
+      name: upload bin artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: rustc-bins-unwind
+        path: ${{ github.workspace }}/rust_wasm/rustc-bins-unwind.tar
+        if-no-files-found: error
+
+  merge-unwind:
+    runs-on: ubuntu-latest
+    needs:
+    - install-unwind
+    if: ${{ github.event.inputs.job == 'install' || github.event.inputs.job == 
+      '' }}
+    steps:
+    - *id001
+    - *id002
+    - *id003
+    - name: download unwind artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: dist-unwind
+        path: ${{ github.workspace }}
+
+    - *id004
+    - *id005
+    - *id006
+    - *id007
+  merge-bins-final:
+    runs-on: ubuntu-latest
+    needs:
+    - merge-abort
+    - merge-unwind
+    if: ${{ github.event.inputs.job == 'install' || github.event.inputs.job == 
+      '' }}
+    steps:
+    - name: download abort artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: rustc-bins-abort
+        path: ${{ github.workspace }}
+    - name: download unwind artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: rustc-bins-unwind
+        path: ${{ github.workspace }}
+    - name: merge and upload
+      run: "\n          mkdir -p bin-artifacts\n          tar -xf ${{ github.workspace
+        }}/rustc-bins-abort.tar -C bin-artifacts\n          tar -xf ${{ github.workspace
+        }}/rustc-bins-unwind.tar -C bin-artifacts\n          \n          echo \"===
+        Verifying contents ===\"\n          ls -lh bin-artifacts/\n          \n  \
+        \        cd bin-artifacts\n          tar --force-local -chf ${{ github.workspace
+        }}/rustc-bins.tar .\n"
+    - name: upload final bin artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: rustc-bins
+        path: ${{ github.workspace }}/rustc-bins.tar
+        if-no-files-found: error
