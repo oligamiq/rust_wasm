@@ -12,8 +12,12 @@ permissions:
   contents: write
 
 jobs:
-  release:
+  package:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        task: [linux, windows, macos, rustc-bins, llvm-bins]
 
     steps:
       - name: Checkout
@@ -25,7 +29,6 @@ jobs:
         uses: jlumbroso/free-disk-space@main
         with:
           tool-cache: true
-
           android: true
           dotnet: true
           haskell: true
@@ -46,31 +49,30 @@ jobs:
         run: |
           mkdir -p artifacts
           
-          # Get latest successful run for build_llvm.yml
-          RUN_ID_LLVM=$(gh run list --workflow build_llvm.yml --status success --limit 1 --json databaseId --jq '.[0].databaseId')
-          if [ "$RUN_ID_LLVM" != "null" ] && [ -n "$RUN_ID_LLVM" ]; then
-            gh run download "$RUN_ID_LLVM" --name llvm-bins --dir artifacts/llvm-bins || echo "llvm-bins not found"
+          if [ "${{ matrix.task }}" = "llvm-bins" ]; then
+            # Get latest successful run for build_llvm.yml
+            RUN_ID_LLVM=$(gh run list --workflow build_llvm.yml --status success --limit 1 --json databaseId --jq '.[0].databaseId')
+            if [ "$RUN_ID_LLVM" != "null" ] && [ -n "$RUN_ID_LLVM" ]; then
+              gh run download "$RUN_ID_LLVM" --name llvm-bins --dir artifacts/llvm-bins || echo "llvm-bins not found"
+            fi
+          else
+            # Determine the artifact name to download based on the matrix task
+            ARTIFACT_NAME=""
+            if [ "${{ matrix.task }}" = "linux" ]; then ARTIFACT_NAME="dist-linux"; fi
+            if [ "${{ matrix.task }}" = "windows" ]; then ARTIFACT_NAME="dist-windows"; fi
+            if [ "${{ matrix.task }}" = "macos" ]; then ARTIFACT_NAME="dist-macos"; fi
+            if [ "${{ matrix.task }}" = "rustc-bins" ]; then ARTIFACT_NAME="rustc-bins"; fi
+            
+            # Find the most recent run of rustc_llvm_with_lld.yml that contains this artifact
+            for run_id in $(gh run list --workflow rustc_llvm_with_lld.yml --status success --limit 10 --json databaseId --jq '.[].databaseId'); do
+              if [ ! -d "artifacts/${ARTIFACT_NAME}" ]; then
+                gh run download "$run_id" --name "$ARTIFACT_NAME" --dir "artifacts/${ARTIFACT_NAME}" 2>/dev/null && echo "${ARTIFACT_NAME} found in $run_id"
+              fi
+            done
           fi
           
-          # Get latest successful run for rustc_llvm_with_lld.yml and download each artifact
-          # Since jobs are run separately, artifacts are spread across different recent runs.
-          for run_id in $(gh run list --workflow rustc_llvm_with_lld.yml --status success --limit 10 --json databaseId --jq '.[].databaseId'); do
-            if [ ! -d "artifacts/rustc-bins" ]; then
-              gh run download "$run_id" --name rustc-bins --dir artifacts/rustc-bins 2>/dev/null && echo "rustc-bins found in $run_id"
-            fi
-            if [ ! -d "artifacts/dist-linux" ]; then
-              gh run download "$run_id" --name dist-linux --dir artifacts/dist-linux 2>/dev/null && echo "dist-linux found in $run_id"
-            fi
-            if [ ! -d "artifacts/dist-macos" ]; then
-              gh run download "$run_id" --name dist-macos --dir artifacts/dist-macos 2>/dev/null && echo "dist-macos found in $run_id"
-            fi
-            if [ ! -d "artifacts/dist-windows" ]; then
-              gh run download "$run_id" --name dist-windows --dir artifacts/dist-windows 2>/dev/null && echo "dist-windows found in $run_id"
-            fi
-          done
-          
           # Extract tar artifacts
-          for f in artifacts/*/llvm-bins.tar artifacts/*/rustc-bins.tar artifacts/dist-*/dist-*.tar; do
+          for f in artifacts/*/*.tar; do
             if [ -f "$f" ]; then
               dir=$(dirname "$f")
               tar -xf "$f" -C "$dir"
@@ -87,108 +89,131 @@ jobs:
         run: |
           mkdir -p "${{ github.workspace }}/x-tools"
           
-          # Process Linux Dist
-          if [ -d "${{ github.workspace }}/artifacts/dist-linux" ]; then
-            cd "${{ github.workspace }}/artifacts/dist-linux/dist/lib/rustlib"
-            
-            # Package rust-src
-            if [ -d "src" ]; then
-              echo "Replacing broken symlink with actual source code..."
-              rm -rf src
-              mkdir -p src/rust
-              git clone --depth 1 -b compile_rustc_for_wasm17 https://github.com/oligamiq/rust /tmp/rust-clone
-              cp -r /tmp/rust-clone/library src/rust/
-              cp -r /tmp/rust-clone/src src/rust/
-              cp -r /tmp/rust-clone/compiler src/rust/
-              cp /tmp/rust-clone/Cargo.lock src/rust/ || true
-              cp /tmp/rust-clone/Cargo.toml src/rust/ || true
-              rm -rf /tmp/rust-clone
+          if [ "${{ matrix.task }}" = "linux" ]; then
+            if [ -d "${{ github.workspace }}/artifacts/dist-linux" ]; then
+              cd "${{ github.workspace }}/artifacts/dist-linux/dist/lib/rustlib"
+              
+              # Package rust-src
+              if [ -d "src" ]; then
+                echo "Replacing broken symlink with actual source code..."
+                rm -rf src
+                mkdir -p src/rust
+                git clone --depth 1 -b compile_rustc_for_wasm17 https://github.com/oligamiq/rust /tmp/rust-clone
+                cp -r /tmp/rust-clone/library src/rust/
+                cp -r /tmp/rust-clone/src src/rust/
+                cp -r /tmp/rust-clone/compiler src/rust/
+                cp /tmp/rust-clone/Cargo.lock src/rust/ || true
+                cp /tmp/rust-clone/Cargo.toml src/rust/ || true
+                rm -rf /tmp/rust-clone
 
-              tar -czf "${{ github.workspace }}/x-tools/rust-src.tar.gz" src
-              tar -I "brotli -q 11" -cf "${{ github.workspace }}/x-tools/rust-src.tar.br" src
-              echo "rust-src done"
+                tar -czf "${{ github.workspace }}/x-tools/rust-src.tar.gz" src
+                tar -I "brotli -q 11" -cf "${{ github.workspace }}/x-tools/rust-src.tar.br" src
+                echo "rust-src done"
+              fi
+
+              # Package rustc-src
+              if [ -d "rustc-src" ]; then
+                tar --ignore-failed-read -czf "${{ github.workspace }}/x-tools/rustc-src.tar.gz" rustc-src
+                tar --ignore-failed-read -I "brotli -q 11" -cf "${{ github.workspace }}/x-tools/rustc-src.tar.br" rustc-src
+                echo "rustc-src done"
+              fi
+
+              # Package target-specific libs
+              for target in *; do
+                if [ -d "$target" ] && [ "$target" != "src" ] && [ "$target" != "rustc-src" ]; then
+                  cd "${target}/lib"
+                  tar --ignore-failed-read -chzf "${{ github.workspace }}/x-tools/${target}.tar.gz" *
+                  tar --ignore-failed-read -h -I "brotli -q 11" -cf "${{ github.workspace }}/x-tools/${target}.tar.br" *
+                  echo "${target} done"
+                  cd ../..
+                fi
+              done
             fi
+          fi
 
-            # Package rustc-src
-            if [ -d "rustc-src" ]; then
-              tar --ignore-failed-read -czf "${{ github.workspace }}/x-tools/rustc-src.tar.gz" rustc-src
-              tar --ignore-failed-read -I "brotli -q 11" -cf "${{ github.workspace }}/x-tools/rustc-src.tar.br" rustc-src
-              echo "rustc-src done"
+          if [ "${{ matrix.task }}" = "windows" ]; then
+            if [ -d "${{ github.workspace }}/artifacts/dist-windows" ]; then
+              cd "${{ github.workspace }}/artifacts/dist-windows/dist/lib/rustlib"
+              for target in *; do
+                if [ -d "$target" ] && [ "$target" != "src" ] && [ "$target" != "rustc-src" ]; then
+                  cd "${target}/lib"
+                  tar --ignore-failed-read -chzf "${{ github.workspace }}/x-tools/${target}.tar.gz" *
+                  tar --ignore-failed-read -h -I "brotli -q 11" -cf "${{ github.workspace }}/x-tools/${target}.tar.br" *
+                  echo "${target} done"
+                  cd ../..
+                fi
+              done
             fi
-
-            # Package target-specific libs
-            for target in *; do
-              if [ -d "$target" ] && [ "$target" != "src" ] && [ "$target" != "rustc-src" ]; then
-                cd "${target}/lib"
-                tar --ignore-failed-read -chzf "${{ github.workspace }}/x-tools/${target}.tar.gz" *
-                tar --ignore-failed-read -h -I "brotli -q 11" -cf "${{ github.workspace }}/x-tools/${target}.tar.br" *
-                echo "${target} done"
-                cd ../..
-              fi
-            done
           fi
 
-          # Process Windows Dist
-          if [ -d "${{ github.workspace }}/artifacts/dist-windows" ]; then
-            cd "${{ github.workspace }}/artifacts/dist-windows/dist/lib/rustlib"
-            for target in *; do
-              if [ -d "$target" ] && [ "$target" != "src" ] && [ "$target" != "rustc-src" ]; then
-                cd "${target}/lib"
-                tar --ignore-failed-read -chzf "${{ github.workspace }}/x-tools/${target}.tar.gz" *
-                tar --ignore-failed-read -h -I "brotli -q 11" -cf "${{ github.workspace }}/x-tools/${target}.tar.br" *
-                echo "${target} done"
-                cd ../..
-              fi
-            done
+          if [ "${{ matrix.task }}" = "macos" ]; then
+            if [ -d "${{ github.workspace }}/artifacts/dist-macos" ]; then
+              cd "${{ github.workspace }}/artifacts/dist-macos/dist/lib/rustlib"
+              for target in *; do
+                if [ -d "$target" ] && [ "$target" != "src" ] && [ "$target" != "rustc-src" ]; then
+                  cd "${target}/lib"
+                  tar --ignore-failed-read -chzf "${{ github.workspace }}/x-tools/${target}.tar.gz" *
+                  tar --ignore-failed-read -h -I "brotli -q 11" -cf "${{ github.workspace }}/x-tools/${target}.tar.br" *
+                  echo "${target} done"
+                  cd ../..
+                fi
+              done
+            fi
           fi
 
-          # Process Mac Dist
-          if [ -d "${{ github.workspace }}/artifacts/dist-macos" ]; then
-            cd "${{ github.workspace }}/artifacts/dist-macos/dist/lib/rustlib"
-            for target in *; do
-              if [ -d "$target" ] && [ "$target" != "src" ] && [ "$target" != "rustc-src" ]; then
-                cd "${target}/lib"
-                tar --ignore-failed-read -chzf "${{ github.workspace }}/x-tools/${target}.tar.gz" *
-                tar --ignore-failed-read -h -I "brotli -q 11" -cf "${{ github.workspace }}/x-tools/${target}.tar.br" *
-                echo "${target} done"
-                cd ../..
-              fi
-            done
-          fi
-
-          # Process Rust Bins
-          if [ -d "${{ github.workspace }}/artifacts/rustc-bins" ]; then
-            cd "${{ github.workspace }}/artifacts/rustc-bins"
-            cp rustc_opt.wasm.tar.gz "${{ github.workspace }}/x-tools/rustc_opt.wasm.tar.gz"
-            mkdir unpack
-            cd unpack
-            tar -xzf ../rustc_opt.wasm.tar.gz
-            brotli -q 11 -o "${{ github.workspace }}/x-tools/rustc_opt.wasm.br" rustc_opt.wasm
-            cd ..
-            rm -rf unpack
-
-            cp rustc_unwind.wasm.tar.gz "${{ github.workspace }}/x-tools/rustc_unwind.wasm.tar.gz" || true
-            cp rustc_unwind_opt.wasm.tar.gz "${{ github.workspace }}/x-tools/rustc_unwind_opt.wasm.tar.gz" || true
-            
-            if [ -f "rustc_unwind_opt.wasm.tar.gz" ]; then
-              mkdir unpack-unwind
-              cd unpack-unwind
-              tar -xzf ../rustc_unwind_opt.wasm.tar.gz
-              brotli -q 11 -o "${{ github.workspace }}/x-tools/rustc_unwind_opt.wasm.br" rustc_unwind_opt.wasm
+          if [ "${{ matrix.task }}" = "rustc-bins" ]; then
+            if [ -d "${{ github.workspace }}/artifacts/rustc-bins" ]; then
+              cd "${{ github.workspace }}/artifacts/rustc-bins"
+              cp rustc_opt.wasm.tar.gz "${{ github.workspace }}/x-tools/rustc_opt.wasm.tar.gz"
+              mkdir unpack
+              cd unpack
+              tar -xzf ../rustc_opt.wasm.tar.gz
+              brotli -q 11 -o "${{ github.workspace }}/x-tools/rustc_opt.wasm.br" rustc_opt.wasm
               cd ..
-              rm -rf unpack-unwind
+              rm -rf unpack
+
+              cp rustc_unwind.wasm.tar.gz "${{ github.workspace }}/x-tools/rustc_unwind.wasm.tar.gz" || true
+              cp rustc_unwind_opt.wasm.tar.gz "${{ github.workspace }}/x-tools/rustc_unwind_opt.wasm.tar.gz" || true
+              
+              if [ -f "rustc_unwind_opt.wasm.tar.gz" ]; then
+                mkdir unpack-unwind
+                cd unpack-unwind
+                tar -xzf ../rustc_unwind_opt.wasm.tar.gz
+                brotli -q 11 -o "${{ github.workspace }}/x-tools/rustc_unwind_opt.wasm.br" rustc_unwind_opt.wasm
+                cd ..
+                rm -rf unpack-unwind
+              fi
+
+              echo "rustc bins done"
             fi
-
-            echo "rustc bins done"
           fi
 
-          # Process LLVM Bins
-          if [ -d "${{ github.workspace }}/artifacts/llvm-bins" ]; then
-            cd "${{ github.workspace }}/artifacts/llvm-bins"
-            cp dist/llvm_raw.wasm.tar.gz "${{ github.workspace }}/x-tools/llvm_raw.wasm.tar.gz"
-            cp llvm_opt.wasm.br "${{ github.workspace }}/x-tools/llvm_opt.wasm.br"
-            echo "llvm bins done"
+          if [ "${{ matrix.task }}" = "llvm-bins" ]; then
+            if [ -d "${{ github.workspace }}/artifacts/llvm-bins" ]; then
+              cd "${{ github.workspace }}/artifacts/llvm-bins"
+              cp dist/llvm_raw.wasm.tar.gz "${{ github.workspace }}/x-tools/llvm_raw.wasm.tar.gz"
+              cp llvm_opt.wasm.br "${{ github.workspace }}/x-tools/llvm_opt.wasm.br"
+              echo "llvm bins done"
+            fi
           fi
+
+      - name: upload partial assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-assets-${{ matrix.task }}
+          path: x-tools/
+          if-no-files-found: ignore
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: package
+    steps:
+      - name: download assets
+        uses: actions/download-artifact@v4
+        with:
+          path: x-tools
+          pattern: release-assets-*
+          merge-multiple: true
 
       - name: upload release
         uses: ncipollo/release-action@v1
