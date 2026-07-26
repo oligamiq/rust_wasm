@@ -1,5 +1,5 @@
 # rust_wasm
-Storage of Rust compiler compiled to WebAssembly.
+A repository for Rust compiler binaries compiled to WebAssembly.
 
 ## Overview
 This project builds and distributes the Rust compiler and LLVM tools compiled to WebAssembly.
@@ -23,7 +23,7 @@ To prevent repository bloat, we no longer commit binaries to Git. Instead, we us
 Generate the binaries by running the following workflows via the GitHub Actions UI (or `gh` CLI).
 
 1. **Build LLVM**: Builds the WASM versions of LLVM/Clang tools.
-2. **rustc_llvm_with_lld**: Builds the Rust compiler itself.
+2. **rustc_llvm_with_lld**: Builds the Rust compiler for the supported host platforms.
    - Run this workflow for each `job` input: `install`, `dist-linux`, `dist-macos`, `dist-windows`.
 
 **Verification**: After each job completes, verify that the artifacts are uploaded in the "Artifacts" section at the bottom of the run details page.
@@ -38,9 +38,17 @@ Once all builds (LLVM and Rust for each OS) are successful, create a release.
    - Packages them for distribution (`.tar.gz`, `.br`).
    - Uploads them directly to the **GitHub Releases** page.
 
-### 🌐 Hosting
+### 🌐 Hosting & Download URLs
 - Assets from GitHub Releases are automatically deployed and hosted on Cloudflare Pages.
-- To bypass file size limits, files larger than 20MB are automatically split (`.part00`, `.part01`...). Use the included `split_manifest.json` to restore the original files.
+- **Base URL**: `https://rustwasm0.pages.dev/`
+- **Path Format**: `/<version>/<filename>` (where `<version>` is the tag name without the `-release` suffix).
+
+**Download Examples (for `v3.0.0`)**:
+- Linux dist: `https://rustwasm0.pages.dev/v3.0.0/x86_64-unknown-linux-gnu.tar.gz`
+- Rust source: `https://rustwasm0.pages.dev/v3.0.0/rust-src.tar.gz`
+- Brotli compressed LLVM binaries: `https://rustwasm0.pages.dev/v3.0.0/llvm_opt.wasm.br`
+
+*Note: To bypass file size limits, files larger than 20MB are automatically split (`.part00`, `.part01`...). Use the included `split_manifest.json` (e.g., `https://rustwasm0.pages.dev/v3.0.0/split_manifest.json`) to restore the original files.*
 
 ## About `rustc_unwind.wasm`
 
@@ -54,7 +62,7 @@ For normal target programs, use:
 Using `-C panic=unwind` requires a separate unwind-enabled sysroot and runtime support for WebAssembly exception handling.
 
 ## 🧹 Legacy Cleanup
-The following branches previously used to store binaries are now deprecated. Once it is confirmed that the new release process distributes files correctly, please delete these branches to reduce repository size:
+The following branches previously used to store binaries are now deprecated. After confirming that the new release process distributes files correctly, please delete these branches to reduce repository size:
 
 - `rustc_llvm_with_lld-bins`
 - `rustc_llvm_with_lld-bins-tier2-host`
