@@ -98,7 +98,7 @@ jobs:
           find . -maxdepth 4 -name "llvm-driver" -o -name "clang" -o -name "*.wasm"
           
           # Use a flexible search for the compiled binary across the entire checkout
-          WASM_FILE=$(find . -name "llvm-driver" -o -name "clang" | grep bin/ | head -n 1)
+          WASM_FILE=$(find . -name "llvm-driver" -o -name "clang" | grep bin/ | grep -v wasi-sdk | grep -v tblgen | head -n 1)
           
           if [ -z "$WASM_FILE" ]; then
             echo "Searching for any .wasm files as fallback..."
