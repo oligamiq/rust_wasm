@@ -43,11 +43,11 @@ jobs:
       - name: install wasm-opt
         run: |
           cd /tmp
-          curl -OL https://github.com/WebAssembly/binaryen/releases/download/version_119/binaryen-version_119-x86_64-linux.tar.gz
-          tar -xvf binaryen-version_119-x86_64-linux.tar.gz
-          sudo ln -s /tmp/binaryen-version_119/bin/wasm-opt /usr/local/bin/wasm-opt
+          curl -OL https://github.com/WebAssembly/binaryen/releases/download/version_131/binaryen-version_131-x86_64-linux.tar.gz
+          tar -xvf binaryen-version_131-x86_64-linux.tar.gz
+          sudo ln -s /tmp/binaryen-version_131/bin/wasm-opt /usr/local/bin/wasm-opt
           echo "wasm-opt installed"
-          echo "/tmp/binaryen-version_119/bin/" >> $GITHUB_PATH
+          echo "/tmp/binaryen-version_131/bin/" >> $GITHUB_PATH
 
       - name: Setup swap space
         uses: thejerrybao/setup-swap-space@v1

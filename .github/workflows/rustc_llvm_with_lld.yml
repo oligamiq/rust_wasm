@@ -300,10 +300,10 @@ jobs:
 
       - name: install wasm-opt
         run: |
-          curl -OL https://github.com/WebAssembly/binaryen/releases/download/version_119/binaryen-version_119-x86_64-linux.tar.gz
-          tar -xzf binaryen-version_119-x86_64-linux.tar.gz
-          sudo cp binaryen-version_119/bin/wasm-opt /usr/local/bin/wasm-opt
-          rm -rf binaryen-version_119-x86_64-linux.tar.gz binaryen-version_119
+          curl -OL https://github.com/WebAssembly/binaryen/releases/download/version_131/binaryen-version_131-x86_64-linux.tar.gz
+          tar -xzf binaryen-version_131-x86_64-linux.tar.gz
+          sudo cp binaryen-version_131/bin/wasm-opt /usr/local/bin/wasm-opt
+          rm -rf binaryen-version_131-x86_64-linux.tar.gz binaryen-version_131
 
       - name: prepare bin artifacts
         working-directory: '${{ github.workspace }}/rust_wasm'
