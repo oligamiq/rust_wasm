@@ -15,10 +15,14 @@ on:
           - dist-linux
           - dist-macos
           - dist-windows
+          - all
 
 permissions:
   packages: write
   contents: write
+
+env:
+  RUST_SOURCE_REF: cf327c2068549194a29160499c2ecafa9061e46e
 
 jobs:
   # ============================================================
@@ -27,7 +31,7 @@ jobs:
   # ============================================================
   install-abort:
     runs-on: ubuntu-latest
-    if: ${{ github.event.inputs.job == 'install' || github.event.inputs.job == '' }}
+    if: ${{ github.event.inputs.job == 'install' || github.event.inputs.job == '' || github.event.inputs.job == 'all' }}
     steps:
       - name: copy source
         uses: actions/checkout@v4
@@ -35,14 +39,8 @@ jobs:
           # repository: 'bjorn3/rust'
           repository: 'oligamiq/rust' # patch
           submodules: 'true'
-          ref: 'compile_rustc_for_wasm17'
+          ref: ${{ env.RUST_SOURCE_REF }}
           path: 'rust'
-
-      - name: checkout
-        run: |
-          cd rust
-          git fetch origin compile_rustc_for_wasm16_cargo --depth 40
-          git checkout cf327c2068549194a29160499c2ecafa9061e46e
 
       - uses: actions/checkout@v4
         with:
@@ -152,21 +150,15 @@ jobs:
   # ============================================================
   install-unwind:
     runs-on: ubuntu-latest
-    if: ${{ github.event.inputs.job == 'install' || github.event.inputs.job == '' }}
+    if: ${{ github.event.inputs.job == 'install' || github.event.inputs.job == '' || github.event.inputs.job == 'all' }}
     steps:
       - name: copy source
         uses: actions/checkout@v4
         with:
           repository: 'oligamiq/rust' # patch
           submodules: 'true'
-          ref: 'compile_rustc_for_wasm17'
+          ref: ${{ env.RUST_SOURCE_REF }}
           path: 'rust'
-
-      - name: checkout
-        run: |
-          cd rust
-          git fetch origin compile_rustc_for_wasm16_cargo --depth 40
-          git checkout cf327c2068549194a29160499c2ecafa9061e46e
 
       - uses: actions/checkout@v4
         with:
@@ -265,7 +257,7 @@ jobs:
   merge-bins:
     runs-on: ubuntu-latest
     needs: [install-abort, install-unwind]
-    if: ${{ github.event.inputs.job == 'install' || github.event.inputs.job == '' }}
+    if: ${{ github.event.inputs.job == 'install' || github.event.inputs.job == '' || github.event.inputs.job == 'all' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -370,7 +362,7 @@ jobs:
     #     WebAssembly: [true, false]
 
     runs-on: ubuntu-latest
-    if: ${{ github.event.inputs.job == 'dist-linux' || github.event.inputs.job == '' }}
+    if: ${{ github.event.inputs.job == 'dist-linux' || github.event.inputs.job == '' || github.event.inputs.job == 'all' }}
     env:
       CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
     steps:
@@ -380,14 +372,8 @@ jobs:
           # repository: 'bjorn3/rust'
           repository: 'oligamiq/rust' # patch
           submodules: 'true'
-          ref: 'compile_rustc_for_wasm17'
+          ref: ${{ env.RUST_SOURCE_REF }}
           path: 'rust'
-
-      - name: checkout
-        run: |
-          cd rust
-          git fetch origin compile_rustc_for_wasm16_cargo --depth 40
-          git checkout cf327c2068549194a29160499c2ecafa9061e46e
 
       - uses: actions/checkout@v4
         with:
@@ -603,6 +589,9 @@ jobs:
           mkdir -p dist/lib/rustlib
           rsync -av --exclude="rustc-src" build/x86_64-unknown-linux-gnu/stage1/lib/rustlib/ dist/lib/rustlib/
           rm -rf dist/lib/rustlib/x86_64-unknown-linux-gnu/bin
+          rm -rf dist/lib/rustlib/src
+          mkdir -p dist/lib/rustlib/src/rust
+          cp -a library dist/lib/rustlib/src/rust/library
 
       - name: Configure git to trust the workspace despite the different owner
         run:
@@ -630,7 +619,7 @@ jobs:
 
   dist-macos:
     runs-on: macos-latest
-    if: ${{ github.event.inputs.job == 'dist-macos' || github.event.inputs.job == '' }}
+    if: ${{ github.event.inputs.job == 'dist-macos' || github.event.inputs.job == '' || github.event.inputs.job == 'all' }}
     env:
       CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
     steps:
@@ -640,14 +629,8 @@ jobs:
           # repository: 'bjorn3/rust'
           repository: 'oligamiq/rust' # patch
           submodules: 'true'
-          ref: 'compile_rustc_for_wasm17'
+          ref: ${{ env.RUST_SOURCE_REF }}
           path: 'rust'
-
-      - name: checkout
-        run: |
-          cd rust
-          git fetch origin compile_rustc_for_wasm16_cargo --depth 40
-          git checkout cf327c2068549194a29160499c2ecafa9061e46e
 
       - uses: actions/checkout@v4
         with:
@@ -758,7 +741,7 @@ jobs:
 
   dist-windows:
     runs-on: windows-latest
-    if: ${{ github.event.inputs.job == 'dist-windows' || github.event.inputs.job == '' }}
+    if: ${{ github.event.inputs.job == 'dist-windows' || github.event.inputs.job == '' || github.event.inputs.job == 'all' }}
     env:
       CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
     steps:
@@ -767,14 +750,8 @@ jobs:
         with:
           repository: 'oligamiq/rust' # patch
           submodules: 'true'
-          ref: 'compile_rustc_for_wasm17'
+          ref: ${{ env.RUST_SOURCE_REF }}
           path: 'rust'
-
-      - name: checkout
-        run: |
-          cd rust
-          git fetch origin compile_rustc_for_wasm16_cargo --depth 40
-          git checkout cf327c2068549194a29160499c2ecafa9061e46e
 
       - uses: actions/checkout@v4
         with:

@@ -7,6 +7,9 @@ on:
         description: 'version of the toolchain to build'
         required: true
         default: 'v0.2.1'
+      build_run_id:
+        description: 'successful rustc_llvm_with_lld run containing the complete artifact set'
+        required: true
 
 permissions:
   contents: write
@@ -63,12 +66,9 @@ jobs:
             if [ "${{ matrix.task }}" = "macos" ]; then ARTIFACT_NAME="dist-macos"; fi
             if [ "${{ matrix.task }}" = "rustc-bins" ]; then ARTIFACT_NAME="rustc-bins"; fi
             
-            # Find the most recent run of rustc_llvm_with_lld.yml that contains this artifact
-            for run_id in $(gh run list --workflow rustc_llvm_with_lld.yml --status success --limit 10 --json databaseId --jq '.[].databaseId'); do
-              if [ ! -d "artifacts/${ARTIFACT_NAME}" ]; then
-                gh run download "$run_id" --name "$ARTIFACT_NAME" --dir "artifacts/${ARTIFACT_NAME}" 2>/dev/null && echo "${ARTIFACT_NAME} found in $run_id"
-              fi
-            done
+            gh run download "${{ github.event.inputs.build_run_id }}" \
+              --name "$ARTIFACT_NAME" \
+              --dir "artifacts/${ARTIFACT_NAME}"
           fi
           
           # Extract tar artifacts
@@ -93,23 +93,17 @@ jobs:
             if [ -d "${{ github.workspace }}/artifacts/dist-linux" ]; then
               cd "${{ github.workspace }}/artifacts/dist-linux/dist/lib/rustlib"
               
-              # Package rust-src
-              if [ -d "src" ]; then
-                echo "Replacing broken symlink with actual source code..."
-                rm -rf src
-                mkdir -p src/rust
-                git clone --depth 1 -b compile_rustc_for_wasm17 https://github.com/oligamiq/rust /tmp/rust-clone
-                cp -r /tmp/rust-clone/library src/rust/
-                cp -r /tmp/rust-clone/src src/rust/
-                cp -r /tmp/rust-clone/compiler src/rust/
-                cp /tmp/rust-clone/Cargo.lock src/rust/ || true
-                cp /tmp/rust-clone/Cargo.toml src/rust/ || true
-                rm -rf /tmp/rust-clone
-
-                tar -czf "${{ github.workspace }}/x-tools/rust-src.tar.gz" src
-                tar -I "brotli -q 11" -cf "${{ github.workspace }}/x-tools/rust-src.tar.br" src
-                echo "rust-src done"
+              # Package rust-src with the layout consumed by Rubrc.
+              if [ ! -d "src/rust/library" ]; then
+                echo "dist-linux artifact is missing src/rust/library"
+                exit 1
               fi
+              tar -czf "${{ github.workspace }}/x-tools/rust-src.tar.gz" \
+                --directory src/rust/library .
+              tar -I "brotli -q 11" \
+                -cf "${{ github.workspace }}/x-tools/rust-src.tar.br" \
+                --directory src/rust/library .
+              echo "rust-src done"
 
               # Package rustc-src
               if [ -d "rustc-src" ]; then
