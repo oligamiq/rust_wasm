@@ -19,7 +19,7 @@ Release run `33131839606` failed twice while `gh run download` fetched the 6.5 G
 
 ### Official Cross-Run Artifact Action
 
-Use `actions/download-artifact@v4` with `run-id`, `name`, `path`, and `github-token` for the four Rust producer artifacts. This retains the explicit-run contract while replacing the failing CLI transfer with GitHub's supported artifact action. It is the smallest change and is the selected approach.
+Use `actions/download-artifact@v4` with `run-id`, `repository`, `name`, `path`, and `github-token` for the four Rust producer artifacts. This retains the explicit-run contract while replacing the failing CLI transfer with GitHub's supported artifact action. It is the smallest change and is the selected approach.
 
 ### Custom Resumable REST Download
 
@@ -42,6 +42,7 @@ The Rust artifact action receives:
 - `name`: the matrix task's existing artifact name
 - `path`: the existing `artifacts/<artifact-name>` destination
 - `github-token: ${{ github.token }}`
+- `repository: ${{ github.repository }}`
 
 Replace the scalar task list with matrix include entries that map `linux` to `dist-linux`, `windows` to `dist-windows`, `macos` to `dist-macos`, and `rustc-bins` to `rustc-bins`; the LLVM entry has no Rust artifact name. The action runs only when `matrix.task != 'llvm-bins'`. The existing extraction loop and every packaging branch remain unchanged, so downstream archive names and layouts do not change.
 
@@ -58,6 +59,7 @@ Extend `tests/test_release_rust_src_contract.py` before changing the workflow. T
 - Rust artifact downloads use `actions/download-artifact@v4`.
 - The action receives the explicit `build_run_id` as `run-id`.
 - The action receives `github.token` for cross-run access.
+- The action explicitly receives `github.repository` as its source repository.
 - Linux, Windows, macOS, and rustc-bins map to their existing artifact names.
 - The old Rust-path `gh run download` command is absent.
 - The independent LLVM lookup remains present.
