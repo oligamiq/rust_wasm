@@ -11,6 +11,7 @@ Release run `33131839606` failed twice while `gh run download` fetched the 6.5 G
 - Preserve all existing Linux, Windows, macOS, rustc-bins, and LLVM release assets.
 - Continue consuming Linux, Windows, macOS, and rustc-bins from one explicit successful `rustc_llvm_with_lld.yml` run.
 - Continue using the independent latest successful `build_llvm.yml` run for LLVM assets.
+- Grant the release workflow `actions: read` permission for explicit cross-run artifact access while retaining `contents: write` for release publication.
 - Reuse producer run `33114125096`; do not rebuild Rust artifacts for this fix.
 - Do not add commit-hash, archive-digest, or embedded-rustc identity verification.
 - Do not change release asset layouts or downstream Pages URLs.
@@ -44,6 +45,8 @@ The Rust artifact action receives:
 - `github-token: ${{ github.token }}`
 - `repository: ${{ github.repository }}`
 
+The workflow permissions explicitly include `actions: read` and retain `contents: write`.
+
 Replace the scalar task list with matrix include entries that map `linux` to `dist-linux`, `windows` to `dist-windows`, `macos` to `dist-macos`, and `rustc-bins` to `rustc-bins`; the LLVM entry has no Rust artifact name. The action runs only when `matrix.task != 'llvm-bins'`. The existing extraction loop and every packaging branch remain unchanged, so downstream archive names and layouts do not change.
 
 ## Error Handling
@@ -60,6 +63,7 @@ Extend `tests/test_release_rust_src_contract.py` before changing the workflow. T
 - The action receives the explicit `build_run_id` as `run-id`.
 - The action receives `github.token` for cross-run access.
 - The action explicitly receives `github.repository` as its source repository.
+- The workflow explicitly grants `actions: read` without removing `contents: write`.
 - Linux, Windows, macOS, and rustc-bins map to their existing artifact names.
 - The old Rust-path `gh run download` command is absent.
 - The independent LLVM lookup remains present.
