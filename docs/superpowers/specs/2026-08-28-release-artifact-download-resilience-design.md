@@ -75,3 +75,20 @@ Run the Python contract test and actionlint after implementation. The pre-existi
 Commit and push the workflow fix only to `feat/browser-rust-std-artifacts`. Dispatch a new `create_release.yml` run on that branch with `version=v0.2.1` and `build_run_id=33114125096`. Do not reuse failed release run `33131839606`, because reruns use its original workflow definition.
 
 After success, wait for Pages deployment and verify that the public `rust-src.tar.br` lists `core/src/lib.rs`, `alloc/src/lib.rs`, and `std/src/lib.rs`. Then resume Rubrc asset preparation and browser acceptance testing.
+
+## Producer-Side Windows Fallback
+
+The official action fixed the original transfer boundary: replacement release run `33140915641` downloaded `dist-windows` successfully in about nine minutes. The hosted runner then lost communication while expanding the monolithic Windows tar for about 55 minutes. A second run reached the same extraction step. The remaining failure is therefore the monolithic archive expansion, not cross-run transfer.
+
+The fallback removes that expansion from the release workflow:
+
+- The Windows producer job keeps uploading `dist-windows` so the complete producer artifact set remains available.
+- Before deleting `dist-artifacts`, the Windows producer creates one `${target}.tar.gz` per `dist/lib/rustlib/${target}/lib` directory. It runs `tar` from inside each `lib` directory with the existing `*` member selection, preserving the current archive-root layout.
+- A new `release-windows` artifact uploads only those precompressed archives with `compression-level: 0`. The artifact contains a small number of files rather than the expanded rustlib tree.
+- The release matrix maps its Windows task to `release-windows` instead of `dist-windows`.
+- The release job copies each producer-created `.tar.gz` unchanged and streams its decompressed tar bytes through `brotli -q 11` to create the matching `.tar.br`. It never expands target members onto the release runner filesystem.
+- Linux, macOS, rustc-bins, LLVM, rust-src packaging, archive names, and public layouts remain unchanged.
+
+Because `release-windows` is a new producer artifact, the fallback requires one new `job=all` producer run from the feature branch. The subsequent release must use that exact successful run ID for all four Rust artifact families. Mixing the new Windows artifact with the old producer run is prohibited.
+
+Contract tests must fail before implementation and then prove that the producer creates and uploads `release-windows`, the release consumes it, the streaming conversion is present, and the old release-side `dist-windows` directory traversal is absent. After tests and actionlint, push the feature branch, dispatch one new `job=all` producer run, then dispatch one release run from its exact ID.
