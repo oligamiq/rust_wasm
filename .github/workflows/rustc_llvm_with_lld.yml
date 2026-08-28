@@ -603,6 +603,38 @@ jobs:
           mkdir -p dist-artifacts
           mv ../rust/dist dist-artifacts/dist
           rm -rf dist-artifacts/dist/bin
+          release_dir="${{ github.workspace }}/rust_wasm/release-linux"
+          rustlib_dir="dist-artifacts/dist/lib/rustlib"
+          library_dir="$rustlib_dir/src/rust/library"
+          if [ ! -d "$library_dir" ]; then
+            echo "dist-linux artifact is missing src/rust/library"
+            exit 1
+          fi
+          mkdir -p "$release_dir"
+          tar -cf - -C "$library_dir" . | gzip -9 > "$release_dir/rust-src.tar.gz"
+          test -s "$release_dir/rust-src.tar.gz"
+
+          if [ -d "$rustlib_dir/rustc-src" ]; then
+            tar -cf - -C "$rustlib_dir" rustc-src | gzip -9 > "$release_dir/rustc-src.tar.gz"
+            test -s "$release_dir/rustc-src.tar.gz"
+          fi
+
+          target_count=0
+          for target_dir in dist-artifacts/dist/lib/rustlib/*; do
+            if [ -d "$target_dir/lib" ]; then
+              target=$(basename "$target_dir")
+              (
+                cd "$target_dir/lib"
+                tar -chf - *
+              ) | gzip -9 > "$release_dir/${target}.tar.gz"
+              test -s "$release_dir/${target}.tar.gz"
+              target_count=$((target_count + 1))
+            fi
+          done
+          if [ "$target_count" -eq 0 ]; then
+            echo "dist-linux artifact contains no target libraries"
+            exit 1
+          fi
           # Archive into a single file to avoid API limits (800k+ files is too many)
           tar -chf ${{ github.workspace }}/rust_wasm/dist-linux.tar -C dist-artifacts .
           echo "=== Artifact status ==="
@@ -616,6 +648,14 @@ jobs:
           name: dist-linux
           path: ${{ github.workspace }}/rust_wasm/dist-linux.tar
           if-no-files-found: error
+
+      - name: upload release-ready linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-linux
+          path: ${{ github.workspace }}/rust_wasm/release-linux/*.tar.gz
+          if-no-files-found: error
+          compression-level: 0
 
   dist-macos:
     runs-on: macos-latest
@@ -725,6 +765,24 @@ jobs:
           mkdir -p dist-artifacts
           mv ../rust/dist dist-artifacts/dist
           rm -rf dist-artifacts/dist/bin
+          release_dir="${{ github.workspace }}/rust_wasm/release-macos"
+          mkdir -p "$release_dir"
+          target_count=0
+          for target_dir in dist-artifacts/dist/lib/rustlib/*; do
+            if [ -d "$target_dir/lib" ]; then
+              target=$(basename "$target_dir")
+              (
+                cd "$target_dir/lib"
+                tar -chf - *
+              ) | gzip -9 > "$release_dir/${target}.tar.gz"
+              test -s "$release_dir/${target}.tar.gz"
+              target_count=$((target_count + 1))
+            fi
+          done
+          if [ "$target_count" -eq 0 ]; then
+            echo "dist-macos artifact contains no target libraries"
+            exit 1
+          fi
           # Archive into a single file
           tar -chf ${{ github.workspace }}/rust_wasm/dist-macos.tar -C dist-artifacts .
           echo "=== Artifact status ==="
@@ -738,6 +796,14 @@ jobs:
           name: dist-macos
           path: ${{ github.workspace }}/rust_wasm/dist-macos.tar
           if-no-files-found: error
+
+      - name: upload release-ready macos artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-macos
+          path: ${{ github.workspace }}/rust_wasm/release-macos/*.tar.gz
+          if-no-files-found: error
+          compression-level: 0
 
   dist-windows:
     runs-on: windows-latest
@@ -869,16 +935,23 @@ jobs:
           rm -rf dist-artifacts/dist/bin
           release_dir="${WS_FORWARD}/rust_wasm/release-windows"
           mkdir -p "$release_dir"
+          target_count=0
           for target_dir in dist-artifacts/dist/lib/rustlib/*; do
             if [ -d "$target_dir/lib" ]; then
               target=$(basename "$target_dir")
               (
                 cd "$target_dir/lib"
-                tar --force-local --ignore-failed-read -chzf "$release_dir/${target}.tar.gz" *
-              )
+                tar -chf - *
+              ) | gzip -9 > "$release_dir/${target}.tar.gz"
+              test -s "$release_dir/${target}.tar.gz"
+              target_count=$((target_count + 1))
               echo "$target release archive done"
             fi
           done
+          if [ "$target_count" -eq 0 ]; then
+            echo "dist-windows artifact contains no target libraries"
+            exit 1
+          fi
           # Archive into a single file (tar is available in Git Bash on Windows)
           # Use --force-local to avoid interpreting the drive colon as a remote host
           tar --force-local -chf "${WS_FORWARD}/rust_wasm/dist-windows.tar" -C dist-artifacts .
