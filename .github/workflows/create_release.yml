@@ -12,6 +12,7 @@ on:
         required: true
 
 permissions:
+  actions: read
   contents: write
 
 jobs:
@@ -20,7 +21,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        task: [linux, windows, macos, rustc-bins, llvm-bins]
+        include:
+          - task: linux
+            artifact: dist-linux
+          - task: windows
+            artifact: dist-windows
+          - task: macos
+            artifact: dist-macos
+          - task: rustc-bins
+            artifact: rustc-bins
+          - task: llvm-bins
 
     steps:
       - name: Checkout
@@ -45,33 +55,30 @@ jobs:
           sudo apt-get install brotli
           echo "brotli installed time: $(date)"
 
-      - name: download artifacts
+      - name: download Rust artifact
+        if: ${{ matrix.task != 'llvm-bins' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: artifacts/${{ matrix.artifact }}
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ github.event.inputs.build_run_id }}
+
+      - name: download LLVM artifacts
+        if: ${{ matrix.task == 'llvm-bins' }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
           mkdir -p artifacts
-          
-          if [ "${{ matrix.task }}" = "llvm-bins" ]; then
-            # Get latest successful run for build_llvm.yml
-            RUN_ID_LLVM=$(gh run list --workflow build_llvm.yml --status success --limit 1 --json databaseId --jq '.[0].databaseId')
-            if [ "$RUN_ID_LLVM" != "null" ] && [ -n "$RUN_ID_LLVM" ]; then
-              gh run download "$RUN_ID_LLVM" --name llvm-bins --dir artifacts/llvm-bins || echo "llvm-bins not found"
-            fi
-          else
-            # Determine the artifact name to download based on the matrix task
-            ARTIFACT_NAME=""
-            if [ "${{ matrix.task }}" = "linux" ]; then ARTIFACT_NAME="dist-linux"; fi
-            if [ "${{ matrix.task }}" = "windows" ]; then ARTIFACT_NAME="dist-windows"; fi
-            if [ "${{ matrix.task }}" = "macos" ]; then ARTIFACT_NAME="dist-macos"; fi
-            if [ "${{ matrix.task }}" = "rustc-bins" ]; then ARTIFACT_NAME="rustc-bins"; fi
-            
-            gh run download "${{ github.event.inputs.build_run_id }}" \
-              --name "$ARTIFACT_NAME" \
-              --dir "artifacts/${ARTIFACT_NAME}"
+          RUN_ID_LLVM=$(gh run list --workflow build_llvm.yml --status success --limit 1 --json databaseId --jq '.[0].databaseId')
+          if [ "$RUN_ID_LLVM" != "null" ] && [ -n "$RUN_ID_LLVM" ]; then
+            gh run download "$RUN_ID_LLVM" --name llvm-bins --dir artifacts/llvm-bins || echo "llvm-bins not found"
           fi
-          
-          # Extract tar artifacts
+
+      - name: extract downloaded artifacts
+        run: |
           for f in artifacts/*/*.tar; do
             if [ -f "$f" ]; then
               dir=$(dirname "$f")
@@ -79,8 +86,6 @@ jobs:
               rm "$f"
             fi
           done
-          
-          ls -R artifacts
 
       - name: create release assets
         working-directory: "${{ github.workspace }}/rust_wasm"

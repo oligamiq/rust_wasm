@@ -27,8 +27,29 @@ class RustSrcReleaseContractTest(unittest.TestCase):
 
     def test_release_uses_one_explicit_build_run(self):
         self.assertIn("build_run_id:", RELEASE)
-        self.assertNotIn("gh run list --workflow rustc_llvm_with_lld.yml", RELEASE)
-        self.assertIn('gh run download "${{ github.event.inputs.build_run_id }}"', RELEASE)
+        self.assertIn("actions: read", RELEASE)
+        self.assertIn("uses: actions/download-artifact@v4", RELEASE)
+        self.assertIn(
+            "run-id: ${{ github.event.inputs.build_run_id }}",
+            RELEASE,
+        )
+        self.assertIn("github-token: ${{ github.token }}", RELEASE)
+        self.assertIn("repository: ${{ github.repository }}", RELEASE)
+        for task, artifact in (
+            ("linux", "dist-linux"),
+            ("windows", "dist-windows"),
+            ("macos", "dist-macos"),
+            ("rustc-bins", "rustc-bins"),
+        ):
+            self.assertIn(
+                f"- task: {task}\n            artifact: {artifact}",
+                RELEASE,
+            )
+        self.assertNotIn(
+            'gh run download "${{ github.event.inputs.build_run_id }}"',
+            RELEASE,
+        )
+        self.assertIn("gh run list --workflow build_llvm.yml", RELEASE)
 
 
 if __name__ == "__main__":
