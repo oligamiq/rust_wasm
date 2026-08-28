@@ -57,11 +57,11 @@ OS package jobs no longer download or expand `dist-*` artifacts. They consume on
 
 Remove `jlumbroso/free-disk-space` from the release workflow. Release-ready OS shards no longer require space for expanded toolchains. The latest rustc-bins package job completed in 11 minutes 36 seconds including more than three minutes of disk cleanup, so removing that setup also gives rustc-bins sufficient margin under the 15-minute requirement. llvm-bins already completes well under the limit.
 
-Keep Brotli quality 11, public `.tar.gz` and `.tar.br` names, and all archive member layouts unchanged.
+Keep gzip level 9, Brotli quality 11, public `.tar.gz` and `.tar.br` names, and all archive member layouts unchanged.
 
 ## Provenance
 
-All artifacts used by a release must come from one complete successful producer run using `RUST_SOURCE_REF: cf327c2068549194a29160499c2ecafa9061e46e`.
+All Rust artifacts used by a release must come from one complete successful producer run using `RUST_SOURCE_REF: cf327c2068549194a29160499c2ecafa9061e46e`. LLVM continues to come from the latest successful independent `build_llvm.yml` run.
 
 After changing the producer, dispatch one new `job=all` run. Do not combine its release-ready artifacts with `dist-*` or rustc-bins from an older producer run. Dispatch `create_release.yml` only with the exact successful producer run ID recorded by verification.
 
