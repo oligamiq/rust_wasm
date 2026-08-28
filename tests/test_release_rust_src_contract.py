@@ -25,6 +25,30 @@ class RustSrcReleaseContractTest(unittest.TestCase):
         self.assertIn('if [ ! -d "src/rust/library" ]; then', RELEASE)
         self.assertIn('--directory src/rust/library .', RELEASE)
 
+    def test_windows_release_archives_are_prepared_in_the_producer(self):
+        self.assertIn(
+            'release_dir="${WS_FORWARD}/rust_wasm/release-windows"',
+            BUILD,
+        )
+        self.assertIn(
+            "for target_dir in dist-artifacts/dist/lib/rustlib/*; do",
+            BUILD,
+        )
+        self.assertIn(
+            'tar --force-local --ignore-failed-read -chzf "$release_dir/${target}.tar.gz" *',
+            BUILD,
+        )
+        self.assertIn("name: release-windows", BUILD)
+        self.assertIn("compression-level: 0", BUILD)
+        self.assertIn(
+            'gzip -dc "$archive" | brotli -q 11 > "${{ github.workspace }}/x-tools/${name%.tar.gz}.tar.br"',
+            RELEASE,
+        )
+        self.assertNotIn(
+            '${{ github.workspace }}/artifacts/dist-windows/dist/lib/rustlib',
+            RELEASE,
+        )
+
     def test_release_uses_one_explicit_build_run(self):
         self.assertIn("build_run_id:", RELEASE)
         self.assertIn("actions: read", RELEASE)
@@ -37,7 +61,7 @@ class RustSrcReleaseContractTest(unittest.TestCase):
         self.assertIn("repository: ${{ github.repository }}", RELEASE)
         for task, artifact in (
             ("linux", "dist-linux"),
-            ("windows", "dist-windows"),
+            ("windows", "release-windows"),
             ("macos", "dist-macos"),
             ("rustc-bins", "rustc-bins"),
         ):

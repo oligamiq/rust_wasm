@@ -25,7 +25,7 @@ jobs:
           - task: linux
             artifact: dist-linux
           - task: windows
-            artifact: dist-windows
+            artifact: release-windows
           - task: macos
             artifact: dist-macos
           - task: rustc-bins
@@ -134,21 +134,21 @@ jobs:
           fi
 
           if [ "${{ matrix.task }}" = "windows" ]; then
-            if [ -d "${{ github.workspace }}/artifacts/dist-windows" ]; then
-              cd "${{ github.workspace }}/artifacts/dist-windows/dist/lib/rustlib"
-              export WORKSPACE="${{ github.workspace }}"
-              for target in *; do
-                if [ -d "$target" ] && [ "$target" != "src" ] && [ "$target" != "rustc-src" ]; then
-                  echo "$target"
-                fi
-              done | xargs -I {} -P 4 bash -c '
-                target="{}"
-                cd "${target}/lib" || exit 1
-                tar --ignore-failed-read -chzf "${WORKSPACE}/x-tools/${target}.tar.gz" *
-                tar --ignore-failed-read -h -I "brotli -q 11" -cf "${WORKSPACE}/x-tools/${target}.tar.br" *
-                echo "${target} done"
-              '
+            release_dir="${{ github.workspace }}/artifacts/release-windows"
+            if [ ! -d "$release_dir" ]; then
+              echo "release-windows artifact is missing"
+              exit 1
             fi
+            for archive in "$release_dir"/*.tar.gz; do
+              if [ ! -f "$archive" ]; then
+                echo "release-windows artifact contains no target archives"
+                exit 1
+              fi
+              name=$(basename "$archive")
+              cp "$archive" "${{ github.workspace }}/x-tools/$name"
+              gzip -dc "$archive" | brotli -q 11 > "${{ github.workspace }}/x-tools/${name%.tar.gz}.tar.br"
+              echo "${name%.tar.gz} done"
+            done
           fi
 
           if [ "${{ matrix.task }}" = "macos" ]; then
