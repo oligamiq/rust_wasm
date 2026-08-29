@@ -166,6 +166,7 @@ jobs:
         env:
           GZIP: -9
         run: |
+          set -o pipefail
           mkdir -p "${{ github.workspace }}/x-tools"
 
           if [ "${{ matrix.kind }}" = "target" ]; then
@@ -281,6 +282,26 @@ jobs:
     runs-on: ubuntu-latest
     needs: package
     steps:
+      - name: download assets for duplicate validation
+        uses: actions/download-artifact@v4
+        with:
+          path: validation-assets
+          pattern: release-assets-*
+
+      - name: reject duplicate release asset basenames
+        run: |
+          set -o pipefail
+          duplicate_names=$(
+            find validation-assets -type f -printf '%f\n' |
+              LC_ALL=C sort |
+              uniq -d
+          )
+          if [ -n "$duplicate_names" ]; then
+            echo "duplicate release asset basenames:"
+            echo "$duplicate_names"
+            exit 1
+          fi
+
       - name: download assets
         uses: actions/download-artifact@v4
         with:

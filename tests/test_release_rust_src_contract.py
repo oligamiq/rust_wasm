@@ -35,6 +35,41 @@ class RustSrcReleaseContractTest(unittest.TestCase):
         )
         self.assertGreaterEqual(BUILD.count("| gzip -9 >"), 3)
 
+    def test_macos_owns_cross_platform_wasi_release_archives(self):
+        ownership_filter = (
+            '              if [ "$target" = "wasm32-wasip1" ] || '
+            '[ "$target" = "wasm32-wasip1-threads" ]; then\n'
+            "                continue\n"
+            "              fi"
+        )
+        jobs = {
+            "linux": BUILD.split("\n  dist-linux:\n", 1)[1].split(
+                "\n  dist-macos:\n", 1
+            )[0],
+            "macos": BUILD.split("\n  dist-macos:\n", 1)[1].split(
+                "\n  dist-windows:\n", 1
+            )[0],
+            "windows": BUILD.split("\n  dist-windows:\n", 1)[1],
+        }
+        prepares = {
+            platform: job.split("\n      - name: prepare dist artifacts\n", 1)[1].split(
+                "\n      - name: upload dist artifacts\n", 1
+            )[0]
+            for platform, job in jobs.items()
+        }
+
+        self.assertIn(ownership_filter, prepares["linux"])
+        self.assertIn(ownership_filter, prepares["windows"])
+        self.assertNotIn(ownership_filter, prepares["macos"])
+        self.assertEqual(BUILD.count(ownership_filter), 2)
+        for platform, prepare in prepares.items():
+            with self.subTest(platform=platform):
+                self.assertIn(
+                    "for target_dir in dist-artifacts/dist/lib/rustlib/*; do",
+                    prepare,
+                )
+                self.assertIn(f"dist-{platform}.tar", prepare)
+
     def test_unix_release_archive_pipelines_enable_pipefail(self):
         for platform, next_platform in (("linux", "macos"), ("macos", "windows")):
             job = BUILD.split(f"\n  dist-{platform}:\n", 1)[1].split(
@@ -127,6 +162,48 @@ class RustSrcReleaseContractTest(unittest.TestCase):
         self.assertIn("compression-level: 0", RELEASE)
         self.assertIn("pattern: release-assets-*", RELEASE)
         self.assertIn("merge-multiple: true", RELEASE)
+
+    def test_publish_rejects_duplicate_basenames_before_merged_download(self):
+        validation_download = (
+            "      - name: download assets for duplicate validation\n"
+            "        uses: actions/download-artifact@v4\n"
+            "        with:\n"
+            "          path: validation-assets\n"
+            "          pattern: release-assets-*"
+        )
+        merged_download = (
+            "      - name: download assets\n"
+            "        uses: actions/download-artifact@v4\n"
+            "        with:\n"
+            "          path: x-tools\n"
+            "          pattern: release-assets-*\n"
+            "          merge-multiple: true"
+        )
+        self.assertIn(validation_download, RELEASE)
+        validation_download_step = RELEASE.split(
+            "\n      - name: download assets for duplicate validation\n", 1
+        )[1].split("\n      - name: reject duplicate release asset basenames\n", 1)[0]
+        self.assertNotIn("merge-multiple", validation_download_step)
+        validation = RELEASE.split(
+            "\n      - name: reject duplicate release asset basenames\n", 1
+        )[1].split("\n      - name: download assets\n", 1)[0]
+        self.assertIn("set -o pipefail", validation)
+        self.assertIn('find validation-assets -type f -printf \'%f\\n\'', validation)
+        self.assertIn("uniq -d", validation)
+        self.assertIn('if [ -n "$duplicate_names" ]; then', validation)
+        self.assertIn("exit 1", validation)
+        self.assertIn(merged_download, RELEASE)
+        self.assertLess(RELEASE.index(validation_download), RELEASE.index(merged_download))
+
+    def test_release_asset_pipelines_enable_pipefail(self):
+        create_assets = RELEASE.split("\n      - name: create release assets\n", 1)[
+            1
+        ].split("\n      - name: upload partial assets\n", 1)[0]
+        self.assertIn(
+            '        run: |\n          set -o pipefail\n'
+            '          mkdir -p "${{ github.workspace }}/x-tools"',
+            create_assets,
+        )
 
 
 if __name__ == "__main__":

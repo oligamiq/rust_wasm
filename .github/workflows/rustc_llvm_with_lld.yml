@@ -624,6 +624,9 @@ jobs:
           for target_dir in dist-artifacts/dist/lib/rustlib/*; do
             if [ -d "$target_dir/lib" ]; then
               target=$(basename "$target_dir")
+              if [ "$target" = "wasm32-wasip1" ] || [ "$target" = "wasm32-wasip1-threads" ]; then
+                continue
+              fi
               (
                 cd "$target_dir/lib"
                 tar -chf - *
@@ -941,6 +944,9 @@ jobs:
           for target_dir in dist-artifacts/dist/lib/rustlib/*; do
             if [ -d "$target_dir/lib" ]; then
               target=$(basename "$target_dir")
+              if [ "$target" = "wasm32-wasip1" ] || [ "$target" = "wasm32-wasip1-threads" ]; then
+                continue
+              fi
               (
                 cd "$target_dir/lib"
                 tar -chf - *
