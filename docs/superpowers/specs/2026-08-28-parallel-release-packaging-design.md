@@ -2,7 +2,7 @@
 
 ## Goal
 
-Make every `create_release.yml` package job complete in less than 15 minutes while preserving every public release asset name, archive layout, and compression setting.
+Make every `create_release.yml` package job complete in less than 15 minutes while preserving every supported public release asset name, archive layout, and compression setting.
 
 The time limit applies individually to Linux, Windows, macOS, rustc-bins, and llvm-bins package work. The publish job is outside this limit.
 
@@ -14,7 +14,7 @@ Run `33163288955` used the release-ready Windows gzip artifact but still had Lin
 
 Run `33234711624` showed two remaining release bottlenecks. LLVM retained its downloaded `llvm-bins.tar` wrapper because plain-tar extraction was limited to rustc. Each of the 6 Linux target shards also converted 4-5 assigned archives sequentially; measured per-archive conversion took about 3-5.5 minutes, and 5 Linux jobs exceeded 900 seconds. The release therefore needs both 8 Linux shards and parallel conversion of each shard's deterministic assignment.
 
-Release run `33237805568` proved the 19-job runtime design: every package job completed under 900 seconds. Its v0.2.0 asset comparison still found `wasm32v1-none.tar.br` missing, and `rust-src` listed `./core/...` because the producer archived `.` with `tar -C`. Producer compatibility therefore requires an explicit Linux `wasm32v1-none` target and `tar *` from inside the library directory.
+Release run `33237805568` proved the 19-job runtime design: every package job completed under 900 seconds. Its v0.2.0 asset comparison found `wasm32v1-none.tar.br` missing, and `rust-src` listed `./core/...` because the producer archived `.` with `tar -C`. Producer run `33239351320` then proved that pinned Rust source `cf327c2068549194a29160499c2ecafa9061e46e` cannot build the obsolete `wasm32v1-none` target: `dist-linux` failed in `build dist` after it was requested, while every other producer job succeeded. The supported target sets published by v0.3.0 and v3.0.0 both omit this target. Producer compatibility therefore excludes `wasm32v1-none` to keep compiler and sysroot inputs consistent, while retaining `tar *` from inside the library directory for exact source member names.
 
 ## Architecture
 
@@ -26,7 +26,7 @@ The producer creates three release-ready artifacts:
 - `release-windows`: Windows target `${target}.tar.gz` files.
 - `release-macos`: macOS target `${target}.tar.gz` files.
 
-The Linux build explicitly includes `wasm32v1-none`, preserving the `wasm32v1-none.tar.gz` and `wasm32v1-none.tar.br` assets published by v0.2.0.
+The Linux build intentionally excludes `wasm32v1-none`. The pinned compiler source does not support it, and the v0.3.0 and v3.0.0 release baselines omit its `.tar.gz` and `.tar.br` assets.
 
 Each target gzip archive contains the target library directory members at archive root, matching the current public release layout. `rust-src.tar.gz` contains the contents of `src/rust/library` at archive root, preserving exact paths such as `core/src/lib.rs`, `alloc/src/lib.rs`, and `std/src/lib.rs`. Members must not have a leading `./`; the producer changes into the library directory and archives `*`.
 
@@ -86,7 +86,7 @@ If any successful package job takes 15 minutes or longer, treat the performance 
 Contract tests must prove:
 
 - The producer creates and uploads `release-linux`, `release-windows`, and `release-macos` without artifact recompression.
-- The Linux producer explicitly builds `wasm32v1-none` for v0.2.0 asset compatibility.
+- The Linux producer does not request `wasm32v1-none` from the pinned source, preserving compiler/sysroot consistency with the supported v0.3.0 and v3.0.0 target set.
 - Linux source archives are generated only once and retain exact library-relative paths without leading `./` members.
 - The release matrix contains exactly 8 Linux target shards, 4 Windows target shards, 4 macOS target shards, one Linux source job, one rustc-bins job, and one llvm-bins job.
 - Target assignment is deterministic, excludes Linux source archives, and covers each target exactly once.
@@ -97,7 +97,7 @@ Contract tests must prove:
 
 Run focused Python contracts, actionlint, and `git diff --check` before pushing.
 
-After the new complete producer run, verify all required producer artifacts are present and unexpired. After the release run, calculate each package job duration from GitHub's `started_at` and `completed_at`; every package job must be less than 900 seconds. Finally verify the full release asset set, Pages deployment, and public `rust-src.tar.br` entries.
+After the new complete producer run, verify all required producer artifacts are present and unexpired. After the release run, calculate each package job duration from GitHub's `started_at` and `completed_at`; every package job must be less than 900 seconds. Finally compare the release asset set with the current supported v3.0.0 baseline rather than v0.2.0, confirm `wasm32v1-none` remains absent, and verify Pages deployment and public `rust-src.tar.br` entries.
 
 ## Out Of Scope
 

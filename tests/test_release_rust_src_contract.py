@@ -97,15 +97,18 @@ class RustSrcReleaseContractTest(unittest.TestCase):
         self.assertNotIn('tar -cf - -C "$library_dir" .', BUILD)
         self.assertNotIn("--directory src/rust/library .", RELEASE)
 
-    def test_linux_build_includes_v0_2_0_compatibility_target(self):
+    def test_linux_build_excludes_target_unsupported_by_pinned_source(self):
+        self.assertIn(
+            "RUST_SOURCE_REF: cf327c2068549194a29160499c2ecafa9061e46e", BUILD
+        )
         linux_job = BUILD.split("\n  dist-linux:\n", 1)[1].split(
             "\n  dist-macos:\n", 1
         )[0]
         install = linux_job.split(
             "\n      - name: install toolchain-for-building-rustc\n", 1
         )[1].split("\n      - name: build dist\n", 1)[0]
-        self.assertIn("-t wasm32v1-none", install)
-        self.assertEqual(BUILD.count("-t wasm32v1-none"), 1)
+        self.assertNotIn("-t wasm32v1-none", install)
+        self.assertNotIn("-t wasm32v1-none", BUILD)
 
     def test_tar_star_uses_exact_library_relative_member_names(self):
         with tempfile.TemporaryDirectory() as temp:

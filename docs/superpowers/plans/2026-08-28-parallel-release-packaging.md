@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Make each of the 19 `create_release.yml` package jobs finish in less than 15 minutes while preserving all public release assets.
+**Goal:** Make each of the 19 `create_release.yml` package jobs finish in less than 15 minutes while preserving all supported public release assets.
 
 **Architecture:** The producer creates gzip-compressed release-ready target archives for Linux, Windows, and macOS without changing the existing `dist-*` artifacts. The release fans gzip-to-Brotli conversion across 8 Linux target shards, 4 Windows target shards, 4 macOS target shards, and one Linux source job, then converts each target shard's deterministic assignment in parallel and merges the uniquely named partial artifacts for publication.
 
@@ -12,10 +12,10 @@
 
 - Every `create_release.yml` package job must complete in less than 900 seconds; the publish job is outside this limit.
 - Keep gzip level 9 and Brotli quality 11.
-- Preserve every public `.tar.gz` and `.tar.br` asset name and archive member layout.
+- Preserve every supported public `.tar.gz` and `.tar.br` asset name and archive member layout.
 - Preserve existing `dist-linux`, `dist-windows`, and `dist-macos` artifacts unchanged.
 - `release-linux` contains Linux target gzip archives, required `rust-src.tar.gz`, and optional `rustc-src.tar.gz`.
-- The Linux toolchain invocation explicitly includes `-t wasm32v1-none` to preserve the v0.2.0 compatibility asset.
+- The Linux toolchain invocation excludes `wasm32v1-none`, which pinned Rust source `cf327c2068549194a29160499c2ecafa9061e46e` does not support and the v0.3.0 and v3.0.0 supported target sets omit.
 - `rust-src.tar.gz` members are exact library-relative names such as `core/src/lib.rs`, never `./core/src/lib.rs`.
 - `release-windows` and `release-macos` contain target gzip archives only.
 - Use exactly 8 Linux target shards, 4 Windows target shards, 4 macOS target shards, one Linux source job, one rustc-bins job, and one llvm-bins job.
@@ -71,12 +71,18 @@ Replace `test_release_packages_library_relative_archive_without_reclone` and `te
         self.assertNotIn('tar -cf - -C "$library_dir" .', BUILD)
         self.assertNotIn("--directory src/rust/library .", RELEASE)
 
-    def test_linux_build_includes_v0_2_0_compatibility_target(self):
+    def test_linux_build_excludes_target_unsupported_by_pinned_source(self):
+        self.assertIn(
+            "RUST_SOURCE_REF: cf327c2068549194a29160499c2ecafa9061e46e", BUILD
+        )
         linux_job = BUILD.split("\n  dist-linux:\n", 1)[1].split(
             "\n  dist-macos:\n", 1
         )[0]
-        self.assertIn("-t wasm32v1-none", linux_job)
-        self.assertEqual(BUILD.count("-t wasm32v1-none"), 1)
+        install = linux_job.split(
+            "\n      - name: install toolchain-for-building-rustc\n", 1
+        )[1].split("\n      - name: build dist\n", 1)[0]
+        self.assertNotIn("-t wasm32v1-none", install)
+        self.assertNotIn("-t wasm32v1-none", BUILD)
 ```
 
 Keep the source-ref and Linux checkout-copy tests unchanged. Add a local tar fixture that creates `core/src/lib.rs`, archives `*` from the library directory, and proves `tar -tf` contains `core/src/lib.rs` but not `./core/src/lib.rs`. Update the explicit build-run mapping test later in Task 2; do not weaken it here.
@@ -89,11 +95,11 @@ Run:
 python3 -m unittest tests.test_release_rust_src_contract -v
 ```
 
-Expected: the new producer tests fail because `release-linux`, `release-macos`, and producer-side `rust-src.tar.gz` are absent.
+For the unsupported-target follow-up at commit `aea7966`, run the focused exclusion contract first. Expected RED: it fails because the Linux invocation still contains `-t wasm32v1-none`.
 
 - [ ] **Step 3: Add Linux release-ready archive generation**
 
-Add `-t wasm32v1-none` only to the Linux `toolchain-for-building-rustc --tier 1 --tier 2-host --os linux` invocation. This restores the target archive present in v0.2.0 without changing macOS or Windows target ownership.
+Do not add `-t wasm32v1-none` to the Linux `toolchain-for-building-rustc --tier 1 --tier 2-host --os linux` invocation. Producer run `33239351320` failed in Linux `build dist` when pinned Rust source `cf327c2068549194a29160499c2ecafa9061e46e` was combined with that unsupported target. Omitting it preserves compiler/sysroot consistency and matches the supported target sets in v0.3.0 and v3.0.0 without changing macOS or Windows target ownership.
 
 In the Linux `prepare dist artifacts` step, immediately after `rm -rf dist-artifacts/dist/bin`, add:
 
@@ -672,16 +678,18 @@ Expected: a 19-entry array and exit 0; every `duration_seconds` is below 900.
 - [ ] **Step 4: Verify the public release asset contract**
 
 ```bash
-OLD_TARGETS=$(gh release view v0.2.0-release --json assets \
+BASELINE_TARGETS=$(gh release view v3.0.0-release --json assets \
   --jq '[.assets[].name | select(endswith(".tar.br") and (endswith(".wasm.tar.br") | not))]')
 NEW_ASSETS=$(gh release view v0.2.1-release --json assets --jq '[.assets[].name]')
-jq -n --argjson old_targets "$OLD_TARGETS" --argjson new "$NEW_ASSETS" '
-  ($old_targets - $new) as $missing
+jq -n --argjson baseline "$BASELINE_TARGETS" --argjson new "$NEW_ASSETS" '
+  ($baseline - $new) as $missing
   | if ($missing | length) == 0
     and ($new | index("rust-src.tar.br")) != null
     and ($new | index("rust-src.tar.gz")) != null
     and ($new | index("rustc_opt.wasm.br")) != null
     and ($new | index("llvm_opt.wasm.br")) != null
+    and ($new | index("wasm32v1-none.tar.br")) == null
+    and ($new | index("wasm32v1-none.tar.gz")) == null
     then "release asset contract passed"
     else error("missing release assets: \($missing)")
     end
