@@ -195,6 +195,17 @@ class RustSrcReleaseContractTest(unittest.TestCase):
         self.assertIn(merged_download, RELEASE)
         self.assertLess(RELEASE.index(validation_download), RELEASE.index(merged_download))
 
+    def test_publish_removes_validation_assets_before_merged_download(self):
+        cleanup = 'rm -rf "${{ github.workspace }}/validation-assets"'
+        validation = RELEASE.split(
+            "\n      - name: reject duplicate release asset basenames\n", 1
+        )[1].split("\n      - name: download assets\n", 1)[0]
+        self.assertIn(f"          fi\n          {cleanup}", validation)
+        self.assertLess(
+            RELEASE.index(cleanup),
+            RELEASE.index("\n      - name: download assets\n"),
+        )
+
     def test_release_asset_pipelines_enable_pipefail(self):
         create_assets = RELEASE.split("\n      - name: create release assets\n", 1)[
             1
