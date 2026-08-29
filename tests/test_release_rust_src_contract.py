@@ -35,6 +35,17 @@ class RustSrcReleaseContractTest(unittest.TestCase):
         )
         self.assertGreaterEqual(BUILD.count("| gzip -9 >"), 3)
 
+    def test_unix_release_archive_pipelines_enable_pipefail(self):
+        for platform, next_platform in (("linux", "macos"), ("macos", "windows")):
+            job = BUILD.split(f"\n  dist-{platform}:\n", 1)[1].split(
+                f"\n  dist-{next_platform}:\n", 1
+            )[0]
+            prepare = job.split("\n      - name: prepare dist artifacts\n", 1)[1].split(
+                "\n      - name: upload dist artifacts\n", 1
+            )[0]
+            with self.subTest(platform=platform):
+                self.assertIn("        run: |\n          set -o pipefail\n", prepare)
+
     def test_rust_src_is_packaged_once_with_library_relative_paths(self):
         self.assertNotIn("git clone --depth 1 -b compile_rustc_for_wasm17", RELEASE)
         self.assertIn('library_dir="$rustlib_dir/src/rust/library"', BUILD)

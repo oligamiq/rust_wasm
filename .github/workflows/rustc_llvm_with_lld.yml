@@ -600,6 +600,7 @@ jobs:
       - name: prepare dist artifacts
         working-directory: '${{ github.workspace }}/rust_wasm'
         run: |
+          set -o pipefail
           mkdir -p dist-artifacts
           mv ../rust/dist dist-artifacts/dist
           rm -rf dist-artifacts/dist/bin
@@ -762,6 +763,7 @@ jobs:
       - name: prepare dist artifacts
         working-directory: '${{ github.workspace }}/rust_wasm'
         run: |
+          set -o pipefail
           mkdir -p dist-artifacts
           mv ../rust/dist dist-artifacts/dist
           rm -rf dist-artifacts/dist/bin
