@@ -15,6 +15,8 @@
 - Preserve every public `.tar.gz` and `.tar.br` asset name and archive member layout.
 - Preserve existing `dist-linux`, `dist-windows`, and `dist-macos` artifacts unchanged.
 - `release-linux` contains Linux target gzip archives, required `rust-src.tar.gz`, and optional `rustc-src.tar.gz`.
+- The Linux toolchain invocation explicitly includes `-t wasm32v1-none` to preserve the v0.2.0 compatibility asset.
+- `rust-src.tar.gz` members are exact library-relative names such as `core/src/lib.rs`, never `./core/src/lib.rs`.
 - `release-windows` and `release-macos` contain target gzip archives only.
 - Use exactly 8 Linux target shards, 4 Windows target shards, 4 macOS target shards, one Linux source job, one rustc-bins job, and one llvm-bins job.
 - Every Rust artifact used by the release must come from one new successful `job=all` producer run using `RUST_SOURCE_REF: cf327c2068549194a29160499c2ecafa9061e46e`.
@@ -59,14 +61,25 @@ Replace `test_release_packages_library_relative_archive_without_reclone` and `te
         self.assertNotIn("git clone --depth 1 -b compile_rustc_for_wasm17", RELEASE)
         self.assertIn('library_dir="$rustlib_dir/src/rust/library"', BUILD)
         self.assertIn(
-            'tar -cf - -C "$library_dir" . | gzip -9 > "$release_dir/rust-src.tar.gz"',
+            '          (\n'
+            '            cd "$library_dir"\n'
+            "            tar -cf - *\n"
+            '          ) | gzip -9 > "$release_dir/rust-src.tar.gz"',
             BUILD,
         )
         self.assertEqual(BUILD.count('> "$release_dir/rust-src.tar.gz"'), 1)
+        self.assertNotIn('tar -cf - -C "$library_dir" .', BUILD)
         self.assertNotIn("--directory src/rust/library .", RELEASE)
+
+    def test_linux_build_includes_v0_2_0_compatibility_target(self):
+        linux_job = BUILD.split("\n  dist-linux:\n", 1)[1].split(
+            "\n  dist-macos:\n", 1
+        )[0]
+        self.assertIn("-t wasm32v1-none", linux_job)
+        self.assertEqual(BUILD.count("-t wasm32v1-none"), 1)
 ```
 
-Keep the source-ref and Linux checkout-copy tests unchanged. Update the explicit build-run mapping test later in Task 2; do not weaken it here.
+Keep the source-ref and Linux checkout-copy tests unchanged. Add a local tar fixture that creates `core/src/lib.rs`, archives `*` from the library directory, and proves `tar -tf` contains `core/src/lib.rs` but not `./core/src/lib.rs`. Update the explicit build-run mapping test later in Task 2; do not weaken it here.
 
 - [ ] **Step 2: Run the focused tests and verify RED**
 
@@ -80,6 +93,8 @@ Expected: the new producer tests fail because `release-linux`, `release-macos`, 
 
 - [ ] **Step 3: Add Linux release-ready archive generation**
 
+Add `-t wasm32v1-none` only to the Linux `toolchain-for-building-rustc --tier 1 --tier 2-host --os linux` invocation. This restores the target archive present in v0.2.0 without changing macOS or Windows target ownership.
+
 In the Linux `prepare dist artifacts` step, immediately after `rm -rf dist-artifacts/dist/bin`, add:
 
 ```bash
@@ -91,7 +106,10 @@ In the Linux `prepare dist artifacts` step, immediately after `rm -rf dist-artif
             exit 1
           fi
           mkdir -p "$release_dir"
-          tar -cf - -C "$library_dir" . | gzip -9 > "$release_dir/rust-src.tar.gz"
+          (
+            cd "$library_dir"
+            tar -cf - *
+          ) | gzip -9 > "$release_dir/rust-src.tar.gz"
           test -s "$release_dir/rust-src.tar.gz"
 
           if [ -d "$rustlib_dir/rustc-src" ]; then
@@ -116,6 +134,8 @@ In the Linux `prepare dist artifacts` step, immediately after `rm -rf dist-artif
             exit 1
           fi
 ```
+
+The subshell inherits the step's `pipefail`. Archiving `*` after changing into `$library_dir` yields exact members such as `core/src/lib.rs` without a leading `./`, while the optional `rustc-src` and target archive loops remain unchanged.
 
 Leave the existing `dist-linux.tar` creation and cleanup unchanged.
 

@@ -14,6 +14,8 @@ Run `33163288955` used the release-ready Windows gzip artifact but still had Lin
 
 Run `33234711624` showed two remaining release bottlenecks. LLVM retained its downloaded `llvm-bins.tar` wrapper because plain-tar extraction was limited to rustc. Each of the 6 Linux target shards also converted 4-5 assigned archives sequentially; measured per-archive conversion took about 3-5.5 minutes, and 5 Linux jobs exceeded 900 seconds. The release therefore needs both 8 Linux shards and parallel conversion of each shard's deterministic assignment.
 
+Release run `33237805568` proved the 19-job runtime design: every package job completed under 900 seconds. Its v0.2.0 asset comparison still found `wasm32v1-none.tar.br` missing, and `rust-src` listed `./core/...` because the producer archived `.` with `tar -C`. Producer compatibility therefore requires an explicit Linux `wasm32v1-none` target and `tar *` from inside the library directory.
+
 ## Architecture
 
 Move gzip archive creation for all target libraries into the producer workflow, then shard only the CPU-intensive gzip-to-Brotli conversion across release jobs.
@@ -24,7 +26,9 @@ The producer creates three release-ready artifacts:
 - `release-windows`: Windows target `${target}.tar.gz` files.
 - `release-macos`: macOS target `${target}.tar.gz` files.
 
-Each target gzip archive contains the target library directory members at archive root, matching the current public release layout. `rust-src.tar.gz` contains the contents of `src/rust/library` at archive root, preserving paths such as `core/src/lib.rs`, `alloc/src/lib.rs`, and `std/src/lib.rs`.
+The Linux build explicitly includes `wasm32v1-none`, preserving the `wasm32v1-none.tar.gz` and `wasm32v1-none.tar.br` assets published by v0.2.0.
+
+Each target gzip archive contains the target library directory members at archive root, matching the current public release layout. `rust-src.tar.gz` contains the contents of `src/rust/library` at archive root, preserving exact paths such as `core/src/lib.rs`, `alloc/src/lib.rs`, and `std/src/lib.rs`. Members must not have a leading `./`; the producer changes into the library directory and archives `*`.
 
 The existing `dist-linux`, `dist-windows`, and `dist-macos` artifacts remain unchanged. The new release-ready artifacts are additional producer outputs and use `compression-level: 0` because their members are already compressed.
 
@@ -82,7 +86,8 @@ If any successful package job takes 15 minutes or longer, treat the performance 
 Contract tests must prove:
 
 - The producer creates and uploads `release-linux`, `release-windows`, and `release-macos` without artifact recompression.
-- Linux source archives are generated only once and retain library-relative paths.
+- The Linux producer explicitly builds `wasm32v1-none` for v0.2.0 asset compatibility.
+- Linux source archives are generated only once and retain exact library-relative paths without leading `./` members.
 - The release matrix contains exactly 8 Linux target shards, 4 Windows target shards, 4 macOS target shards, one Linux source job, one rustc-bins job, and one llvm-bins job.
 - Target assignment is deterministic, excludes Linux source archives, and covers each target exactly once.
 - OS package jobs consume `release-*`, do not expand `dist-*`, and retain Brotli quality 11.

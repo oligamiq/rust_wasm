@@ -1,4 +1,6 @@
 from pathlib import Path
+import subprocess
+import tempfile
 import unittest
 
 
@@ -85,11 +87,51 @@ class RustSrcReleaseContractTest(unittest.TestCase):
         self.assertNotIn("git clone --depth 1 -b compile_rustc_for_wasm17", RELEASE)
         self.assertIn('library_dir="$rustlib_dir/src/rust/library"', BUILD)
         self.assertIn(
-            'tar -cf - -C "$library_dir" . | gzip -9 > "$release_dir/rust-src.tar.gz"',
+            '          (\n'
+            '            cd "$library_dir"\n'
+            "            tar -cf - *\n"
+            '          ) | gzip -9 > "$release_dir/rust-src.tar.gz"',
             BUILD,
         )
         self.assertEqual(BUILD.count('> "$release_dir/rust-src.tar.gz"'), 1)
+        self.assertNotIn('tar -cf - -C "$library_dir" .', BUILD)
         self.assertNotIn("--directory src/rust/library .", RELEASE)
+
+    def test_linux_build_includes_v0_2_0_compatibility_target(self):
+        linux_job = BUILD.split("\n  dist-linux:\n", 1)[1].split(
+            "\n  dist-macos:\n", 1
+        )[0]
+        install = linux_job.split(
+            "\n      - name: install toolchain-for-building-rustc\n", 1
+        )[1].split("\n      - name: build dist\n", 1)[0]
+        self.assertIn("-t wasm32v1-none", install)
+        self.assertEqual(BUILD.count("-t wasm32v1-none"), 1)
+
+    def test_tar_star_uses_exact_library_relative_member_names(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            library_dir = root / "library"
+            source = library_dir / "core/src/lib.rs"
+            source.parent.mkdir(parents=True)
+            source.write_text("")
+            archive = root / "rust-src.tar"
+            subprocess.run(
+                [
+                    "bash",
+                    "-c",
+                    'cd "$1" && tar -cf "$2" *',
+                    "tar-test",
+                    str(library_dir),
+                    str(archive),
+                ],
+                check=True,
+            )
+            members = subprocess.check_output(
+                ["tar", "-tf", str(archive)], text=True
+            ).splitlines()
+
+        self.assertIn("core/src/lib.rs", members)
+        self.assertNotIn("./core/src/lib.rs", members)
 
     def test_release_uses_one_explicit_build_run(self):
         self.assertIn("build_run_id:", RELEASE)
