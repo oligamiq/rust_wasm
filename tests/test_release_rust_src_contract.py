@@ -66,21 +66,67 @@ class RustSrcReleaseContractTest(unittest.TestCase):
         )
         self.assertIn("github-token: ${{ github.token }}", RELEASE)
         self.assertIn("repository: ${{ github.repository }}", RELEASE)
-        for task, artifact in (
-            ("linux", "dist-linux"),
-            ("windows", "release-windows"),
-            ("macos", "dist-macos"),
-            ("rustc-bins", "rustc-bins"),
+        for artifact in (
+            "release-linux",
+            "release-windows",
+            "release-macos",
+            "rustc-bins",
         ):
-            self.assertIn(
-                f"- task: {task}\n            artifact: {artifact}",
-                RELEASE,
-            )
+            self.assertIn(f"artifact: {artifact}", RELEASE)
+        for artifact in ("dist-linux", "dist-windows", "dist-macos"):
+            self.assertNotIn(f"artifact: {artifact}", RELEASE)
         self.assertNotIn(
             'gh run download "${{ github.event.inputs.build_run_id }}"',
             RELEASE,
         )
         self.assertIn("gh run list --workflow build_llvm.yml", RELEASE)
+
+    def test_release_matrix_has_exact_parallel_shards(self):
+        expected = []
+        for platform, shard_count in (("linux", 6), ("windows", 4), ("macos", 4)):
+            for shard in range(shard_count):
+                expected.append(
+                    f"- task: {platform}-target-{shard}\n"
+                    "            kind: target\n"
+                    f"            platform: {platform}\n"
+                    f"            artifact: release-{platform}\n"
+                    f"            shard: {shard}\n"
+                    f"            shard_count: {shard_count}"
+                )
+        expected.extend(
+            (
+                "- task: linux-source\n            kind: source\n"
+                "            platform: linux\n            artifact: release-linux",
+                "- task: rustc-bins\n            kind: rustc\n"
+                "            artifact: rustc-bins",
+                "- task: llvm-bins\n            kind: llvm",
+            )
+        )
+        for row in expected:
+            self.assertIn(row, RELEASE)
+        self.assertEqual(RELEASE.count("          - task:"), 17)
+
+    def test_modulo_shards_cover_each_candidate_once(self):
+        for candidate_count, shard_count in ((23, 6), (17, 4), (9, 4)):
+            assignments = [
+                index
+                for shard in range(shard_count)
+                for index in range(candidate_count)
+                if index % shard_count == shard
+            ]
+            self.assertEqual(sorted(assignments), list(range(candidate_count)))
+
+    def test_release_shards_copy_gzip_and_create_brotli(self):
+        self.assertIn("LC_ALL=C sort", RELEASE)
+        self.assertIn("index % shard_count", RELEASE)
+        self.assertIn('name != "rust-src.tar.gz"', RELEASE)
+        self.assertIn('name != "rustc-src.tar.gz"', RELEASE)
+        self.assertIn('cp "$archive" "${{ github.workspace }}/x-tools/$name"', RELEASE)
+        self.assertIn('gzip -dc "$archive" | brotli -q 11', RELEASE)
+        self.assertNotIn("jlumbroso/free-disk-space", RELEASE)
+        self.assertIn("compression-level: 0", RELEASE)
+        self.assertIn("pattern: release-assets-*", RELEASE)
+        self.assertIn("merge-multiple: true", RELEASE)
 
 
 if __name__ == "__main__":

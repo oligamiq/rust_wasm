@@ -22,32 +22,105 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - task: linux
-            artifact: dist-linux
-          - task: windows
+          - task: linux-target-0
+            kind: target
+            platform: linux
+            artifact: release-linux
+            shard: 0
+            shard_count: 6
+          - task: linux-target-1
+            kind: target
+            platform: linux
+            artifact: release-linux
+            shard: 1
+            shard_count: 6
+          - task: linux-target-2
+            kind: target
+            platform: linux
+            artifact: release-linux
+            shard: 2
+            shard_count: 6
+          - task: linux-target-3
+            kind: target
+            platform: linux
+            artifact: release-linux
+            shard: 3
+            shard_count: 6
+          - task: linux-target-4
+            kind: target
+            platform: linux
+            artifact: release-linux
+            shard: 4
+            shard_count: 6
+          - task: linux-target-5
+            kind: target
+            platform: linux
+            artifact: release-linux
+            shard: 5
+            shard_count: 6
+          - task: windows-target-0
+            kind: target
+            platform: windows
             artifact: release-windows
-          - task: macos
-            artifact: dist-macos
+            shard: 0
+            shard_count: 4
+          - task: windows-target-1
+            kind: target
+            platform: windows
+            artifact: release-windows
+            shard: 1
+            shard_count: 4
+          - task: windows-target-2
+            kind: target
+            platform: windows
+            artifact: release-windows
+            shard: 2
+            shard_count: 4
+          - task: windows-target-3
+            kind: target
+            platform: windows
+            artifact: release-windows
+            shard: 3
+            shard_count: 4
+          - task: macos-target-0
+            kind: target
+            platform: macos
+            artifact: release-macos
+            shard: 0
+            shard_count: 4
+          - task: macos-target-1
+            kind: target
+            platform: macos
+            artifact: release-macos
+            shard: 1
+            shard_count: 4
+          - task: macos-target-2
+            kind: target
+            platform: macos
+            artifact: release-macos
+            shard: 2
+            shard_count: 4
+          - task: macos-target-3
+            kind: target
+            platform: macos
+            artifact: release-macos
+            shard: 3
+            shard_count: 4
+          - task: linux-source
+            kind: source
+            platform: linux
+            artifact: release-linux
           - task: rustc-bins
+            kind: rustc
             artifact: rustc-bins
           - task: llvm-bins
+            kind: llvm
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           path: rust_wasm
-
-      - name: free space
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: true
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: false
 
       - name: install brotli
         run: |
@@ -56,7 +129,7 @@ jobs:
           echo "brotli installed time: $(date)"
 
       - name: download Rust artifact
-        if: ${{ matrix.task != 'llvm-bins' }}
+        if: ${{ matrix.kind != 'llvm' }}
         uses: actions/download-artifact@v4
         with:
           name: ${{ matrix.artifact }}
@@ -66,7 +139,7 @@ jobs:
           run-id: ${{ github.event.inputs.build_run_id }}
 
       - name: download LLVM artifacts
-        if: ${{ matrix.task == 'llvm-bins' }}
+        if: ${{ matrix.kind == 'llvm' }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
@@ -78,6 +151,7 @@ jobs:
           fi
 
       - name: extract downloaded artifacts
+        if: ${{ matrix.kind == 'rustc' }}
         run: |
           for f in artifacts/*/*.tar; do
             if [ -f "$f" ]; then
@@ -93,83 +167,73 @@ jobs:
           GZIP: -9
         run: |
           mkdir -p "${{ github.workspace }}/x-tools"
-          
-          if [ "${{ matrix.task }}" = "linux" ]; then
-            if [ -d "${{ github.workspace }}/artifacts/dist-linux" ]; then
-              cd "${{ github.workspace }}/artifacts/dist-linux/dist/lib/rustlib"
-              
-              # Package rust-src with the layout consumed by Rubrc.
-              if [ ! -d "src/rust/library" ]; then
-                echo "dist-linux artifact is missing src/rust/library"
-                exit 1
-              fi
-              tar -czf "${{ github.workspace }}/x-tools/rust-src.tar.gz" \
-                --directory src/rust/library .
-              tar -I "brotli -q 11" \
-                -cf "${{ github.workspace }}/x-tools/rust-src.tar.br" \
-                --directory src/rust/library .
-              echo "rust-src done"
 
-              # Package rustc-src
-              if [ -d "rustc-src" ]; then
-                tar --ignore-failed-read -czf "${{ github.workspace }}/x-tools/rustc-src.tar.gz" rustc-src
-                tar --ignore-failed-read -I "brotli -q 11" -cf "${{ github.workspace }}/x-tools/rustc-src.tar.br" rustc-src
-                echo "rustc-src done"
-              fi
-
-              # Package target-specific libs
-              export WORKSPACE="${{ github.workspace }}"
-              for target in *; do
-                if [ -d "$target" ] && [ "$target" != "src" ] && [ "$target" != "rustc-src" ]; then
-                  echo "$target"
-                fi
-              done | xargs -I {} -P 4 bash -c '
-                target="{}"
-                cd "${target}/lib" || exit 1
-                tar --ignore-failed-read -chzf "${WORKSPACE}/x-tools/${target}.tar.gz" *
-                tar --ignore-failed-read -h -I "brotli -q 11" -cf "${WORKSPACE}/x-tools/${target}.tar.br" *
-                echo "${target} done"
-              '
-            fi
-          fi
-
-          if [ "${{ matrix.task }}" = "windows" ]; then
-            release_dir="${{ github.workspace }}/artifacts/release-windows"
+          if [ "${{ matrix.kind }}" = "target" ]; then
+            release_dir="${{ github.workspace }}/artifacts/${{ matrix.artifact }}"
             if [ ! -d "$release_dir" ]; then
-              echo "release-windows artifact is missing"
+              echo "${{ matrix.artifact }} artifact is missing"
               exit 1
             fi
-            for archive in "$release_dir"/*.tar.gz; do
-              if [ ! -f "$archive" ]; then
-                echo "release-windows artifact contains no target archives"
-                exit 1
-              fi
-              name=$(basename "$archive")
-              cp "$archive" "${{ github.workspace }}/x-tools/$name"
-              gzip -dc "$archive" | brotli -q 11 > "${{ github.workspace }}/x-tools/${name%.tar.gz}.tar.br"
-              echo "${name%.tar.gz} done"
-            done
-          fi
 
-          if [ "${{ matrix.task }}" = "macos" ]; then
-            if [ -d "${{ github.workspace }}/artifacts/dist-macos" ]; then
-              cd "${{ github.workspace }}/artifacts/dist-macos/dist/lib/rustlib"
-              export WORKSPACE="${{ github.workspace }}"
-              for target in *; do
-                if [ -d "$target" ] && [ "$target" != "src" ] && [ "$target" != "rustc-src" ]; then
-                  echo "$target"
-                fi
-              done | xargs -I {} -P 4 bash -c '
-                target="{}"
-                cd "${target}/lib" || exit 1
-                tar --ignore-failed-read -chzf "${WORKSPACE}/x-tools/${target}.tar.gz" *
-                tar --ignore-failed-read -h -I "brotli -q 11" -cf "${WORKSPACE}/x-tools/${target}.tar.br" *
-                echo "${target} done"
-              '
+            raw_manifest="${RUNNER_TEMP}/${{ matrix.task }}-raw.tsv"
+            manifest="${RUNNER_TEMP}/${{ matrix.task }}.tsv"
+            find "$release_dir" -maxdepth 1 -type f -name '*.tar.gz' \
+              -printf '%s\t%f\n' > "$raw_manifest"
+            if [ "${{ matrix.platform }}" = "linux" ]; then
+              awk -F '\t' '{ name = $2 } name != "rust-src.tar.gz" && name != "rustc-src.tar.gz"' \
+                "$raw_manifest" > "${raw_manifest}.targets"
+              mv "${raw_manifest}.targets" "$raw_manifest"
+            fi
+            LC_ALL=C sort -t $'\t' -k1,1nr -k2,2 "$raw_manifest" > "$manifest"
+
+            candidate_count=$(wc -l < "$manifest")
+            shard=${{ matrix.shard }}
+            shard_count=${{ matrix.shard_count }}
+            if [ "$candidate_count" -lt "$shard_count" ]; then
+              echo "${{ matrix.artifact }} has fewer targets than shards"
+              exit 1
+            fi
+
+            index=0
+            assigned=0
+            while IFS=$'\t' read -r size name; do
+              if [ $((index % shard_count)) -eq "$shard" ]; then
+                archive="$release_dir/$name"
+                cp "$archive" "${{ github.workspace }}/x-tools/$name"
+                gzip -dc "$archive" | brotli -q 11 > \
+                  "${{ github.workspace }}/x-tools/${name%.tar.gz}.tar.br"
+                assigned=$((assigned + 1))
+                echo "${name%.tar.gz} done"
+              fi
+              index=$((index + 1))
+            done < "$manifest"
+            if [ "$assigned" -eq 0 ]; then
+              echo "${{ matrix.task }} received no target archives"
+              exit 1
             fi
           fi
 
-          if [ "${{ matrix.task }}" = "rustc-bins" ]; then
+          if [ "${{ matrix.kind }}" = "source" ]; then
+            release_dir="${{ github.workspace }}/artifacts/release-linux"
+            archive="$release_dir/rust-src.tar.gz"
+            if [ ! -f "$archive" ]; then
+              echo "release-linux artifact is missing rust-src.tar.gz"
+              exit 1
+            fi
+            cp "$archive" "${{ github.workspace }}/x-tools/rust-src.tar.gz"
+            gzip -dc "$archive" | brotli -q 11 > \
+              "${{ github.workspace }}/x-tools/rust-src.tar.br"
+
+            archive="$release_dir/rustc-src.tar.gz"
+            if [ -f "$archive" ]; then
+              cp "$archive" "${{ github.workspace }}/x-tools/rustc-src.tar.gz"
+              gzip -dc "$archive" | brotli -q 11 > \
+                "${{ github.workspace }}/x-tools/rustc-src.tar.br"
+            fi
+            echo "rust sources done"
+          fi
+
+          if [ "${{ matrix.kind }}" = "rustc" ]; then
             if [ -d "${{ github.workspace }}/artifacts/rustc-bins" ]; then
               cd "${{ github.workspace }}/artifacts/rustc-bins"
               cp rustc_opt.wasm.tar.gz "${{ github.workspace }}/x-tools/rustc_opt.wasm.tar.gz"
@@ -182,7 +246,7 @@ jobs:
 
               cp rustc_unwind.wasm.tar.gz "${{ github.workspace }}/x-tools/rustc_unwind.wasm.tar.gz" || true
               cp rustc_unwind_opt.wasm.tar.gz "${{ github.workspace }}/x-tools/rustc_unwind_opt.wasm.tar.gz" || true
-              
+
               if [ -f "rustc_unwind_opt.wasm.tar.gz" ]; then
                 mkdir unpack-unwind
                 cd unpack-unwind
@@ -196,7 +260,7 @@ jobs:
             fi
           fi
 
-          if [ "${{ matrix.task }}" = "llvm-bins" ]; then
+          if [ "${{ matrix.kind }}" = "llvm" ]; then
             if [ -d "${{ github.workspace }}/artifacts/llvm-bins" ]; then
               cd "${{ github.workspace }}/artifacts/llvm-bins"
               cp dist/llvm_raw.wasm.tar.gz "${{ github.workspace }}/x-tools/llvm_raw.wasm.tar.gz"
@@ -210,7 +274,8 @@ jobs:
         with:
           name: release-assets-${{ matrix.task }}
           path: x-tools/
-          if-no-files-found: ignore
+          if-no-files-found: error
+          compression-level: 0
 
   publish:
     runs-on: ubuntu-latest
