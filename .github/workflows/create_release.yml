@@ -27,37 +27,49 @@ jobs:
             platform: linux
             artifact: release-linux
             shard: 0
-            shard_count: 6
+            shard_count: 8
           - task: linux-target-1
             kind: target
             platform: linux
             artifact: release-linux
             shard: 1
-            shard_count: 6
+            shard_count: 8
           - task: linux-target-2
             kind: target
             platform: linux
             artifact: release-linux
             shard: 2
-            shard_count: 6
+            shard_count: 8
           - task: linux-target-3
             kind: target
             platform: linux
             artifact: release-linux
             shard: 3
-            shard_count: 6
+            shard_count: 8
           - task: linux-target-4
             kind: target
             platform: linux
             artifact: release-linux
             shard: 4
-            shard_count: 6
+            shard_count: 8
           - task: linux-target-5
             kind: target
             platform: linux
             artifact: release-linux
             shard: 5
-            shard_count: 6
+            shard_count: 8
+          - task: linux-target-6
+            kind: target
+            platform: linux
+            artifact: release-linux
+            shard: 6
+            shard_count: 8
+          - task: linux-target-7
+            kind: target
+            platform: linux
+            artifact: release-linux
+            shard: 7
+            shard_count: 8
           - task: windows-target-0
             kind: target
             platform: windows
@@ -151,7 +163,7 @@ jobs:
           fi
 
       - name: extract downloaded artifacts
-        if: ${{ matrix.kind == 'rustc' }}
+        if: ${{ matrix.kind == 'rustc' || matrix.kind == 'llvm' }}
         run: |
           for f in artifacts/*/*.tar; do
             if [ -f "$f" ]; then
@@ -178,6 +190,7 @@ jobs:
 
             raw_manifest="${RUNNER_TEMP}/${{ matrix.task }}-raw.tsv"
             manifest="${RUNNER_TEMP}/${{ matrix.task }}.tsv"
+            selected_manifest="${RUNNER_TEMP}/${{ matrix.task }}-selected.txt"
             find "$release_dir" -maxdepth 1 -type f -name '*.tar.gz' \
               -printf '%s\t%f\n' > "$raw_manifest"
             if [ "${{ matrix.platform }}" = "linux" ]; then
@@ -197,14 +210,11 @@ jobs:
 
             index=0
             assigned=0
+            : > "$selected_manifest"
             while IFS=$'\t' read -r size name; do
               if [ $((index % shard_count)) -eq "$shard" ]; then
-                archive="$release_dir/$name"
-                cp "$archive" "${{ github.workspace }}/x-tools/$name"
-                gzip -dc "$archive" | brotli -q 11 > \
-                  "${{ github.workspace }}/x-tools/${name%.tar.gz}.tar.br"
+                printf '%s\n' "$name" >> "$selected_manifest"
                 assigned=$((assigned + 1))
-                echo "${name%.tar.gz} done"
               fi
               index=$((index + 1))
             done < "$manifest"
@@ -212,6 +222,18 @@ jobs:
               echo "${{ matrix.task }} received no target archives"
               exit 1
             fi
+
+            xargs -r -d '\n' -P "$(nproc)" -n 1 bash -c '
+              set -o pipefail
+              set -e
+              release_dir="$1"
+              name="$2"
+              archive="$release_dir/$name"
+              cp "$archive" "${{ github.workspace }}/x-tools/$name"
+              gzip -dc "$archive" | brotli -q 11 > \
+                "${{ github.workspace }}/x-tools/${name%.tar.gz}.tar.br"
+              echo "${name%.tar.gz} done"
+            ' _ "$release_dir" < "$selected_manifest"
           fi
 
           if [ "${{ matrix.kind }}" = "source" ]; then

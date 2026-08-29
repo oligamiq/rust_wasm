@@ -12,6 +12,8 @@ Run `30205684422` showed that the existing top-level package matrix was already 
 
 Run `33163288955` used the release-ready Windows gzip artifact but still had Linux, Windows, and macOS package jobs running after 18 minutes. Linux and Windows were compressing release assets, while macOS had only recently finished downloading and extracting its 9.5 GB distribution artifact. Increasing only the in-job `xargs -P` value cannot reliably meet the target because each hosted runner has limited CPU and macOS still expands a large intermediate archive.
 
+Run `33234711624` showed two remaining release bottlenecks. LLVM retained its downloaded `llvm-bins.tar` wrapper because plain-tar extraction was limited to rustc. Each of the 6 Linux target shards also converted 4-5 assigned archives sequentially; measured per-archive conversion took about 3-5.5 minutes, and 5 Linux jobs exceeded 900 seconds. The release therefore needs both 8 Linux shards and parallel conversion of each shard's deterministic assignment.
+
 ## Architecture
 
 Move gzip archive creation for all target libraries into the producer workflow, then shard only the CPU-intensive gzip-to-Brotli conversion across release jobs.
@@ -30,16 +32,18 @@ The existing `dist-linux`, `dist-windows`, and `dist-macos` artifacts remain unc
 
 Replace the three OS-level release jobs with deterministic shards:
 
-- Linux target archives: 6 jobs.
+- Linux target archives: 8 jobs.
 - Windows target archives: 4 jobs.
 - macOS target archives: 4 jobs.
 - Linux source archives: 1 job.
 - rustc-bins: 1 job.
 - llvm-bins: 1 job.
 
-This creates 17 package jobs. The release workflow continues to use `fail-fast: false` so one failed shard does not hide evidence from the other shards.
+This creates 19 package jobs. The release workflow continues to use `fail-fast: false` so one failed shard does not hide evidence from the other shards.
 
 Each target shard downloads its platform's release-ready artifact, sorts target gzip archives by descending byte size, and assigns archive number `n` to shard `n % shard_count`. Sorting by size before round-robin assignment reduces load skew while ensuring every archive is assigned to exactly one shard. Linux target shards exclude `rust-src.tar.gz` and `rustc-src.tar.gz`.
+
+The assignment loop writes controlled Rust target basenames to a selected manifest without performing compression. GNU xargs then converts that manifest with `-P "$(nproc)"`; every child shell enables `pipefail`, copies its gzip input unchanged, and streams `gzip -dc` into `brotli -q 11`. A failed child makes the shard fail, and the existing nonempty-assignment guard runs before xargs.
 
 For each assigned archive, the shard:
 
@@ -79,7 +83,7 @@ Contract tests must prove:
 
 - The producer creates and uploads `release-linux`, `release-windows`, and `release-macos` without artifact recompression.
 - Linux source archives are generated only once and retain library-relative paths.
-- The release matrix contains exactly 6 Linux target shards, 4 Windows target shards, 4 macOS target shards, one Linux source job, one rustc-bins job, and one llvm-bins job.
+- The release matrix contains exactly 8 Linux target shards, 4 Windows target shards, 4 macOS target shards, one Linux source job, one rustc-bins job, and one llvm-bins job.
 - Target assignment is deterministic, excludes Linux source archives, and covers each target exactly once.
 - OS package jobs consume `release-*`, do not expand `dist-*`, and retain Brotli quality 11.
 - Partial release artifacts use unique names and `compression-level: 0`.

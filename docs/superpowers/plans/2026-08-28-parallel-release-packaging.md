@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Make each of the 17 `create_release.yml` package jobs finish in less than 15 minutes while preserving all public release assets.
+**Goal:** Make each of the 19 `create_release.yml` package jobs finish in less than 15 minutes while preserving all public release assets.
 
-**Architecture:** The producer creates gzip-compressed release-ready target archives for Linux, Windows, and macOS without changing the existing `dist-*` artifacts. The release fans gzip-to-Brotli conversion across 6 Linux target shards, 4 Windows target shards, 4 macOS target shards, and one Linux source job, then merges their uniquely named partial artifacts for publication.
+**Architecture:** The producer creates gzip-compressed release-ready target archives for Linux, Windows, and macOS without changing the existing `dist-*` artifacts. The release fans gzip-to-Brotli conversion across 8 Linux target shards, 4 Windows target shards, 4 macOS target shards, and one Linux source job, then converts each target shard's deterministic assignment in parallel and merges the uniquely named partial artifacts for publication.
 
 **Tech Stack:** GitHub Actions YAML, Bash, GNU/BSD tar, gzip, Brotli, `actions/upload-artifact@v4`, `actions/download-artifact@v4`, Python `unittest`, actionlint, GitHub CLI.
 
@@ -16,7 +16,7 @@
 - Preserve existing `dist-linux`, `dist-windows`, and `dist-macos` artifacts unchanged.
 - `release-linux` contains Linux target gzip archives, required `rust-src.tar.gz`, and optional `rustc-src.tar.gz`.
 - `release-windows` and `release-macos` contain target gzip archives only.
-- Use exactly 6 Linux target shards, 4 Windows target shards, 4 macOS target shards, one Linux source job, one rustc-bins job, and one llvm-bins job.
+- Use exactly 8 Linux target shards, 4 Windows target shards, 4 macOS target shards, one Linux source job, one rustc-bins job, and one llvm-bins job.
 - Every Rust artifact used by the release must come from one new successful `job=all` producer run using `RUST_SOURCE_REF: cf327c2068549194a29160499c2ecafa9061e46e`.
 - LLVM continues to come from the latest successful independent `build_llvm.yml` run.
 - Do not add retries, archive digests, embedded compiler identity checks, or lower compression quality.
@@ -205,7 +205,7 @@ git commit -m "feat: prepare release archives in producer"
 
 ---
 
-### Task 2: Shard Release Packaging Across Seventeen Jobs
+### Task 2: Shard Release Packaging Across Nineteen Jobs
 
 **Files:**
 - Modify: `tests/test_release_rust_src_contract.py`
@@ -213,7 +213,7 @@ git commit -m "feat: prepare release archives in producer"
 
 **Interfaces:**
 - Consumes: `release-linux`, `release-windows`, and `release-macos` from Task 1; `rustc-bins` from the same producer run; latest successful independent `llvm-bins`.
-- Produces: 17 unique `release-assets-${{ matrix.task }}` artifacts merged by the existing publish job.
+- Produces: 19 unique `release-assets-${{ matrix.task }}` artifacts merged by the existing publish job.
 
 - [ ] **Step 1: Write failing matrix and sharding contracts**
 
@@ -236,7 +236,7 @@ Keep its explicit `build_run_id` and independent LLVM lookup assertions. Add the
 ```python
     def test_release_matrix_has_exact_parallel_shards(self):
         expected = []
-        for platform, shard_count in (("linux", 6), ("windows", 4), ("macos", 4)):
+        for platform, shard_count in (("linux", 8), ("windows", 4), ("macos", 4)):
             for shard in range(shard_count):
                 expected.append(
                     f"- task: {platform}-target-{shard}\n"
@@ -257,10 +257,10 @@ Keep its explicit `build_run_id` and independent LLVM lookup assertions. Add the
         )
         for row in expected:
             self.assertIn(row, RELEASE)
-        self.assertEqual(RELEASE.count("          - task:"), 17)
+        self.assertEqual(RELEASE.count("          - task:"), 19)
 
     def test_modulo_shards_cover_each_candidate_once(self):
-        for candidate_count, shard_count in ((23, 6), (17, 4), (9, 4)):
+        for candidate_count, shard_count in ((23, 8), (17, 4), (9, 4)):
             assignments = [
                 index
                 for shard in range(shard_count)
@@ -274,6 +274,12 @@ Keep its explicit `build_run_id` and independent LLVM lookup assertions. Add the
         self.assertIn("index % shard_count", RELEASE)
         self.assertIn('name != "rust-src.tar.gz"', RELEASE)
         self.assertIn('name != "rustc-src.tar.gz"', RELEASE)
+        self.assertIn(
+            'selected_manifest="${RUNNER_TEMP}/${{ matrix.task }}-selected.txt"',
+            RELEASE,
+        )
+        self.assertIn('xargs -r -d \'\\n\' -P "$(nproc)" -n 1 bash -c \'', RELEASE)
+        self.assertIn("bash -c '\n              set -o pipefail", RELEASE)
         self.assertIn('cp "$archive" "${{ github.workspace }}/x-tools/$name"', RELEASE)
         self.assertIn('gzip -dc "$archive" | brotli -q 11', RELEASE)
         self.assertNotIn("jlumbroso/free-disk-space", RELEASE)
@@ -292,7 +298,7 @@ python3 -m unittest tests.test_release_rust_src_contract -v
 
 Expected: matrix and sharding tests fail because the release still has five unsharded rows and release-side OS packaging.
 
-- [ ] **Step 3: Replace the matrix with the exact 17 rows**
+- [ ] **Step 3: Replace the matrix with the exact 19 rows**
 
 Replace `matrix.include` with:
 
@@ -303,37 +309,49 @@ Replace `matrix.include` with:
             platform: linux
             artifact: release-linux
             shard: 0
-            shard_count: 6
+            shard_count: 8
           - task: linux-target-1
             kind: target
             platform: linux
             artifact: release-linux
             shard: 1
-            shard_count: 6
+            shard_count: 8
           - task: linux-target-2
             kind: target
             platform: linux
             artifact: release-linux
             shard: 2
-            shard_count: 6
+            shard_count: 8
           - task: linux-target-3
             kind: target
             platform: linux
             artifact: release-linux
             shard: 3
-            shard_count: 6
+            shard_count: 8
           - task: linux-target-4
             kind: target
             platform: linux
             artifact: release-linux
             shard: 4
-            shard_count: 6
+            shard_count: 8
           - task: linux-target-5
             kind: target
             platform: linux
             artifact: release-linux
             shard: 5
-            shard_count: 6
+            shard_count: 8
+          - task: linux-target-6
+            kind: target
+            platform: linux
+            artifact: release-linux
+            shard: 6
+            shard_count: 8
+          - task: linux-target-7
+            kind: target
+            platform: linux
+            artifact: release-linux
+            shard: 7
+            shard_count: 8
           - task: windows-target-0
             kind: target
             platform: windows
@@ -393,7 +411,7 @@ Replace `matrix.include` with:
             kind: llvm
 ```
 
-Delete the `free space` step. Change Rust artifact download to `if: ${{ matrix.kind != 'llvm' }}`, LLVM download to `if: ${{ matrix.kind == 'llvm' }}`, and plain tar extraction to `if: ${{ matrix.kind == 'rustc' }}`.
+Delete the `free space` step. Change Rust artifact download to `if: ${{ matrix.kind != 'llvm' }}`, LLVM download to `if: ${{ matrix.kind == 'llvm' }}`, and plain tar extraction to `if: ${{ matrix.kind == 'rustc' || matrix.kind == 'llvm' }}` so both wrapped bin artifacts are unpacked.
 
 - [ ] **Step 4: Replace OS packaging with deterministic target sharding**
 
@@ -409,6 +427,7 @@ At the start of `create release assets`, retain `mkdir -p x-tools` and replace t
 
             raw_manifest="${RUNNER_TEMP}/${{ matrix.task }}-raw.tsv"
             manifest="${RUNNER_TEMP}/${{ matrix.task }}.tsv"
+            selected_manifest="${RUNNER_TEMP}/${{ matrix.task }}-selected.txt"
             find "$release_dir" -maxdepth 1 -type f -name '*.tar.gz' \
               -printf '%s\t%f\n' > "$raw_manifest"
             if [ "${{ matrix.platform }}" = "linux" ]; then
@@ -428,14 +447,11 @@ At the start of `create release assets`, retain `mkdir -p x-tools` and replace t
 
             index=0
             assigned=0
+            : > "$selected_manifest"
             while IFS=$'\t' read -r size name; do
               if [ $((index % shard_count)) -eq "$shard" ]; then
-                archive="$release_dir/$name"
-                cp "$archive" "${{ github.workspace }}/x-tools/$name"
-                gzip -dc "$archive" | brotli -q 11 > \
-                  "${{ github.workspace }}/x-tools/${name%.tar.gz}.tar.br"
+                printf '%s\n' "$name" >> "$selected_manifest"
                 assigned=$((assigned + 1))
-                echo "${name%.tar.gz} done"
               fi
               index=$((index + 1))
             done < "$manifest"
@@ -443,10 +459,22 @@ At the start of `create release assets`, retain `mkdir -p x-tools` and replace t
               echo "${{ matrix.task }} received no target archives"
               exit 1
             fi
+
+            xargs -r -d '\n' -P "$(nproc)" -n 1 bash -c '
+              set -o pipefail
+              set -e
+              release_dir="$1"
+              name="$2"
+              archive="$release_dir/$name"
+              cp "$archive" "${{ github.workspace }}/x-tools/$name"
+              gzip -dc "$archive" | brotli -q 11 > \
+                "${{ github.workspace }}/x-tools/${name%.tar.gz}.tar.br"
+              echo "${name%.tar.gz} done"
+            ' _ "$release_dir" < "$selected_manifest"
           fi
 ```
 
-The tab-separated manifest is deterministic by descending byte size and ascending filename. Do not replace it with size-only sorting.
+The tab-separated manifest is deterministic by descending byte size and ascending filename. Do not replace it with size-only sorting. Run `33234711624` showed that 6 Linux shards still handled 4-5 archives sequentially, each taking about 3-5.5 minutes, and 5 jobs exceeded 900 seconds. The 8-shard matrix reduces assigned work, while GNU xargs `-P "$(nproc)"` converts each shard's selected manifest concurrently. Every child enables `pipefail` and `-e`, so copy, gzip, or Brotli failures remain fatal.
 
 - [ ] **Step 5: Add the dedicated Linux source branch**
 
@@ -578,7 +606,7 @@ Write run ID, head SHA, URL, all job conclusions, artifact names/sizes/expiry, a
 
 **Interfaces:**
 - Consumes: the exact successful producer run from Task 3.
-- Produces: `v0.2.1-release`, 17 successful package jobs each under 900 seconds, successful Pages deployment, and public library-relative `rust-src.tar.br`.
+- Produces: `v0.2.1-release`, 19 successful package jobs each under 900 seconds, successful Pages deployment, and public library-relative `rust-src.tar.br`.
 
 - [ ] **Step 1: Dispatch one release from the exact producer run**
 
@@ -599,7 +627,7 @@ Capture the new release run ID and confirm its head SHA is the Task 2 commit.
 gh run watch "$RELEASE_RUN_ID" --exit-status --interval 30
 ```
 
-Expected: all 17 package jobs and publish succeed. On failure, record diagnosis and stop without rerun.
+Expected: all 19 package jobs and publish succeed. On failure, record diagnosis and stop without rerun.
 
 - [ ] **Step 3: Enforce package job count and duration**
 
@@ -612,14 +640,14 @@ gh api "repos/oligamiq/rust_wasm/actions/runs/$RELEASE_RUN_ID/jobs" --paginate -
    | {name,
       duration_seconds: ((.completed_at | fromdateiso8601)
                          - (.started_at | fromdateiso8601))}]
-  | if length != 17 then error("expected 17 package jobs, got \(length)")
+  | if length != 19 then error("expected 19 package jobs, got \(length)")
     elif all(.duration_seconds < 900) then .
     else error("package duration budget failed: \([.[] | select(.duration_seconds >= 900)])")
     end
 '
 ```
 
-Expected: a 17-entry array and exit 0; every `duration_seconds` is below 900.
+Expected: a 19-entry array and exit 0; every `duration_seconds` is below 900.
 
 - [ ] **Step 4: Verify the public release asset contract**
 
@@ -663,4 +691,4 @@ std/src/lib.rs
 
 - [ ] **Step 6: Record final release evidence**
 
-Update `/home/oligami/projects/rubrc/.git/worktrees/browser-rust-std/sdd/task-2-report.md` with producer, release, all 17 package durations, asset contract, Pages run, and public archive evidence. Do not commit the report. Confirm both worktrees have no unexpected tracked changes and do not touch `tests/__pycache__/`.
+Update `/home/oligami/projects/rubrc/.git/worktrees/browser-rust-std/sdd/task-2-report.md` with producer, release, all 19 package durations, asset contract, Pages run, and public archive evidence. Do not commit the report. Confirm both worktrees have no unexpected tracked changes and do not touch `tests/__pycache__/`.

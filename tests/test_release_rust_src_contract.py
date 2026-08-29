@@ -116,9 +116,15 @@ class RustSrcReleaseContractTest(unittest.TestCase):
         )
         self.assertIn("gh run list --workflow build_llvm.yml", RELEASE)
 
+    def test_release_extracts_plain_tar_for_rustc_and_llvm(self):
+        self.assertIn(
+            "if: ${{ matrix.kind == 'rustc' || matrix.kind == 'llvm' }}",
+            RELEASE,
+        )
+
     def test_release_matrix_has_exact_parallel_shards(self):
         expected = []
-        for platform, shard_count in (("linux", 6), ("windows", 4), ("macos", 4)):
+        for platform, shard_count in (("linux", 8), ("windows", 4), ("macos", 4)):
             for shard in range(shard_count):
                 expected.append(
                     f"- task: {platform}-target-{shard}\n"
@@ -139,10 +145,10 @@ class RustSrcReleaseContractTest(unittest.TestCase):
         )
         for row in expected:
             self.assertIn(row, RELEASE)
-        self.assertEqual(RELEASE.count("          - task:"), 17)
+        self.assertEqual(RELEASE.count("          - task:"), 19)
 
     def test_modulo_shards_cover_each_candidate_once(self):
-        for candidate_count, shard_count in ((23, 6), (17, 4), (9, 4)):
+        for candidate_count, shard_count in ((23, 8), (17, 4), (9, 4)):
             assignments = [
                 index
                 for shard in range(shard_count)
@@ -156,6 +162,16 @@ class RustSrcReleaseContractTest(unittest.TestCase):
         self.assertIn("index % shard_count", RELEASE)
         self.assertIn('name != "rust-src.tar.gz"', RELEASE)
         self.assertIn('name != "rustc-src.tar.gz"', RELEASE)
+        self.assertIn(
+            'selected_manifest="${RUNNER_TEMP}/${{ matrix.task }}-selected.txt"',
+            RELEASE,
+        )
+        self.assertIn('printf \'%s\\n\' "$name" >> "$selected_manifest"', RELEASE)
+        self.assertIn(
+            'xargs -r -d \'\\n\' -P "$(nproc)" -n 1 bash -c \'',
+            RELEASE,
+        )
+        self.assertIn("bash -c '\n              set -o pipefail", RELEASE)
         self.assertIn('cp "$archive" "${{ github.workspace }}/x-tools/$name"', RELEASE)
         self.assertIn('gzip -dc "$archive" | brotli -q 11', RELEASE)
         self.assertNotIn("jlumbroso/free-disk-space", RELEASE)
