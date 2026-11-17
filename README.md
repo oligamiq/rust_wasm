@@ -82,3 +82,25 @@ The following branches previously used to store binaries are now deprecated. Aft
 - [Miri issue #722](https://github.com/rust-lang/miri/issues/722)
 - [LLVM Discourse RFC](https://discourse.llvm.org/t/rfc-building-llvm-for-webassembly/79073/37)
 - [rubri](https://github.com/LyonSyonII/rubri)
+
+## License
+
+Unless otherwise noted, the original source code, build scripts, configuration
+files, and documentation in this repository are licensed under either of
+
+- [MIT License](LICENSE-MIT)
+- [Apache License, Version 2.0](LICENSE-APACHE)
+
+at your option.
+
+The build scripts (`build-netbsd-toolchain.sh`, `build-solaris-toolchain.sh`,
+`crosstool-ng-build.sh`, `musl-toolchain.sh`, and `musl.sh`) and the
+`*.defconfig` files include code copied or adapted from the
+[Rust project's CI build infrastructure](https://github.com/rust-lang/rust/tree/46e8d20301cb4abe91ab0a4bea43bb085e1d4e4a/src/ci/docker).
+Upstream copyrights are retained by the Rust contributors. Those portions remain
+subject to Rust's [license terms and copyright notices](https://github.com/rust-lang/rust/blob/46e8d20301cb4abe91ab0a4bea43bb085e1d4e4a/COPYRIGHT).
+
+Third-party code and distributed artifacts, including Rust, LLVM, Clang, LLD,
+and their dependencies, remain subject to their respective licenses and
+copyright notices. The licenses of this repository do not relicense those
+components.
